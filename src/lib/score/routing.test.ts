@@ -9,6 +9,13 @@ test("haversine: Chicago to Milwaukee is about 82 miles", () => {
   const d = haversine(c("Chicago"), c("Milwaukee"));
   assert.ok(d > 75 && d < 90, String(d));
 });
+test("city names with a region suffix resolve, and a wrong state does not", () => {
+  assert.equal(findCity("Chicago, IL")?.name, "Chicago");
+  assert.equal(findCity("Austin, Texas, United States")?.name, "Austin");
+  assert.equal(findCity("Portland, ME"), undefined);
+  assert.equal(findCity("saint louis")?.name, "St. Louis");
+});
+
 test("cities are found in free text, longest name first", () => {
   assert.equal(cityIn("a show in Kansas City in May")?.name, "Kansas City");
   assert.equal(cityIn("find me an opener in nyc")?.name, "New York");

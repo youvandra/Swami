@@ -70,8 +70,15 @@ export const CITIES: City[] = [
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
 
 export function findCity(name: string): City | undefined {
-  const n = norm(name);
-  return CITIES.find((c) => norm(c.name) === n || c.aliases?.some((a) => norm(a) === n));
+  const match = (raw: string) => {
+    const n = norm(raw);
+    return CITIES.find((c) => norm(c.name) === n || c.aliases?.some((a) => norm(a) === n));
+  };
+  // "Chicago, IL", "Austin, Texas, United States": the first part names the city; a region that disagrees rules it out
+  const [head, region] = name.split(",").map((x) => x.trim());
+  const hit = match(name) ?? match(head);
+  if (hit && region && /^[A-Z]{2}$/.test(region) && hit.region !== region) return undefined;
+  return hit;
 }
 
 /** First city named in free text, longest name first so "Kansas City" beats nothing and "New York" beats "York". */
