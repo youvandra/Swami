@@ -1,0 +1,52 @@
+.section { padding: var(--section) 0; background: var(--paper); }
+.grid { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: clamp(40px, 6vw, 96px); align-items: start; }
+.head { display: grid; gap: 18px; position: sticky; top: 48px; }
+
+.list { border-top: 1px solid var(--line); }
+.item { border-bottom: 1px solid var(--line); }
+.q {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 24px 0;
+  font-size: 17.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+}
+.q::-webkit-details-marker { display: none; }
+.icon {
+  position: relative;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+}
+.icon::before,
+.icon::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 1.5px;
+  background: var(--text);
+  translate: -50% -50%;
+  transition: rotate 0.25s var(--ease);
+}
+.icon::after { rotate: 90deg; }
+.item[open] .icon { background: var(--navy); border-color: var(--navy); }
+.item[open] .icon::before,
+.item[open] .icon::after { background: var(--cyan); }
+.item[open] .icon::after { rotate: 0deg; }
+.a { padding: 0 52px 26px 0; font-size: 15.5px; line-height: 1.65; color: var(--muted); max-width: 44em; }
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+  .head { position: static; }
+  .a { padding-right: 0; }
+}
