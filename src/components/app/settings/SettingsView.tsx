@@ -1,5 +1,6 @@
 "use client";
 
+import { supabaseBrowser } from "@/lib/db/browser";
 import { useServerStatus } from "@/lib/status";
 import { toast } from "@/lib/toast";
 import { useEffect, useState } from "react";
@@ -103,6 +104,7 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
 
 function WorkspaceTab({ onToast }: { onToast: (m: string) => void }) {
   const ws = useWorkspace();
+  const { accounts } = useServerStatus();
   const [name, setName] = useState(ws.name);
   return (
     <>
@@ -145,18 +147,34 @@ function WorkspaceTab({ onToast }: { onToast: (m: string) => void }) {
       <Section title="Artists" hint="Quick tasks on a new chat start from these names.">
         <ChipInput label="Artists" values={ws.artists} onChange={(artists) => updateWorkspace({ artists })} placeholder="Add an artist" />
       </Section>
-      <Section title="Start over" hint="Clears every chat, project and setting in this browser and reloads the demo workspace.">
-        <div>
-          <button
-            className={s.danger}
-            onClick={() => {
-              if (window.confirm("Reset this workspace? Chats, projects, rosters and settings in this browser are deleted.")) resetWorkspace();
-            }}
-          >
-            Reset workspace
-          </button>
-        </div>
-      </Section>
+      {accounts ? (
+        <Section title="Account" hint="Your workspace is saved on the server and follows you to any browser.">
+          <div>
+            <button
+              className={s.danger}
+              onClick={async () => {
+                await supabaseBrowser().auth.signOut();
+                window.location.assign("/");
+              }}
+            >
+              Sign out
+            </button>
+          </div>
+        </Section>
+      ) : (
+        <Section title="Start over" hint="Clears every chat, project and setting in this browser and reloads the demo workspace.">
+          <div>
+            <button
+              className={s.danger}
+              onClick={() => {
+                if (window.confirm("Reset this workspace? Chats, projects, rosters and settings in this browser are deleted.")) resetWorkspace();
+              }}
+            >
+              Reset workspace
+            </button>
+          </div>
+        </Section>
+      )}
     </>
   );
 }
@@ -326,6 +344,15 @@ function DataTab() {
 }
 
 function BillingTab({ onToast }: { onToast: (m: string) => void }) {
+  const { accounts } = useServerStatus();
+  const [usage, setUsage] = useState<{ runs: number; qlooCalls: number } | null>(null);
+  useEffect(() => {
+    if (!accounts) return;
+    fetch("/api/usage")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((u) => u && setUsage(u))
+      .catch(() => {});
+  }, [accounts]);
   const ws = useWorkspace();
   const team = useTeam();
   const conversations = useConversations();
@@ -359,10 +386,23 @@ function BillingTab({ onToast }: { onToast: (m: string) => void }) {
       </Section>
       <Section title="This month">
         <dl className={s.usage}>
-          <div>
-            <dt>Results generated</dt>
-            <dd>{results}</dd>
-          </div>
+          {usage ? (
+            <>
+              <div>
+                <dt>Chat runs</dt>
+                <dd>{usage.runs}</dd>
+              </div>
+              <div>
+                <dt>Taste-graph calls</dt>
+                <dd>{usage.qlooCalls}</dd>
+              </div>
+            </>
+          ) : (
+            <div>
+              <dt>Results generated</dt>
+              <dd>{results}</dd>
+            </div>
+          )}
           <div>
             <dt>Seats</dt>
             <dd>{team.length}</dd>
