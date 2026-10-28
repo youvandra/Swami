@@ -47,7 +47,7 @@ export function draftProposal(template: ProposalTemplate, show: Show, picks: Pic
     sections = [
       { heading: "Recommendation", body: `Offer ${top.name} the support slot for ${show.headliner} ${at}, ${show.date}. Hold ${alt1.name} as first alternate and ${alt2.name} as second.` },
       { heading: "Evidence", body: `${top.why} Score ${top.score.toFixed(2)} against ${alt1.score.toFixed(2)} for ${alt1.name}.` },
-      { heading: "Risks", body: `${top.name}'s heat is strongest away from the venue's usual crowd, so the local push has to land. If the presale stays flat at two weeks out, move spend to the headliner's own neighbourhoods.` },
+      { heading: "Risks", body: `${facts.hoods.length ? `${top.name}'s new crowd lives in ${hoods}, so the local push there has to land.` : `The pick rests on taste fit more than on new neighbourhoods, so the headliner's own fans carry the presale.`} If the presale stays flat at two weeks out, move spend to the headliner's own neighbourhoods.` },
       { heading: "Ask", body: `Approve a guarantee within the support budget for ${room} and two weeks of neighbourhood ads.` },
     ];
   } else {
