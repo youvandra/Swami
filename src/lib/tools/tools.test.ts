@@ -42,6 +42,19 @@ test("rank_openers: a roster limits the field and keeps unknown acts, marked", a
   assert.equal(a.rows[a.rows.length - 1].name, "Nobody Yet");
 });
 
+test("roster names match loosely: case, a leading The, accents and ampersands", () => {
+  assert.equal(T.actKey("The Low Orchard"), T.actKey("low orchard!"));
+  assert.equal(T.actKey("Marlow & the Tide"), T.actKey("marlow and the tide"));
+  assert.equal(T.actKey("Beyoncé"), "beyonce");
+  assert.notEqual(T.actKey("Halcyon Drive"), T.actKey("Halcyon"));
+});
+
+test("a roster written loosely still finds its acts", async () => {
+  const a = valid(await T.rankOpenersTool(ctx(), { ...H, roster: { name: "Loose", acts: ["low orchard", "HALCYON DRIVE"] } }));
+  if (a.type !== "opener_ranking") return assert.fail();
+  assert.ok(a.rows.every((r) => r.onRoster && !r.estimated));
+});
+
 test("crowd_map, partners, audience follow the top pick", async () => {
   const c = ctx();
   const map = valid(await T.crowdMapTool(c, H));

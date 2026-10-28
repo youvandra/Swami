@@ -53,6 +53,18 @@ function findHeadliner(ctx: ToolContext, name: string): Promise<Entity> {
   return step(ctx, "Found the headliner in the taste graph", () => resolveArtist(ctx, name), (h) => h.name);
 }
 
+/** "The Low Orchard", "Low Orchard" and "low orchard!" are one act; "&" and "and" are one word. */
+export const actKey = (name: string) =>
+  name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, " and ")
+    .replace(/^the\s+/, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+const sameAct = (a: string, b: string) => actKey(a) === actKey(b);
+
 // ── openers ────────────────────────────────────────────────────────────────────────────────────────────────
 
 export type RankInput = { headliner: string; city?: string; date?: string; venue?: string; capacity?: number; roster?: { name: string; acts: string[] }; risingOnly?: boolean; exclude?: string[] };
@@ -97,7 +109,7 @@ function ranking(ctx: ToolContext, input: RankInput): Promise<Ranking> {
       const found = await step(
         ctx,
         `Matched ${input.roster.name}`,
-        () => Promise.all(acts.map((a) => once(ctx, `search:${a.trim().toLowerCase()}`, () => ctx.q.search(a, "artist", 3)).then((h) => h.find((x) => x.name.toLowerCase() === a.trim().toLowerCase()) ?? null))),
+        () => Promise.all(acts.map((a) => once(ctx, `search:${a.trim().toLowerCase()}`, () => ctx.q.search(a, "artist", 3)).then((h) => h.find((x) => sameAct(x.name, a)) ?? null))),
         (f) => `${f.filter(Boolean).length} of ${acts.length} acts known to Qloo`,
       );
       acts.forEach((a, i) => (found[i] ? undefined : unknown.push(a)));
@@ -122,7 +134,7 @@ function ranking(ctx: ToolContext, input: RankInput): Promise<Ranking> {
       ([, , h]) => (headHeat.length ? `${headHeat.length} neighbourhoods, ${pool.length} acts${h.some((x) => x.estimated) ? `, ${h.filter((x) => x.estimated).length} from their scene` : ""}` : `no neighbourhood heat for ${show.city} yet`),
     );
 
-    const rosterSet = new Set((input.roster?.acts ?? []).map((a) => a.trim().toLowerCase()));
+    const rosterSet = new Set((input.roster?.acts ?? []).map(actKey));
     const candidates: OpenerCandidate[] = pool.map((p, i) => ({
       id: p.id,
       name: p.name,
@@ -136,7 +148,7 @@ function ranking(ctx: ToolContext, input: RankInput): Promise<Ranking> {
       heat: heats[i].cells,
       estimated: heats[i].estimated,
       rising: risingIds.has(p.id),
-      onRoster: rosterSet.has(p.name.toLowerCase()),
+      onRoster: rosterSet.has(actKey(p.name)),
     }));
     // Roster acts Qloo has never heard of rank at the bottom of the field's fit, with no heat, and say so.
     const floor = Math.min(...candidates.map((c) => c.affinity), 0.4);
