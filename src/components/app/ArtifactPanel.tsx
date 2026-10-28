@@ -11,9 +11,10 @@ import { ProposalView } from "./artifacts/ProposalView";
 import { RoutingView } from "./artifacts/RoutingView";
 import { SponsorsView } from "./artifacts/SponsorsView";
 import { VenuesView } from "./artifacts/VenuesView";
-import { toMarkdown, toPlainText } from "./artifacts/export";
+import { toPlainText } from "./artifacts/export";
 import { ARTIFACT_LABEL, artifactIcon } from "./artifacts/meta";
-import { IconClose, IconCopy, IconDownload } from "./icons";
+import { ExportMenu } from "./ExportMenu";
+import { IconClose, IconCopy } from "./icons";
 import { SaveMenu } from "./SaveMenu";
 import s from "./ArtifactPanel.module.css";
 
@@ -32,17 +33,6 @@ type Props = {
 
 export function ArtifactPanel({ artifacts, activeId, onSelect, onClose, onAsk, onToast, conversationId, defaultProjectId }: Props) {
   const active = artifacts.find((a) => a.id === activeId) ?? artifacts[artifacts.length - 1];
-
-  const download = () => {
-    const { name, body, type } = toMarkdown(active);
-    const url = URL.createObjectURL(new Blob([body], { type }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = name;
-    a.click();
-    URL.revokeObjectURL(url);
-    onToast(`Downloaded ${name}`);
-  };
 
   const copy = async () => {
     try {
@@ -83,10 +73,7 @@ export function ArtifactPanel({ artifacts, activeId, onSelect, onClose, onAsk, o
           <button className={s.action} onClick={copy} aria-label="Copy">
             <IconCopy />
           </button>
-          <button className={`${s.action} ${s.primary}`} onClick={download}>
-            <IconDownload />
-            <span>Export</span>
-          </button>
+          <ExportMenu artifact={active} onToast={onToast} className={`${s.action} ${s.primary}`} />
         </div>
       </div>
 

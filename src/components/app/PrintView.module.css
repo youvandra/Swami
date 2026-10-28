@@ -1,0 +1,6 @@
+.sheet { min-height: 100vh; background: #fff; padding: 48px 24px; }
+.missing { padding: 48px 24px; text-align: center; color: var(--muted); }
+
+@media print {
+  .sheet { padding: 0; min-height: 0; }
+}

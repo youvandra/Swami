@@ -2,6 +2,7 @@
 // and returns the same shapes the real agent will. Every name and number here is illustrative.
 
 import { CHICAGO_HOODS } from "../crowdmap";
+import { draftProposal, templateOf } from "../proposal";
 import type { Artifact, ChatRequest, ChatResponse, Mode, OpenerRow, Show, Step } from "./types";
 
 type Kind = Exclude<Mode, "auto">;
@@ -70,38 +71,25 @@ const map = (show: Show, opener: string): Artifact => ({
   hoods: CHICAGO_HOODS,
 });
 
-function proposal(show: Show): Artifact {
+function proposal(show: Show, text: string): Artifact {
   const picks = rankedOpeners()
     .slice(0, 3)
     .map(({ name, score, why }) => ({ name, score, why }));
+  const template = /sponsor|brand/i.test(text) ? "sponsor" : /memo|internal/i.test(text) ? "memo" : "promoter";
+  const d = draftProposal(template, show, picks);
   return {
     id: uid(),
     type: "proposal",
-    title: `Opener proposal · ${show.headliner}, ${show.city}`,
-    subtitle: "Draft · 4 sections",
+    title: d.title,
+    subtitle: `Draft · ${d.sections.length} sections`,
     show,
-    to: `${show.headliner} management`,
+    template: d.template,
+    headline: d.headline,
+    to: d.to,
     from: "Northside Live, talent buying",
     date: "28 Oct 2026",
     picks,
-    sections: [
-      {
-        heading: "Summary",
-        body: `We propose ${picks[0].name} to open for ${show.headliner} at ${show.venue}, ${show.city}, on ${show.date}. Their fans rate ${show.headliner} highly, and they live in the parts of the city where today's presale is thinnest.`,
-      },
-      {
-        heading: "Why this pairing sells",
-        body: `${picks[0].why} The added crowd sits mostly in Logan Square and Pilsen, about a 15-minute ride from the venue.`,
-      },
-      {
-        heading: "Local push",
-        body: "Two weeks of neighbourhood ads in Logan Square, Pilsen and Avondale, co-promotion with Two Moons Bar and Sola Records, and one promo link per segment so the door count shows what worked.",
-      },
-      {
-        heading: "Terms to confirm",
-        body: `A 30-minute set, a guarantee within the support budget for a ${show.capacity.toLocaleString("en-US")}-cap room, and shared backline. Alternates: ${picks[1].name} and ${picks[2].name}.`,
-      },
-    ],
+    sections: d.sections,
   };
 }
 
@@ -319,11 +307,15 @@ export function mockReply(req: ChatRequest): ChatResponse {
       artifacts: [audience(show, opener)],
       title: `Audience · ${show.headliner} + ${opener}`,
     }),
-    proposal: () => ({
-      text: `Here is a draft proposal for ${show.headliner} in ${show.city}. It leads with ${opener} and lists two alternates. Edit any section, then export or send it.`,
-      artifacts: [proposal(show)],
-      title: `Proposal · ${show.headliner}`,
-    }),
+    proposal: () => {
+      const a = proposal(show, last);
+      const label = a.type === "proposal" ? templateOf(a.template).label : "Proposal";
+      return {
+        text: `Here is a draft ${label.toLowerCase()} for ${show.headliner} in ${show.city}, built on ${opener} and two alternates. Edit any line on the page, switch the template, or export it to PDF or Word.`,
+        artifacts: [a],
+        title: `${label} · ${show.headliner}`,
+      };
+    },
     email: () => ({
       text: "Here is a draft. Edit the subject or body, then copy it or open it in your mail app.",
       artifacts: [email(show, last)],

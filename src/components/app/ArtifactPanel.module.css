@@ -76,6 +76,7 @@
 .action:hover { background: var(--mist); }
 .primary { background: var(--navy); border-color: var(--navy); color: #fff; }
 .primary svg { color: var(--cyan); }
+.primary svg:last-child:not(:first-child) { width: 12px; height: 12px; color: rgba(255, 255, 255, 0.7); }
 .primary:hover { background: #12253a; }
 
 .body { min-height: 0; overflow-y: auto; }

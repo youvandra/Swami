@@ -96,3 +96,9 @@ a { color: inherit; text-decoration: none; }
 .button-line:hover { border-color: rgba(10, 15, 21, 0.28); }
 .button-glass { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.16); color: #fff; }
 .button-glass:hover { background: rgba(255, 255, 255, 0.1); }
+
+@page { margin: 18mm 16mm; }
+@media print {
+  body { background: #fff; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

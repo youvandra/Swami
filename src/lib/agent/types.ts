@@ -27,7 +27,9 @@ export type OpenerRow = {
 
 export type Hood = { name: string; x: number; y: number; headliner: number; opener: number };
 
-export type ProposalSection = { heading: string; body: string };
+export type ProposalSection = { id?: string; heading: string; body: string };
+
+export type ProposalTemplate = "promoter" | "sponsor" | "memo";
 
 export type RouteStop = {
   city: string;
@@ -55,6 +57,8 @@ export type Artifact =
   | (Base & {
       type: "proposal";
       show: Show;
+      template?: ProposalTemplate; // missing on drafts made before templates existed: "promoter"
+      headline?: string;
       to: string;
       from: string;
       date: string;

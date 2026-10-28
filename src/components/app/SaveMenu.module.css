@@ -84,3 +84,9 @@
   .trigger span { display: none; }
   .menu { right: auto; left: 0; }
 }
+
+/* export options carry a second line */
+.menu li button.option { height: auto; align-items: flex-start; padding: 9px 8px; }
+.option svg { width: 15px; height: 15px; flex: none; margin-top: 2px; color: var(--teal); }
+.option .name { white-space: normal; font-weight: 500; }
+.menu .hint { display: block; margin-top: 1px; font-size: 12px; font-weight: 400; color: var(--muted); }

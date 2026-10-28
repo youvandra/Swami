@@ -1,10 +1,63 @@
 .desk {
   min-height: 100%;
-  padding: 28px 24px 48px;
+  padding: 0 24px 48px;
   background-color: var(--mist);
   background-image: radial-gradient(rgba(10, 15, 21, 0.08) 1px, transparent 1.3px);
   background-size: 9px 9px;
 }
+.print { background: #fff; }
+
+/* ---------- editor toolbar ---------- */
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  max-width: 640px;
+  margin: 0 auto 18px;
+  padding: 14px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--mist);
+  box-shadow: 0 10px 12px -12px rgba(9, 19, 31, 0.25);
+}
+.template {
+  position: relative;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 28px 0 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid var(--line);
+  font-size: 13px;
+  cursor: pointer;
+}
+.template span { color: var(--muted); }
+.template b { font-weight: 600; }
+.template svg { position: absolute; right: 10px; width: 12px; height: 12px; color: var(--muted); }
+.template select { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 16px; }
+.template:focus-within { border-color: rgba(14, 58, 69, 0.45); }
+.stats { font-size: 12px; color: var(--muted); }
+.add {
+  margin-left: auto;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+}
+.add svg { width: 14px; height: 14px; color: var(--cyan); }
+.add:hover { background: #12253a; }
+
+/* ---------- the page ---------- */
 .page {
   max-width: 640px;
   margin: 0 auto;
@@ -15,6 +68,7 @@
   display: grid;
   gap: 28px;
 }
+.print .page { box-shadow: none; border-radius: 0; padding: 0; max-width: 680px; }
 .cover { display: grid; gap: 12px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--teal); }
 .logo { width: 20px; height: 20px; }
@@ -31,10 +85,30 @@
 .meta dt { font-size: 11px; color: var(--muted); }
 .meta dd { margin-top: 2px; font-size: 13px; font-weight: 600; }
 
-.section { display: grid; gap: 10px; }
+.section { position: relative; display: grid; gap: 10px; }
 .section h2 { display: flex; align-items: baseline; gap: 10px; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
-.section h2 span { font-family: var(--font-serif); font-stretch: 76%; font-weight: 360; font-size: 15px; color: rgba(10, 15, 21, 0.38); }
-.section p { font-size: 14.5px; line-height: 1.7; color: #2b3a46; }
+.num { flex: none; font-family: var(--font-serif); font-stretch: 76%; font-weight: 360; font-size: 15px; color: rgba(10, 15, 21, 0.38); }
+.heading { min-width: 2em; }
+.body { font-size: 14.5px; line-height: 1.7; color: #2b3a46; white-space: pre-wrap; }
+.body:empty::before { content: attr(data-placeholder); color: #9aa6b0; }
+
+/* section tools sit in the page's right margin */
+.secTools {
+  position: absolute;
+  top: -4px;
+  right: -40px;
+  display: grid;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.section:hover .secTools,
+.section:focus-within .secTools { opacity: 1; }
+.secTools button { width: 28px; height: 26px; display: grid; place-items: center; border-radius: 7px; color: var(--muted); }
+.secTools button:hover:not(:disabled) { background: var(--mist); color: var(--text); }
+.secTools button:disabled { opacity: 0.3; cursor: default; }
+.secTools svg { width: 14px; height: 14px; }
+.up { rotate: 180deg; }
 
 .page [contenteditable] { border-radius: 4px; outline: 0; transition: box-shadow 0.15s, background 0.15s; }
 .page [contenteditable]:hover { background: rgba(70, 220, 236, 0.07); }
@@ -46,11 +120,32 @@
 .picks td span { display: block; margin-top: 3px; font-size: 13px; line-height: 1.5; color: var(--muted); }
 .pickRank { width: 32px; font-family: var(--font-serif); font-stretch: 76%; font-size: 20px; color: var(--teal); }
 .pickScore { width: 56px; text-align: right; font-family: var(--font-serif); font-stretch: 76%; font-size: 20px; font-variant-numeric: tabular-nums; }
+.pickTool { width: 34px; text-align: right; }
+.pickTool button { width: 26px; height: 26px; display: inline-grid; place-items: center; border-radius: 7px; color: var(--muted); opacity: 0; }
+.picks tr:hover .pickTool button,
+.pickTool button:focus-visible { opacity: 1; }
+.pickTool button:hover { background: var(--mist); color: var(--text); }
+.pickTool svg { width: 13px; height: 13px; }
 .foot { padding-top: 16px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); }
 
+@media (hover: none) {
+  .secTools,
+  .pickTool button { opacity: 1; }
+}
+@media (max-width: 760px) {
+  .secTools { position: static; display: flex; justify-content: flex-end; opacity: 1; }
+}
 @media (max-width: 640px) {
-  .desk { padding: 14px 10px 32px; }
+  .desk { padding: 0 10px 32px; }
   .page { padding: 28px 22px; }
   .h1 { font-size: 32px; }
   .meta { grid-template-columns: 1fr; }
+  .stats { display: none; }
+}
+
+@media print {
+  .section:not(:has(table)),
+  .picks tr { break-inside: avoid; }
+  .section h2 { break-after: avoid; }
+  .page [contenteditable] { box-shadow: none; background: none; }
 }
