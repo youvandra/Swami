@@ -4,9 +4,12 @@ import type { OpenerRow } from "../agent/types.ts";
 import type { HeatCell } from "../qloo/types.ts";
 import { addedCrowd, hoodHeat, topAdded } from "./heat.ts";
 import { clamp01, listing, ordinal, round2, standing } from "./normalize.ts";
+import { drawsBigger } from "./size.ts";
 
 export const A = 0.6;
 export const B = 0.4;
+/** Score kept by an act that draws bigger than the headliner. */
+export const BIGGER = 0.5;
 export const scoreOf = (fit: number, reachGain: number) => round2(clamp01(fit) ** A * clamp01(reachGain) ** B);
 
 export type OpenerCandidate = {
@@ -25,10 +28,12 @@ export type OpenerCandidate = {
   estimated: boolean;
   rising: boolean;
   onRoster: boolean;
+  popularity?: number;
 };
 
 export type RankInput = {
   headliner: string;
+  headlinerPopularity?: number;
   /** Affinities of the headliner's whole related list, and of its city-signal list, that the pool came from. */
   field?: { related: number[]; city?: number[] };
   headlinerHeat: HeatCell[];
@@ -44,7 +49,7 @@ export type RankInput = {
  */
 const fitsOf = (affinities: number[], field?: number[]) => affinities.map((a) => standing(a, field));
 
-export function rankOpeners({ headliner, headlinerHeat, candidates, field, exclude = [] }: RankInput): (OpenerRow & { id: string })[] {
+export function rankOpeners({ headliner, headlinerPopularity, headlinerHeat, candidates, field, exclude = [] }: RankInput): (OpenerRow & { id: string })[] {
   const skip = new Set(exclude.map((x) => x.toLowerCase()));
   const pool = candidates.filter((c) => !skip.has(c.name.toLowerCase()) && !skip.has(c.id));
   if (pool.length === 0) return [];
@@ -71,7 +76,11 @@ export function rankOpeners({ headliner, headlinerHeat, candidates, field, exclu
       // Half "how much of this act's crowd is new", half "how big that new crowd is next to the others".
       const reachGain = round2(0.5 * raw[i].share + 0.5 * (maxGain > 0 ? raw[i].gain / maxGain : 0));
       const hoods = topAdded(headlinerHeat, c.heat, 2).map((h) => h.name);
-      return { id: c.id, name: c.name, genre: c.genre, fit, reachGain, score: scoreOf(fit, reachGain), why: whyOf(headliner, c, hoods, reachGain), hoods, onRoster: c.onRoster, rising: c.rising, estimated: c.estimated };
+      // a bigger draw stays on the list, demoted, with the reason first
+      const bigger = drawsBigger(c.popularity, headlinerPopularity);
+      const score = round2(scoreOf(fit, reachGain) * (bigger ? BIGGER : 1));
+      const why = `${bigger ? `Draws bigger than ${headliner}, so it fits as a co-headliner. ` : ""}${whyOf(headliner, c, hoods, reachGain)}`;
+      return { id: c.id, name: c.name, genre: c.genre, fit, reachGain, score, why, hoods, onRoster: c.onRoster, rising: c.rising, estimated: c.estimated, ...(bigger && { bigger }) };
     })
     .sort((a, b) => b.score - a.score || b.fit - a.fit || a.name.localeCompare(b.name));
 }

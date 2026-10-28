@@ -8,3 +8,12 @@ export const sizeFromPopularity = (p: number | undefined): Size => ((p ?? 0) >= 
 export const sizeFromCapacity = (cap: number): Size => (cap >= 12_000 ? "arena" : cap >= 3_000 ? "hall" : "club");
 
 export const SIZE_LABEL: Record<Size, string> = { club: "club-size", hall: "theatre-size", arena: "stadium-size" };
+
+/**
+ * An act that draws clearly bigger than the headliner is a co-headliner: its popularity sits closer to the top of
+ * the scale (Phoebe Bridgers 0.994 against Big Thief 0.991 is 0.56 of the distance). Without both numbers, no call.
+ */
+export function drawsBigger(act: number | undefined, headliner: number | undefined): boolean {
+  if (act === undefined || headliner === undefined) return false;
+  return 1 - act < 0.75 * (1 - headliner);
+}

@@ -155,12 +155,13 @@ function ranking(ctx: ToolContext, input: RankInput): Promise<Ranking> {
       estimated: heats[i].estimated,
       rising: risingIds.has(p.id),
       onRoster: rosterSet.has(actKey(p.name)),
+      popularity: p.popularity,
     }));
     // Roster acts Qloo has never heard of rank at the bottom of the field's fit, with no heat, and say so.
     const floor = Math.min(...candidates.map((c) => c.affinity), 0.4);
     for (const name of unknown) candidates.push({ id: `unknown:${name}`, name, genre: "From roster", affinity: floor * 0.9, heat: [], estimated: true, rising: false, onRoster: true });
 
-    const rows = await step(ctx, "Scored every act", async () => rankOpeners({ headliner: head.name, headlinerHeat: headHeat, candidates, exclude: input.exclude, field: { related: related.map((r) => r.affinity ?? 0), city: local.map((r) => r.affinity ?? 0) } }), () => `fit × reach gain${input.roster ? ", roster filter on" : ""}`);
+    const rows = await step(ctx, "Scored every act", async () => rankOpeners({ headliner: head.name, headlinerPopularity: head.popularity, headlinerHeat: headHeat, candidates, exclude: input.exclude, field: { related: related.map((r) => r.affinity ?? 0), city: local.map((r) => r.affinity ?? 0) } }), () => `fit × reach gain${input.roster ? ", roster filter on" : ""}`);
     for (const r of rows) if (r.id.startsWith("unknown:")) r.why = "Qloo has no profile for this act yet, so it sits below the field on fit with no heat of its own. Add it again once it has releases out.";
     return { show, head, headHeat, rows, heatByAct: new Map(pool.map((p, i) => [p.id, heats[i].cells])), related: related.length };
   });

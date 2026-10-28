@@ -94,6 +94,7 @@ export function OpenerRanking({ artifact, onAsk, onShowMap }: { artifact: Rankin
                   <b>{r.name}</b>
                   <span className={s.meta}>
                     {r.genre}
+                    {r.bigger && <em className={`${s.tag} ${s.est}`} data-tip="Draws bigger than the headliner">Co-headliner</em>}
                     {r.rising && <em className={s.tag}>Rising</em>}
                     {r.estimated && <em className={`${s.tag} ${s.est}`}>Estimated</em>}
                     {anyRoster && !r.onRoster && <em className={`${s.tag} ${s.off}`}>Off roster</em>}

@@ -53,3 +53,18 @@ test("the act its fans rank first keeps the top fit even when it is famous", () 
   const fit = Object.fromEntries(rows.map((r) => [r.name, r.fit]));
   assert.ok(fit.famous > fit.niche, JSON.stringify(fit));
 });
+test("an act that draws bigger than the headliner is demoted as a co-headliner, never dropped", () => {
+  // popularity as Qloo had it on 29 Oct: Phoebe Bridgers 0.9944, Big Thief 0.9910, Lucy Dacus 0.9822
+  const rows = rankOpeners({
+    headliner: "Big Thief",
+    headlinerPopularity: 0.991,
+    headlinerHeat: head,
+    candidates: [cand("Phoebe Bridgers", 0.9, { South: 1 }, { popularity: 0.9944 }), cand("Lucy Dacus", 0.8, { South: 0.8 }, { popularity: 0.9822 })],
+  });
+  assert.deepEqual(rows.map((r) => r.name), ["Lucy Dacus", "Phoebe Bridgers"]);
+  assert.equal(rows[1].bigger, true);
+  assert.equal(rows[0].bigger, undefined);
+  assert.match(rows[1].why, /^Draws bigger than Big Thief, so it fits as a co-headliner\./);
+  // with no popularity on either side, nobody is called bigger
+  assert.equal(rankOpeners({ headliner: "H", headlinerHeat: head, candidates: [cand("x", 0.5, {}, { popularity: 0.9999 })] })[0].bigger, undefined);
+});

@@ -26,6 +26,7 @@ export type OpenerRow = {
   onRoster: boolean;
   rising: boolean;
   estimated: boolean; // fell back to genre/tag heat
+  bigger?: boolean; // draws bigger than the headliner: a co-headliner, demoted
 };
 
 export type Hood = { name: string; x: number; y: number; headliner: number; opener: number };
