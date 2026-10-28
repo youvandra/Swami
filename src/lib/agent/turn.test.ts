@@ -145,7 +145,7 @@ test("'none of these' runs no tools, shows no cards again and asks for a hint", 
   }
   // the hint searches again without the acts turned down: nothing else is called Marlow in the fixture
   const { ctx } = await answer("None of these", { choices: first });
-  const retry = await answer("the one from Seoul", { entities: ctx.entities });
+  const retry = await answer("the one with Ty Segall vibes, from Seoul", { entities: ctx.entities });
   assert.match(retry.out.text, /Still nothing for Marlow/);
   assert.equal(retry.out.choices, undefined);
   // and asking again by the same name never shows the rejected cards

@@ -24,6 +24,8 @@ const ORDINALS = [
 const FILLER = new Set(["the", "one", "that", "this", "band", "artist", "singer", "act", "from", "with", "who", "yang", "dari", "mean", "meant"]);
 const words = (t: string) => t.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3 && !FILLER.has(w));
 
+const ASKING = /\b(?:find|which|who|route|venues?|openers?|sponsors?|proposal|email|audience|partners?|map|draft|write)\b/i;
+
 export type Answer = { kind: "none" } | { kind: "pick"; option: Choice };
 
 /** What a free-text reply to the cards means, or null when it is a new question. */
@@ -98,9 +100,9 @@ export async function answerCards(ctx: ToolContext, req: ChatRequest, text: stri
   const key = waiting.slice(RETRY.length);
   const ask = ctx.entities[waiting];
   delete ctx.entities[waiting];
-  // a whole new question about someone else drops the search
+  // a whole new question about someone else drops the search; "the one with Ty Segall vibes" is still a hint
   const named = headlinerIn(text);
-  if (named && !named.toLowerCase().includes(key)) return null;
+  if (named && !named.toLowerCase().includes(key) && ASKING.test(text)) return null;
   const id = text.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0];
   if (id) {
     ctx.entities[key] = id;
@@ -112,16 +114,20 @@ export async function answerCards(ctx: ToolContext, req: ChatRequest, text: stri
   const seen = new Set<string>();
   const pool = [...withHint.candidates, ...plain.candidates].filter((c) => !seen.has(c.id) && seen.add(c.id));
   const said = new Set(words(hint));
-  const score = (c: Candidate) => words([c.name, c.genre, c.detail].filter(Boolean).join(" ")).filter((w) => said.has(w)).length;
-  const ranked = pool.map((c) => ({ c, n: score(c) + (withHint.candidates.includes(c) ? 1 : 0) })).sort((a, b) => b.n - a.n || (b.c.popularity ?? 0) - (a.c.popularity ?? 0));
+  // how many of the hint's words the act's name, genre or blurb has
+  const score = (c: Candidate) => new Set(words([c.name, c.genre, c.detail].filter(Boolean).join(" ")).filter((w) => said.has(w))).size;
+  const ranked = pool.map((c) => ({ c, n: score(c) })).sort((a, b) => b.n - a.n || Number(withHint.candidates.includes(b.c)) - Number(withHint.candidates.includes(a.c)) || (b.c.popularity ?? 0) - (a.c.popularity ?? 0));
   if (ranked.length === 0) {
     ctx.entities[waiting] = ask;
     return say(emit, `Still nothing for ${name} with that. Try the spelling on the act's own pages, or paste a Qloo link.`);
   }
-  if (ranked.length === 1 || (ranked[0].n > 0 && ranked[0].n > ranked[1].n)) {
-    ctx.entities[key] = ranked[0].c.id;
-    ctx.entities[ranked[0].c.name.toLowerCase()] = ranked[0].c.id;
-    return { ask };
+  // one act left, or the only one every word of the hint fits: settle it, and re-ask by its full name
+  const whole = ranked.filter((r) => said.size > 0 && r.n === said.size);
+  const pick = ranked.length === 1 ? ranked[0].c : whole.length === 1 ? whole[0].c : undefined;
+  if (pick) {
+    ctx.entities[key] = pick.id;
+    ctx.entities[pick.name.toLowerCase()] = pick.id;
+    return { ask: ask.includes(name) ? ask.replace(name, pick.name) : `${ask} (${pick.name})` };
   }
   return say(emit, `Here is what else the taste graph has for ${name}. Which one is it?`, cardsFor(name, key, ask, ranked.map((r) => r.c)));
 }
