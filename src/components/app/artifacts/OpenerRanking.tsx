@@ -24,6 +24,9 @@ export function OpenerRanking({ artifact, onAsk, onShowMap }: { artifact: Rankin
   const [filter, setFilter] = useState<Filter>("all");
   const [open, setOpen] = useState<string | null>(artifact.rows[0]?.name ?? null);
   const { show } = artifact;
+  // roster badges and the roster filter only mean something when a roster shaped the ranking
+  const anyRoster = artifact.rows.some((r) => r.onRoster);
+  const filters = anyRoster ? FILTERS : FILTERS.filter((f) => f.id !== "roster");
 
   const rows = useMemo(
     () => artifact.rows.filter((r) => (filter === "roster" ? r.onRoster : filter === "rising" ? r.rising : true)),
@@ -56,7 +59,7 @@ export function OpenerRanking({ artifact, onAsk, onShowMap }: { artifact: Rankin
 
       <div className={s.toolbar}>
         <div className={s.filters} role="radiogroup" aria-label="Filter">
-          {FILTERS.map((f) => (
+          {filters.map((f) => (
             <button key={f.id} role="radio" aria-checked={filter === f.id} onClick={() => setFilter(f.id)}>
               {f.label}
             </button>
@@ -92,7 +95,7 @@ export function OpenerRanking({ artifact, onAsk, onShowMap }: { artifact: Rankin
                     {r.genre}
                     {r.rising && <em className={s.tag}>Rising</em>}
                     {r.estimated && <em className={`${s.tag} ${s.est}`}>Estimated</em>}
-                    {!r.onRoster && <em className={`${s.tag} ${s.off}`}>Off roster</em>}
+                    {anyRoster && !r.onRoster && <em className={`${s.tag} ${s.off}`}>Off roster</em>}
                   </span>
                 </span>
                 <span className={s.metric}>
