@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Artifact } from "@/lib/agent/types";
-import { MAP_H, MAP_W, buildDots, heat, type Layer } from "@/lib/crowdmap";
+import { MAP_H, MAP_W, buildDots, heat, isNamed, type Layer } from "@/lib/crowdmap";
 import s from "./CrowdMapView.module.css";
 
 type CrowdMap = Extract<Artifact, { type: "crowd_map" }>;
@@ -15,9 +15,12 @@ export function CrowdMapView({ artifact }: { artifact: CrowdMap }) {
     () =>
       hoods
         .map((h) => ({ ...h, gain: heat(hoods, "gain", h.x, h.y), hl: heat(hoods, "headliner", h.x, h.y), op: heat(hoods, "opener", h.x, h.y) }))
-        .sort((a, b) => b.gain - a.gain),
+        .sort((a, b) => b.gain - a.gain)
+        .map((h, i, all) => ({ ...h, label: isNamed(h) ? h.name : `Area ${i + 1} of ${all.length}` })),
     [hoods],
   );
+  // label the neighbourhoods that matter most; a dense map with every name on it is unreadable
+  const pins = rows.filter(isNamed).slice(0, 7);
 
   const layers: { id: Layer; label: string }[] = [
     { id: "headliner", label: show.headliner },
@@ -39,7 +42,7 @@ export function CrowdMapView({ artifact }: { artifact: CrowdMap }) {
           {dots.map((d) => (
             <rect key={`${d.x}-${d.y}`} x={d.x} y={d.y} width={d.size} height={d.size} rx={1} fill={d.fill} />
           ))}
-          {hoods.map((h) => (
+          {pins.map((h) => (
             <g key={h.name} className={s.pin}>
               <circle cx={h.x} cy={h.y} r={2.2} />
               <text x={h.x + 6} y={h.y + 3}>
@@ -65,9 +68,9 @@ export function CrowdMapView({ artifact }: { artifact: CrowdMap }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
+          {rows.slice(0, 12).map((r) => (
             <tr key={r.name}>
-              <td>{r.name}</td>
+              <td>{r.label}</td>
               <td>{Math.round(r.hl * 100)}</td>
               <td>{Math.round(r.op * 100)}</td>
               <td>

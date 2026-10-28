@@ -2,7 +2,7 @@
 // Heat at a point is a sum of gaussian bumps centred on each neighbourhood.
 
 import type { Hood } from "./agent/types";
-import { OVERLAP } from "./score/heat";
+import { OVERLAP } from "./score/heat.ts";
 
 export type Layer = "headliner" | "opener" | "gain";
 
@@ -24,11 +24,22 @@ const nearHood = (hoods: Hood[]) => (x: number, y: number) => hoods.some((h) => 
 export const outlineFor = (city: string | undefined, hoods: Hood[]) => (!city || city.toLowerCase() === "chicago" ? inChicago : nearHood(hoods));
 
 const RADIUS = 56;
+// A handful of neighbourhoods add up; dense heatmap cells already tile the city, and summing them would
+// saturate every dot, so past a dozen the nearest strong cell sets the value.
+const DENSE = 12;
 function field(hoods: Hood[], key: "headliner" | "opener", x: number, y: number) {
   let v = 0;
-  for (const h of hoods) v += h[key] * Math.exp(-((x - h.x) ** 2 + (y - h.y) ** 2) / (RADIUS * RADIUS));
+  const dense = hoods.length > DENSE;
+  const r2 = dense ? (RADIUS * 0.6) ** 2 : RADIUS * RADIUS;
+  for (const h of hoods) {
+    const b = h[key] * Math.exp(-((x - h.x) ** 2 + (y - h.y) ** 2) / r2);
+    v = dense ? Math.max(v, b) : v + b;
+  }
   return Math.min(1, v);
 }
+
+/** Cells from a boundary without names carry their position as the name; they get no label. */
+export const isNamed = (h: Hood) => !/^-?\d+\.\d+,-?\d+\.\d+$/.test(h.name);
 
 export function heat(hoods: Hood[], layer: Layer, x: number, y: number) {
   const h = field(hoods, "headliner", x, y);
