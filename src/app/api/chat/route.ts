@@ -2,7 +2,11 @@ import { encodeEvent, type AgentEvent } from "@/lib/agent/events";
 import { runChat } from "@/lib/agent/run";
 import { uid } from "@/lib/tools/context";
 import { env } from "@/lib/env";
+import { limiter } from "@/lib/ratelimit";
 import { z } from "zod";
+
+// 10 runs a minute per visitor keeps one runaway tab from spending the workspace's Qloo budget
+const perMinute = limiter(10, 60_000);
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +30,11 @@ const body = z.object({
 
 // Streams the turn as server-sent events; `Accept: application/json` gets one JSON reply (used by tests).
 export async function POST(req: Request) {
+  const who = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "local";
+  if (!perMinute.take(who)) {
+    const wait = perMinute.retryAfter(who);
+    return Response.json({ error: `That is a lot of questions at once. Try again in ${wait} seconds.` }, { status: 429, headers: { "retry-after": String(wait) } });
+  }
   const parsed = body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Invalid request", issues: parsed.error.issues.slice(0, 5) }, { status: 400 });
   const chat = parsed.data;

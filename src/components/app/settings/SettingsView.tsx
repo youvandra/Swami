@@ -1,5 +1,6 @@
 "use client";
 
+import { useServerStatus } from "@/lib/status";
 import { toast } from "@/lib/toast";
 import { useEffect, useState } from "react";
 import { ROLES, type Member, type Workspace } from "@/lib/model";
@@ -295,16 +296,19 @@ function RostersTab({ onToast }: { onToast: (m: string) => void }) {
 }
 
 const SOURCES = [
-  { name: "Taste graph", by: "Qloo", status: "Demo data", note: "Artist affinity, neighbourhood heat, places, brands and demographics. Live once the API key is connected.", tone: "demo" },
   { name: "Ticketing", by: "Your ticketing system", status: "Ready to connect", note: "Joins door counts to promo links so rankings learn from what sold. Venue group plan.", tone: "off" },
   { name: "Mailing list", by: "Your email tool", status: "Ready to connect", note: "Sends approved drafts and tracks replies from agents, venues and sponsors.", tone: "off" },
 ] as const;
 
 function DataTab() {
+  const live = useServerStatus().data === "live";
+  const taste = live
+    ? { name: "Taste graph", by: "Qloo", status: "Live", note: "Artist affinity, neighbourhood heat, places, brands and demographics, fetched for every answer.", tone: "live" }
+    : { name: "Taste graph", by: "Qloo", status: "Demo data", note: "Artist affinity, neighbourhood heat, places, brands and demographics. Every name and number is made up until the API key is connected.", tone: "demo" };
   return (
     <Section title="Data sources" hint="Where Swami's numbers come from. Every score in the app is labelled with its source.">
       <ul className={s.sources}>
-        {SOURCES.map((src) => (
+        {[taste, ...SOURCES].map((src) => (
           <li key={src.name}>
             <div>
               <b>{src.name}</b>

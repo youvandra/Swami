@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { AgentEvent } from "@/lib/agent/events";
 import type { Artifact, Choice, Conversation, Message, Mode, Step } from "@/lib/agent/types";
 import { readEvents } from "@/lib/sse";
+import { useServerStatus } from "@/lib/status";
 import { ROLES } from "@/lib/model";
 import { deleteConversation, newId, saveConversation, setConversationProject, useConversation, useProjects, useWorkspace } from "@/lib/store";
 import { Logo } from "../landing/Logo";
@@ -15,6 +16,9 @@ import { Composer, type AttachedRoster } from "./Composer";
 import { IconArrowRight, IconChart, IconCheck, IconChevron, IconDoc, IconFolder, IconMenu, IconPanel, IconPencil, IconRoute, IconStore, IconTag, IconTrash, IconUsers, IconWarn } from "./icons";
 import { MoreMenu } from "./MoreMenu";
 import s from "./ChatView.module.css";
+
+// An error whose message is written for the person reading the chat.
+class ShownError extends Error {}
 
 // Quick tasks start from the workspace's own artists and cities.
 const tasksFor = (artist: string, city: string) => [
@@ -41,7 +45,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   const [renaming, setRenaming] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   const stopRef = useRef<AbortController | null>(null);
-  const [dataMode, setDataMode] = useState<"live" | "fixture">("fixture");
+  const dataMode = useServerStatus().data;
   const projects = useProjects();
   const workspace = useWorkspace();
   const tasks = tasksFor(workspace.artists[0] ?? "Marlow Vane", workspace.cities[0] ?? "Chicago");
@@ -126,7 +130,10 @@ export function ChatView({ id: routeId }: { id: string | null }) {
           },
         }),
       });
-      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok || !res.body) {
+        const said = (await res.json().catch(() => null))?.error;
+        throw said ? new ShownError(said) : new Error(`HTTP ${res.status}`);
+      }
       let done = false;
       for await (const e of readEvents<AgentEvent>(res.body)) {
         if (e.type === "step") keyed.set(e.step.key, e.step);
@@ -141,11 +148,10 @@ export function ChatView({ id: routeId }: { id: string | null }) {
         } else if (e.type === "done") {
           done = true;
           setPending(null); // the stored message replaces the live one in the same render
-          setDataMode(e.dataMode);
           finish(e.message, { entities: e.entities, title: base.messages.length ? withUser.title : e.title });
           const first = e.message.artifacts?.[0];
           if (first) setActiveId((cur) => cur ?? first.id);
-        } else if (e.type === "error") throw new Error(e.message);
+        } else if (e.type === "error") throw new ShownError(e.message);
         if (!done) show();
       }
       if (!done) throw new Error("The reply was cut off.");
@@ -156,7 +162,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
         role: "assistant",
         createdAt: Date.now(),
         // keep what arrived; say plainly what happened to the rest
-        text: [live.text, stopped ? "Stopped." : "Swami could not finish this reply. Your message is saved; send it again in a moment."].filter(Boolean).join(" "),
+        text: [live.text, stopped ? "Stopped." : err instanceof ShownError ? err.message : "Swami could not finish this reply. Your message is saved; send it again in a moment."].filter(Boolean).join(" "),
         steps: [...keyed.values()].map((st) => (st.status === "running" ? { ...st, status: "failed" as const, detail: stopped ? "stopped" : st.detail } : st)),
         artifacts: live.artifacts,
       };
