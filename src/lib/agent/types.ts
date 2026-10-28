@@ -91,6 +91,8 @@ export type Message = {
   steps?: Step[];
   artifacts?: Artifact[];
   choices?: Choices;
+  /** A reply that did not finish; the chat offers to send the question again. */
+  failed?: boolean;
 };
 
 // The agent asks which one was meant instead of guessing; picking a card sends `reply` back.

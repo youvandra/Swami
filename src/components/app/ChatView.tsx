@@ -13,7 +13,7 @@ import { Logo } from "../landing/Logo";
 import { ArtifactPanel, artifactIcon } from "./ArtifactPanel";
 import { useShell } from "./AppShell";
 import { Composer, type AttachedRoster } from "./Composer";
-import { IconArrowRight, IconChart, IconCheck, IconChevron, IconDoc, IconFolder, IconMenu, IconPanel, IconPencil, IconRoute, IconStore, IconTag, IconTrash, IconUsers, IconWarn } from "./icons";
+import { IconArrowRight, IconChart, IconCheck, IconChevron, IconDoc, IconFolder, IconMenu, IconPanel, IconPencil, IconRoute, IconStore, IconTag, IconTrash, IconRetry, IconUsers, IconWarn } from "./icons";
 import { MoreMenu } from "./MoreMenu";
 import s from "./ChatView.module.css";
 
@@ -195,6 +195,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
         text: [live.text, stopped ? "Stopped." : err instanceof ShownError ? err.message : "Swami could not finish this reply. Your message is saved; send it again in a moment."].filter(Boolean).join(" "),
         steps: [...keyed.values()].map((st) => (st.status === "running" ? { ...st, status: "failed" as const, detail: stopped ? "stopped" : st.detail } : st)),
         artifacts: live.artifacts,
+        ...(stopped ? {} : { failed: true }),
       };
       if (!stopped) console.warn(err);
       setPending(null);
@@ -204,6 +205,18 @@ export function ChatView({ id: routeId }: { id: string | null }) {
       setPending(null);
       setBusy(false);
     }
+  }
+
+  // send the question behind a failed reply again, replacing that reply
+  function retry() {
+    if (!stored) return;
+    const ms = stored.messages;
+    const q = [...ms].reverse().find((x) => x.role === "user");
+    if (!q) return;
+    saveConversation({ ...stored, messages: ms.slice(0, ms.lastIndexOf(q)) });
+    const name = q.text.match(/\n\nRoster: (.*) \(\d+ acts\)$/)?.[1];
+    const r = name ? rosters.find((x) => x.name === name) : undefined;
+    void send(q.text.replace(/\n\nRoster: .*$/s, ""), projectId, r && { name: r.name, acts: r.acts.map((a) => a.name) });
   }
 
   function choose(c: Choice, key: string) {
@@ -344,6 +357,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
                       message={m}
                       activeId={panelOpen ? activeId : null}
                       onChoose={busy || m !== messages[messages.length - 1] ? undefined : choose}
+                      onRetry={busy || m !== messages[messages.length - 1] || !m.failed ? undefined : retry}
                       onOpen={(a) => {
                         setActiveId(a.id);
                         setPanelOpen(true);
@@ -378,7 +392,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   );
 }
 
-function AssistantMessage({ message, activeId, onOpen, onChoose }: { message: Message; activeId: string | null; onOpen: (a: Artifact) => void; onChoose?: (c: Choice, key: string) => void }) {
+function AssistantMessage({ message, activeId, onOpen, onChoose, onRetry }: { message: Message; activeId: string | null; onOpen: (a: Artifact) => void; onChoose?: (c: Choice, key: string) => void; onRetry?: () => void }) {
   const streaming = message.id === "pending";
   const steps = message.steps ?? [];
   const total = steps.reduce((n, st) => n + st.ms, 0);
@@ -430,6 +444,11 @@ function AssistantMessage({ message, activeId, onOpen, onChoose }: { message: Me
               )
             )}
             {message.text && <p className={s.text}>{message.text}</p>}
+            {onRetry && (
+              <button className={s.retry} onClick={onRetry}>
+                <IconRetry /> Try again
+              </button>
+            )}
             {message.choices && (
               <div className={s.choices} role="group" aria-label={message.choices.prompt}>
                 {message.choices.options.map((c) => (

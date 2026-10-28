@@ -34,6 +34,7 @@ import {
   Plus,
   SidebarSimple,
   Sparkle,
+  ArrowClockwise,
   Stop,
   Storefront,
   Trash,
@@ -91,3 +92,4 @@ export const IconCoffee = make(Coffee);
 export const IconPencil = make(PencilSimple);
 export const IconStop = make(Stop, "fill");
 export const IconWarn = make(WarningCircle);
+export const IconRetry = make(ArrowClockwise);
