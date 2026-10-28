@@ -83,6 +83,17 @@ test("capacity is read from the ask, and an assumed one is said", async () => {
   assert.match(out.artifacts[0].subtitle, /sized against 1,000 cap/);
 });
 
+test("drop and without re-rank the last show without those acts", async () => {
+  const last = { headliner: "Marlow Vane", city: "Chicago", date: "Mar 14", opener: "Halcyon Drive" };
+  const p = plan("Drop Halcyon Drive and Pia Marsh", "auto", { workspace: "W", role: "P", cities: [], last });
+  assert.deepEqual([p.kind, p.headliner, p.input.exclude], ["opener", "Marlow Vane", ["Halcyon Drive", "Pia Marsh"]]);
+  const { out } = await run(req("Without Halcyon Drive, who should open?", { context: { workspace: "W", role: "P", cities: [], last } }));
+  const a = out.artifacts[0];
+  if (a?.type !== "opener_ranking") return assert.fail();
+  assert.ok(!a.rows.some((r) => r.name === "Halcyon Drive"));
+  assert.notEqual(out.artifacts[1]?.type === "crowd_map" && out.artifacts[1].opener, "Halcyon Drive");
+});
+
 test("no headliner anywhere asks for one; the project's headliner fills in", async () => {
   assert.match((await run(req("find me an opener"))).out.text, /Which artist/);
   const { out } = await run(req("who should open?", { context: { workspace: "W", role: "Promoter", cities: [], project: { headliner: "Marlow Vane", city: "Chicago", date: "Mar 14", venue: "The Thalia Room", capacity: 1100 } } }));

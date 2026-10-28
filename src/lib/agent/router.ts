@@ -21,6 +21,8 @@ const INTENTS: [Kind, RegExp][] = [
 export function intent(text: string, mode: Mode): Kind {
   if (mode !== "auto") return mode;
   const t = text.toLowerCase();
+  // re-ranking without some acts is still an opener question
+  if (/^\s*(?:now\s+)?(?:without|drop|exclude|skip|leave out)\b/.test(t)) return "opener";
   return INTENTS.find(([, re]) => re.test(t))?.[0] ?? "opener";
 }
 
@@ -57,6 +59,9 @@ export function plan(text: string, mode: Mode, ctx?: ChatContext): Plan {
   const capacity = cap ? Number((cap[1] ?? cap[2]).replace(/,/g, "")) : undefined;
   const input: Record<string, unknown> = { headliner, city, date, capacity };
   if (/rising|up-and-coming|breaking/.test(t)) input.risingOnly = true;
+  // "drop Pia Marsh", "without Fieldwork and June Atlas", "skip Copper Hours"
+  const out = text.match(/\b(?:[Ww]ithout|[Dd]rop|[Ee]xclude|[Ss]kip|[Mm]inus|[Ll]eave out|not)\s+((?:[A-Z][\w'&.-]*(?:\s+(?:the|of|&|[A-Z][\w'&.-]*))*)(?:\s*(?:,|and|or)\s*[A-Z][\w'&.-]*(?:\s+(?:the|of|&|[A-Z][\w'&.-]*))*)*)/);
+  if (out) input.exclude = out[1].split(/\s*(?:,|\band\b|\bor\b)\s*/).map((x) => x.replace(/[.,!?]+$/, "").trim()).filter(Boolean);
   if (ctx?.roster && (kind === "opener" || /roster/.test(t))) input.roster = ctx.roster;
   // "Marlow Vane with Halcyon Drive", "Marlow Vane and Halcyon Drive": the second name is the opener
   const second = named ? text.slice(text.indexOf(named) + named.length).match(/^\s*(?:with|and|\+|&)\s+([A-Z][\w'.-]*(?:\s+(?:the|of|[A-Z][\w'.-]*)){0,3})/)?.[1] : undefined;
