@@ -6,8 +6,9 @@ import { makeContext } from "../tools/context.ts";
 import type { AgentEvent } from "./events.ts";
 import { numbersBacked } from "./prose.ts";
 import { headlinerIn, intent, plan } from "./router.ts";
+import { answerCards, answerChoice } from "./choice.ts";
 import { templateTurn } from "./turn.ts";
-import type { ChatRequest } from "./types.ts";
+import type { ChatRequest, Choices } from "./types.ts";
 
 const req = (text: string, extra: Partial<ChatRequest> = {}): ChatRequest => ({ conversationId: "c", mode: "auto", messages: [{ role: "user", text }], ...extra });
 const run = async (r: ChatRequest, entities: Record<string, string> = {}) => {
@@ -47,7 +48,8 @@ test("a full opener turn streams steps, artifacts and text in order", async () =
 test("an ambiguous name asks with choices and runs no tools", async () => {
   const { out } = await run(req("Find an opener for Marlow in Chicago"));
   assert.equal(out.artifacts.length, 0);
-  assert.equal(out.choices?.options.length, 2);
+  assert.equal(out.choices?.options.length, 3);
+  assert.equal(out.choices?.options[2].name, "None of these");
   assert.equal(out.choices?.key, "marlow");
   assert.equal(out.choices?.options[1].reply, "Find an opener for Marlow & the Tide in Chicago");
 });
@@ -120,4 +122,55 @@ test("numbers the tools never produced are caught", () => {
   assert.equal(numbersBacked("Score 0.92, 52% women", [{ score: 0.92, women: 0.52 }]), true);
   assert.equal(numbersBacked("Sells 4,000 tickets", [{ score: 0.92 }]), false);
   assert.equal(numbersBacked("Score 0.90", [{ score: 0.9 }]), true);
+});
+
+// what runChat does with a reply to the cards, without the model
+const answer = async (text: string, prior: { choices?: Choices; entities?: Record<string, string> }) => {
+  const events: AgentEvent[] = [];
+  const r = req(text, { context: { workspace: "W", role: "Promoter", cities: ["Chicago"], choices: prior.choices } });
+  const ctx = makeContext(new FixtureQloo(FAKE_GRAPH), { defaults: { city: "Chicago" }, entities: { ...prior.entities }, onStep: (step) => events.push({ type: "step", step }) });
+  const a = await answerCards(ctx, r, text, (e) => events.push(e));
+  const out = a && "result" in a ? a.result : await templateTurn(ctx, a ? req(a.ask) : r, (e) => events.push(e));
+  return { out, ctx };
+};
+
+test("'none of these' runs no tools, shows no cards again and asks for a hint", async () => {
+  const first = (await run(req("Find an opener for Marlow in Chicago"))).out.choices!;
+  for (const said of ["None of these", "no one above", "bukan yang itu", "not these"]) {
+    const { out, ctx } = await answer(said, { choices: first });
+    assert.equal(out.artifacts.length, 0);
+    assert.equal(out.choices, undefined);
+    assert.match(out.text, /another spelling/);
+    assert.equal(ctx.entities["rejected:marlow"], "fa-marlow-vane,fa-marlow-tide");
+  }
+  // the hint searches again without the acts turned down: nothing else is called Marlow in the fixture
+  const { ctx } = await answer("None of these", { choices: first });
+  const retry = await answer("the one from Seoul", { entities: ctx.entities });
+  assert.match(retry.out.text, /Still nothing for Marlow/);
+  assert.equal(retry.out.choices, undefined);
+  // and asking again by the same name never shows the rejected cards
+  const again = await run(req("Find an opener for Marlow in Chicago"), ctx.entities);
+  assert.equal(again.out.choices, undefined);
+  assert.match(again.out.text, /could not find/);
+});
+
+test("a typed answer to the cards picks one: by order, by name, by genre", async () => {
+  const first = (await run(req("Find an opener for Marlow in Chicago"))).out.choices!;
+  assert.equal(answerChoice("the second one", first.options)?.kind, "pick");
+  for (const [said, act] of [["the second one", "Marlow & the Tide"], ["2", "Marlow & the Tide"], ["Marlow Vane", "Marlow Vane"], ["the americana one", "Marlow & the Tide"], ["yang pertama", "Marlow Vane"]]) {
+    const { out } = await answer(said, { choices: first });
+    assert.equal(out.artifacts[0]?.show.headliner, act, said);
+    assert.equal(out.choices, undefined);
+  }
+  // a new question is no answer to the cards
+  assert.equal(answerChoice("Which venue fits Saint Rook in Chicago for 1,100 people?", first.options), null);
+});
+
+test("a hint that fits one act resolves it and answers the original question", async () => {
+  const first = (await run(req("Find an opener for Marlow in Chicago"))).out.choices!;
+  // turn down only the duo: the hint "folk" then leaves Marlow Vane
+  const { ctx } = await answer("None of these", { choices: { ...first, options: first.options.filter((o) => o.id !== "fa-marlow-vane") } });
+  const { out } = await answer("the indie folk band", { entities: ctx.entities });
+  assert.deepEqual(out.artifacts.map((a) => a.type), ["opener_ranking", "crowd_map"]);
+  assert.equal(out.artifacts[0].show.headliner, "Marlow Vane");
 });

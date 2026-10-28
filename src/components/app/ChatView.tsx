@@ -4,7 +4,7 @@ import { toast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AgentEvent } from "@/lib/agent/events";
-import type { Artifact, Choice, Conversation, Message, Mode, Step } from "@/lib/agent/types";
+import { NONE_ID, type Artifact, type Choice, type Conversation, type Message, type Mode, type Step } from "@/lib/agent/types";
 import { readEvents } from "@/lib/sse";
 import { useServerStatus } from "@/lib/status";
 import { ROLES } from "@/lib/model";
@@ -13,7 +13,7 @@ import { Logo } from "../landing/Logo";
 import { ArtifactPanel, artifactIcon } from "./ArtifactPanel";
 import { useShell } from "./AppShell";
 import { Composer, type AttachedRoster } from "./Composer";
-import { IconArrowRight, IconChart, IconCheck, IconChevron, IconDoc, IconFolder, IconMenu, IconPanel, IconPencil, IconRoute, IconStore, IconTag, IconTrash, IconRetry, IconUsers, IconWarn } from "./icons";
+import { IconArrowRight, IconChart, IconCheck, IconChevron, IconClose, IconDoc, IconFolder, IconMenu, IconPanel, IconPencil, IconRoute, IconStore, IconTag, IconTrash, IconRetry, IconUsers, IconWarn } from "./icons";
 import { MoreMenu } from "./MoreMenu";
 import s from "./ChatView.module.css";
 
@@ -158,6 +158,8 @@ export function ChatView({ id: routeId }: { id: string | null }) {
             roster: roster && { name: roster.name, acts: roster.acts },
             project: chatProject && { headliner: chatProject.headliner, city: chatProject.city, date: chatProject.date, venue: chatProject.venue, capacity: chatProject.capacity },
             entities,
+            // the cards the last reply showed, so a typed "the second one" or "none of these" answers them
+            choices: base.messages[base.messages.length - 1]?.choices,
             last: lastShow(withUser.messages, panelOpen ? artifacts.find((a) => a.id === activeId) : undefined),
           },
         }),
@@ -222,7 +224,8 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   }
 
   function choose(c: Choice, key: string) {
-    void send(c.reply, projectId, undefined, { [key]: c.id, [c.name.toLowerCase()]: c.id });
+    // "None of these" resolves nothing; the server reads it against the cards and asks for a hint
+    void send(c.reply, projectId, undefined, c.id === NONE_ID ? {} : { [key]: c.id, [c.name.toLowerCase()]: c.id });
   }
 
   const missing = hydrated && routeId && !stored && id === routeId;
@@ -454,8 +457,16 @@ function AssistantMessage({ message, activeId, onOpen, onChoose, onRetry }: { me
             {message.choices && (
               <div className={s.choices} role="group" aria-label={message.choices.prompt}>
                 {message.choices.options.map((c) => (
-                  <button key={c.id} className={s.choice} disabled={!onChoose} onClick={() => onChoose?.(c, message.choices!.key)}>
-                    {c.image ? <img src={c.image} alt="" className={s.choiceImg} /> : <span className={s.choiceImg}>{c.name.slice(0, 1)}</span>}
+                  <button key={c.id} className={s.choice} data-none={c.id === NONE_ID || undefined} disabled={!onChoose} onClick={() => onChoose?.(c, message.choices!.key)}>
+                    {c.id === NONE_ID ? (
+                      <span className={s.choiceImg}>
+                        <IconClose />
+                      </span>
+                    ) : c.image ? (
+                      <img src={c.image} alt="" className={s.choiceImg} />
+                    ) : (
+                      <span className={s.choiceImg}>{c.name.slice(0, 1)}</span>
+                    )}
                     <span className={s.choiceText}>
                       <b>{c.name}</b>
                       <span>{c.detail}</span>

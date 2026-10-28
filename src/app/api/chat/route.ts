@@ -25,7 +25,17 @@ const body = z.object({
       roster: z.object({ name: z.string().max(120), acts: z.array(z.string().max(120)).max(500) }).optional(),
       project: z.object({ headliner: z.string().max(120), city: z.string().max(60), date: z.string().max(60), venue: z.string().max(120), capacity: z.number().int().positive().max(200_000) }).optional(),
       last: z.object({ headliner: z.string().max(120), city: z.string().max(60), date: z.string().max(60), opener: z.string().max(120).optional(), kind: z.enum(["opener", "map", "routing", "venues", "partners", "sponsors", "audience", "proposal", "email"]).optional() }).optional(),
-      entities: z.record(z.string().max(120), z.string().max(120)).optional(),
+      // values hold ids, or for rejected:/retry: keys a list of ids or the question waiting for a hint
+      entities: z.record(z.string().max(140), z.string().max(2000)).optional(),
+      choices: z
+        .object({
+          prompt: z.string().max(200),
+          key: z.string().max(120),
+          name: z.string().max(120).optional(),
+          ask: z.string().max(8000).optional(),
+          options: z.array(z.object({ id: z.string().max(120), name: z.string().max(200), image: z.string().max(2000).optional(), detail: z.string().max(400), reply: z.string().max(8000) })).max(8),
+        })
+        .optional(),
     })
     .optional(),
 });

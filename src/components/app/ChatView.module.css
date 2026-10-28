@@ -206,6 +206,8 @@
   transition: border-color 0.15s, background 0.15s;
 }
 .choice:hover:not(:disabled) { border-color: var(--tint-ink); background: var(--tint); }
+.choice[data-none] { border-style: dashed; background: transparent; }
+.choice[data-none] .choiceImg { background: transparent; color: var(--muted); }
 .choice:disabled { opacity: 0.6; cursor: default; }
 .choiceImg { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; background: var(--tint); color: var(--tint-ink); display: grid; place-items: center; font-weight: 600; }
 .choiceText { display: grid; min-width: 0; }

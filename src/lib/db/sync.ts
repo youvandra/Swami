@@ -5,7 +5,7 @@ import { artifactSchema } from "../agent/artifact.schema.ts";
 
 const id = z.string().min(1).max(64);
 const step = z.object({ label: z.string(), detail: z.string().optional(), ms: z.number(), status: z.enum(["running", "done", "failed"]).optional() });
-const choices = z.object({ prompt: z.string(), key: z.string(), options: z.array(z.object({ id: z.string(), name: z.string(), image: z.string().optional(), detail: z.string(), reply: z.string() })) });
+const choices = z.object({ prompt: z.string(), key: z.string(), name: z.string().optional(), ask: z.string().optional(), options: z.array(z.object({ id: z.string(), name: z.string(), image: z.string().optional(), detail: z.string(), reply: z.string() })) });
 const message = z.object({ id, role: z.enum(["user", "assistant"]), text: z.string().max(20_000), createdAt: z.number(), steps: z.array(step).optional(), artifacts: z.array(artifactSchema).optional(), choices: choices.optional(), failed: z.boolean().optional() });
 
 export const conversationSchema = z.object({

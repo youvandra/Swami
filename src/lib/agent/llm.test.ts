@@ -70,7 +70,7 @@ test("bad tool input comes back as an error result the model can fix", async () 
 test("an ambiguous search stops the loop with choices", async () => {
   const { out, seen } = await turn([[call("t1", "search_artist", { name: "Marlow" })], [call("t2", "rank_openers", { headliner: "Marlow" })]], "Find an opener for Marlow");
   assert.equal(seen.length, 1);
-  assert.equal(out.choices?.options.length, 2);
+  assert.deepEqual(out.choices?.options.map((o) => o.name), ["Marlow Vane", "Marlow & the Tide", "None of these"]);
   assert.equal(out.artifacts.length, 0);
 });
 

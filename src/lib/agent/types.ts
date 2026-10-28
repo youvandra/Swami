@@ -98,7 +98,10 @@ export type Message = {
 // The agent asks which one was meant instead of guessing; picking a card sends `reply` back.
 export type Choice = { id: string; name: string; image?: string; detail: string; reply: string };
 // `key` is the name as the user wrote it; the chosen id is remembered under it.
-export type Choices = { prompt: string; key: string; options: Choice[] };
+// name and ask: the name as typed and the question it came in, so "none of these" can search again
+/** The id of the "None of these" card, which resolves nothing. */
+export const NONE_ID = "none";
+export type Choices = { prompt: string; key: string; name?: string; ask?: string; options: Choice[] };
 
 export type Conversation = {
   id: string;
@@ -123,6 +126,8 @@ export type ChatContext = {
   last?: { headliner: string; city: string; date: string; opener?: string; kind?: Exclude<Mode, "auto"> };
   /** Names already resolved in this chat: name -> Qloo id. */
   entities?: Record<string, string>;
+  /** The cards the chat's last reply asked the user to pick from, so a typed answer can pick one. */
+  choices?: Choices;
 };
 
 export type ChatRequest = { conversationId: string; messages: Pick<Message, "role" | "text">[]; mode: Mode; context?: ChatContext };

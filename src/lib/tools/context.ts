@@ -96,3 +96,7 @@ export function showOf(ctx: ToolContext, input: { headliner: string; city?: stri
 }
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
+
+/** entities key prefix for the acts a user turned down on the "which one?" cards, comma-separated ids */
+export const REJECTED = "rejected:";
+export const rejectedIds = (entities: Record<string, string>) => new Set(Object.entries(entities).flatMap(([k, v]) => (k.startsWith(REJECTED) ? v.split(",") : [])));

@@ -5,6 +5,7 @@ import { searchArtist } from "../tools/tools.ts";
 import { runTool, type ToolOutcome } from "../tools/index.ts";
 import type { ToolContext } from "../tools/context.ts";
 import type { Emit } from "./events.ts";
+import { cardsFor } from "./choice.ts";
 import { proseFor, titleFor } from "./prose.ts";
 import { plan } from "./router.ts";
 import type { Artifact, ChatRequest, Choices } from "./types.ts";
@@ -23,14 +24,7 @@ export async function disambiguate(ctx: ToolContext, name: string, text: string)
     ctx.entities[key] = s.candidates[0].id;
     return null;
   }
-  const options = s.candidates.slice(0, 4).map((c) => ({
-    id: c.id,
-    name: c.name,
-    image: c.image,
-    detail: [c.genre, c.detail].filter(Boolean).join(" · ") || "Artist",
-    reply: text.includes(name) ? text.replace(name, c.name) : `${text} (${c.name})`,
-  }));
-  return { choices: { prompt: `Which ${name} do you mean?`, key, options }, text: `There is more than one ${name} in the taste graph. Which one do you mean?` };
+  return { choices: cardsFor(name, key, text, s.candidates), text: `There is more than one ${name} in the taste graph. Which one do you mean?` };
 }
 
 export async function templateTurn(ctx: ToolContext, req: ChatRequest, emit: Emit): Promise<TurnResult> {

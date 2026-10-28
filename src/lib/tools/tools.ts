@@ -14,7 +14,7 @@ import { rankPartners } from "../score/partners.ts";
 import { inRegion, routeTour } from "../score/routing.ts";
 import { rankSponsors } from "../score/sponsors.ts";
 import { rankVenues } from "../score/venues.ts";
-import { capacityAssumed, once, resolveArtist, showOf, step, ToolError, uid, type ToolContext } from "./context.ts";
+import { capacityAssumed, once, rejectedIds, resolveArtist, showOf, step, ToolError, uid, type ToolContext } from "./context.ts";
 
 /** Cities weighed for a leg with no region or city list: the largest markets, first in CITIES. */
 const NATIONAL_CITIES = 20;
@@ -31,8 +31,11 @@ export type ToolResult = { artifact?: Artifact; facts: Record<string, unknown> }
 export type Candidate = { id: string; name: string; image?: string; popularity?: number; genre?: string; detail?: string };
 
 export async function searchArtist(ctx: ToolContext, input: { name: string; take?: number }): Promise<{ candidates: Candidate[]; ambiguous: boolean }> {
-  const hits = await step(ctx, `Looked up “${input.name}”`, () => once(ctx, `search:${input.name.trim().toLowerCase()}`, () => ctx.q.search(input.name, "artist", input.take ?? 5)), (h) => (h.length === 1 ? "1 match" : `${h.length} matches`));
-  for (const h of hits) ctx.seen.set(h.id, h);
+  const all = await step(ctx, `Looked up “${input.name}”`, () => once(ctx, `search:${input.name.trim().toLowerCase()}`, () => ctx.q.search(input.name, "artist", input.take ?? 5)), (h) => (h.length === 1 ? "1 match" : `${h.length} matches`));
+  for (const h of all) ctx.seen.set(h.id, h);
+  // acts the user turned down on the cards never come back
+  const rejected = rejectedIds(ctx.entities);
+  const hits = all.filter((h) => !rejected.has(h.id));
   const candidates = hits.map((h) => ({ id: h.id, name: h.name, image: h.imageUrl, popularity: h.popularity, genre: genreOf(h), detail: h.detail }));
   return { candidates, ambiguous: isAmbiguous(input.name, hits) };
 }

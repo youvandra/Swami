@@ -6,7 +6,8 @@ import { makeContext, uid } from "../tools/context.ts";
 import type { Emit } from "./events.ts";
 import { ChatCompletionsClient } from "./chat-completions.ts";
 import { agentTurn, type MessagesClient, type Usage } from "./llm.ts";
-import { templateTurn, type TurnResult } from "./turn.ts";
+import { answerCards } from "./choice.ts";
+import { lastUserText, templateTurn, type TurnResult } from "./turn.ts";
 import type { ChatRequest, Message } from "./types.ts";
 
 let client: MessagesClient | undefined;
@@ -20,7 +21,8 @@ function agentClient(): { client: MessagesClient; model: string } | null {
 export type RunSummary = { message: Message; title: string; entities: Record<string, string>; mode: "agent" | "template"; qlooCalls: number; usage: Usage; ms: number };
 
 /** One chat turn: the agent when a model is configured, template mode otherwise or when the agent fails. */
-export async function runChat(req: ChatRequest, emit: Emit, signal?: AbortSignal): Promise<RunSummary> {
+export async function runChat(asked: ChatRequest, emit: Emit, signal?: AbortSignal): Promise<RunSummary> {
+  let req = asked;
   const t0 = Date.now();
   const q = qlooForRun();
   const ctx0 = req.context;
@@ -34,7 +36,11 @@ export async function runChat(req: ChatRequest, emit: Emit, signal?: AbortSignal
   const usage: Usage = { input: 0, output: 0 };
   let turn: TurnResult | undefined;
   let mode: RunSummary["mode"] = "template";
-  const agent = agentClient();
+  // a reply to the "which one?" cards settles the name first: a pick re-asks the original question
+  const answered = await answerCards(ctx, req, lastUserText(req), emit);
+  if (answered && "result" in answered) turn = answered.result;
+  else if (answered) req = { ...req, messages: [...req.messages.slice(0, -1), { role: "user", text: answered.ask }] };
+  const agent = turn ? undefined : agentClient();
   if (agent) {
     try {
       turn = await agentTurn(agent.client, agent.model, ctx, req, emit, usage, signal);
