@@ -38,6 +38,13 @@ node --env-file=.env.local scripts/probe-qloo.ts   # live Qloo probe; raw respon
 node scripts/build-demo-seed.ts  # rebuilds the demo chats a fresh browser starts with
 ```
 
+## Deploy
+
+- **Vercel:** import the repo, set the env vars, and set `NEXT_PUBLIC_SITE_URL` to the production URL. Add the production and preview domains to Supabase Auth's redirect URLs.
+- **A server of your own:** `npm ci && npx next build`, copy the folder to `/opt/swami`, then use `deploy/swami.service` and `deploy/nginx.conf`. The nginx file turns buffering off for `/api/chat`, which streams.
+
+The rate limit is per server process; behind several processes each counts its own.
+
 ## How an answer is made
 
 ```
