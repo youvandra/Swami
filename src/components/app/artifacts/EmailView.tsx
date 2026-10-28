@@ -7,19 +7,23 @@ import s from "./EmailView.module.css";
 
 type Email = Extract<Artifact, { type: "email" }>;
 
-// Edits stay local to the panel until drafts are persisted.
-export function EmailView({ artifact }: { artifact: Email }) {
+// Fields are local while typing and saved when a field loses focus.
+export function EmailView({ artifact, onChange }: { artifact: Email; onChange: (a: Email) => void }) {
   const [to, setTo] = useState(artifact.to);
   const [cc, setCc] = useState(artifact.cc);
   const [subject, setSubject] = useState(artifact.subject);
   const [body, setBody] = useState(artifact.body);
+
+  const commit = () => {
+    if (to !== artifact.to || cc !== artifact.cc || subject !== artifact.subject || body !== artifact.body) onChange({ ...artifact, to, cc, subject, body });
+  };
 
   const mailto = `mailto:${encodeURIComponent(to)}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   const words = body.trim().split(/\s+/).length;
 
   return (
     <div className={s.desk}>
-      <div className={s.mail}>
+      <div className={s.mail} onBlur={commit}>
         <label className={s.field}>
           <span>To</span>
           <input value={to} onChange={(e) => setTo(e.target.value)} />

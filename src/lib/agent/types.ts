@@ -82,7 +82,7 @@ export type Message = {
 export type Conversation = {
   id: string;
   title: string;
-  project?: string;
+  projectId?: string;
   mode: Mode;
   updatedAt: number;
   messages: Message[];

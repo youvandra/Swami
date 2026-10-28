@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Artifact, ChatResponse, Conversation, Message, Mode } from "@/lib/agent/types";
-import { newId, saveConversation, useConversation } from "@/lib/store";
+import { newId, saveConversation, setConversationProject, useConversation, useProjects } from "@/lib/store";
 import { Logo } from "../landing/Logo";
 import { ArtifactPanel, artifactIcon } from "./ArtifactPanel";
 import { useShell } from "./AppShell";
@@ -31,8 +31,25 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   const [toast, setToast] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const end = useRef<HTMLDivElement>(null);
+  const projects = useProjects();
+  // a new chat can start inside a project (/app?project=…) and with a first question (&q=…)
+  const [draftProject, setDraftProject] = useState<string | undefined>(undefined);
+  const projectId = stored?.projectId ?? draftProject;
+  const project = projects.find((p) => p.id === projectId);
 
   useEffect(() => setHydrated(true), []);
+
+  const started = useRef(false);
+  useEffect(() => {
+    if (routeId || started.current) return;
+    started.current = true;
+    const q = new URLSearchParams(window.location.search);
+    const pid = q.get("project") ?? undefined;
+    if (pid) setDraftProject(pid);
+    const ask = q.get("q");
+    if (ask) void send(ask, pid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeId]);
 
   const messages = useMemo(() => [...(stored?.messages ?? []), ...(pending ? [pending] : [])], [stored, pending]);
   const artifacts = useMemo(() => messages.flatMap((m) => m.artifacts ?? []), [messages]);
@@ -56,11 +73,11 @@ export function ChatView({ id: routeId }: { id: string | null }) {
     return () => clearTimeout(t);
   }, [toast]);
 
-  async function send(text: string) {
+  async function send(text: string, startProject = projectId) {
     if (busy) return;
     const convId = id ?? newId();
     const user: Message = { id: newId(), role: "user", text, createdAt: Date.now() };
-    const base: Conversation = stored ?? { id: convId, title: text.slice(0, 48), mode, updatedAt: Date.now(), messages: [] };
+    const base: Conversation = stored ?? { id: convId, title: text.slice(0, 48), mode, projectId: startProject, updatedAt: Date.now(), messages: [] };
     const withUser = { ...base, mode, updatedAt: Date.now(), messages: [...base.messages, user] };
     opened.current = true; // the reply opens its own artifact below
     saveConversation(withUser);
@@ -113,7 +130,29 @@ export function ChatView({ id: routeId }: { id: string | null }) {
           </button>
           <div className={s.titleWrap}>
             <h1 className={s.title}>{empty ? "New chat" : (stored?.title ?? "New chat")}</h1>
-            {stored?.project && <span className={s.project}>{stored.project}</span>}
+            {hydrated && projects.length > 0 && (
+              <label className={s.project} data-set={project ? "" : undefined}>
+                {project && <i style={{ background: project.tone }} />}
+                <span>{project?.name ?? "Add to project"}</span>
+                <IconChevron />
+                <select
+                  value={projectId ?? ""}
+                  aria-label="Project"
+                  onChange={(e) => {
+                    const v = e.target.value || undefined;
+                    if (stored) setConversationProject(stored.id, v);
+                    else setDraftProject(v);
+                  }}
+                >
+                  <option value="">No project</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
           <div className={s.actions}>
             {!empty && (
@@ -141,11 +180,11 @@ export function ChatView({ id: routeId }: { id: string | null }) {
           <div className={s.center}>
             <div className={s.hello}>
               <Logo className={s.helloLogo} />
-              <h2 className={s.greet}>What are we booking today?</h2>
+              <h2 className={s.greet}>{project ? `What's next for ${project.name}?` : "What are we booking today?"}</h2>
               <p className={s.sub}>Openers, routing, venues, sponsors, proposals. Every answer comes with data you can check, edit and send.</p>
             </div>
             <div className={s.composerWrap}>
-              <Composer onSend={send} mode={mode} onMode={setMode} busy={busy} autoFocus />
+              <Composer onSend={(q) => send(q)} mode={mode} onMode={setMode} busy={busy} autoFocus />
             </div>
             <div className={s.tasks}>
               {TASKS.map((t) => (
@@ -182,7 +221,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
               </div>
             </div>
             <div className={s.dock}>
-              <Composer onSend={send} mode={mode} onMode={setMode} busy={busy} placeholder="Ask a follow-up…" />
+              <Composer onSend={(q) => send(q)} mode={mode} onMode={setMode} busy={busy} placeholder="Ask a follow-up…" />
               <p className={s.disclaimer}>Scores show audience affinity. Check names and terms before you send anything.</p>
             </div>
           </>
@@ -195,8 +234,10 @@ export function ChatView({ id: routeId }: { id: string | null }) {
           activeId={activeId ?? artifacts[0].id}
           onSelect={setActiveId}
           onClose={() => setPanelOpen(false)}
-          onAsk={send}
+          onAsk={(q) => send(q)}
           onToast={setToast}
+          conversationId={id ?? undefined}
+          defaultProjectId={projectId}
         />
       )}
 

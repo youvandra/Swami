@@ -7,7 +7,7 @@
 }
 .view[data-panel] { grid-template-columns: minmax(0, 1fr) var(--panel); }
 
-.chat { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+.chat { min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; }
 
 /* ---------- header ---------- */
 .header {
@@ -34,15 +34,28 @@
 .titleWrap { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
 .title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .project {
-  flex: none;
-  padding: 3px 9px;
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 240px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
   border-radius: 999px;
-  background: var(--mist);
-  border: 1px solid var(--line);
-  font-size: 12px;
+  border: 1px dashed rgba(10, 15, 21, 0.2);
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--muted);
+  cursor: pointer;
 }
+.project[data-set] { border-style: solid; border-color: var(--line); background: var(--mist); color: #34434f; }
+.project:hover { border-color: rgba(10, 15, 21, 0.3); }
+.project i { width: 9px; height: 9px; flex: none; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(10, 15, 21, 0.12); }
+.project span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.project svg { width: 12px; height: 12px; flex: none; }
+.project select { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 16px; }
 .actions { display: flex; align-items: center; gap: 4px; }
 .ghost {
   height: 34px;
@@ -214,6 +227,6 @@
   .messages { padding: 20px 14px 8px; gap: 22px; }
   .assistant { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .dock { padding: 6px 10px 10px; }
-  .project { display: none; }
+  .project { max-width: 130px; padding: 0 8px; }
   .ghost span { display: none; }
 }

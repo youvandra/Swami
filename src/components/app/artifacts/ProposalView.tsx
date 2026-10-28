@@ -6,9 +6,11 @@ import s from "./ProposalView.module.css";
 
 type Proposal = Extract<Artifact, { type: "proposal" }>;
 
-// Sections are editable in place; edits are not saved yet.
-export function ProposalView({ artifact }: { artifact: Proposal }) {
+// Recipient, sender and section text are editable in place; each edit is saved when the field loses focus.
+export function ProposalView({ artifact, onChange }: { artifact: Proposal; onChange: (a: Proposal) => void }) {
   const { show } = artifact;
+  const commit = (patch: Partial<Proposal>) => onChange({ ...artifact, ...patch });
+  const text = (e: React.FocusEvent<HTMLElement>) => (e.currentTarget.innerText ?? "").trim();
   return (
     <div className={s.desk}>
       <article className={s.page}>
@@ -17,7 +19,7 @@ export function ProposalView({ artifact }: { artifact: Proposal }) {
             <Logo className={s.logo} />
             <span>Opener proposal</span>
           </div>
-          <h1 contentEditable suppressContentEditableWarning className={s.h1}>
+          <h1 className={s.h1}>
             {artifact.picks[0].name} for {show.headliner}
           </h1>
           <p className={s.lede}>
@@ -26,13 +28,13 @@ export function ProposalView({ artifact }: { artifact: Proposal }) {
           <dl className={s.meta}>
             <div>
               <dt>To</dt>
-              <dd contentEditable suppressContentEditableWarning>
+              <dd contentEditable suppressContentEditableWarning onBlur={(e) => text(e) !== artifact.to && commit({ to: text(e) })}>
                 {artifact.to}
               </dd>
             </div>
             <div>
               <dt>From</dt>
-              <dd contentEditable suppressContentEditableWarning>
+              <dd contentEditable suppressContentEditableWarning onBlur={(e) => text(e) !== artifact.from && commit({ from: text(e) })}>
                 {artifact.from}
               </dd>
             </div>
@@ -49,7 +51,14 @@ export function ProposalView({ artifact }: { artifact: Proposal }) {
               <span>{String(i + 1).padStart(2, "0")}</span>
               {sec.heading}
             </h2>
-            <p contentEditable suppressContentEditableWarning>
+            <p
+              contentEditable
+              suppressContentEditableWarning
+              onBlur={(e) => {
+                const body = text(e);
+                if (body !== sec.body) commit({ sections: artifact.sections.map((x, j) => (j === i ? { ...x, body } : x)) });
+              }}
+            >
               {sec.body}
             </p>
           </section>

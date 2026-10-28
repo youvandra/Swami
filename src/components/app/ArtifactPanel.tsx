@@ -1,6 +1,7 @@
 "use client";
 
-import type { Artifact, ArtifactType } from "@/lib/agent/types";
+import type { Artifact } from "@/lib/agent/types";
+import { updateArtifact } from "@/lib/store";
 import { AudienceView } from "./artifacts/AudienceView";
 import { CrowdMapView } from "./artifacts/CrowdMapView";
 import { EmailView } from "./artifacts/EmailView";
@@ -11,48 +12,12 @@ import { RoutingView } from "./artifacts/RoutingView";
 import { SponsorsView } from "./artifacts/SponsorsView";
 import { VenuesView } from "./artifacts/VenuesView";
 import { toMarkdown, toPlainText } from "./artifacts/export";
-import {
-  IconBookmark,
-  IconChart,
-  IconClose,
-  IconCopy,
-  IconDoc,
-  IconDownload,
-  IconList,
-  IconMail,
-  IconMap,
-  IconPin,
-  IconRoute,
-  IconStore,
-  IconTag,
-} from "./icons";
+import { ARTIFACT_LABEL, artifactIcon } from "./artifacts/meta";
+import { IconClose, IconCopy, IconDownload } from "./icons";
+import { SaveMenu } from "./SaveMenu";
 import s from "./ArtifactPanel.module.css";
 
-const LABEL: Record<ArtifactType, string> = {
-  opener_ranking: "Opener ranking",
-  crowd_map: "Crowd map",
-  proposal: "Proposal",
-  routing: "Routing",
-  venues: "Venues",
-  partners: "Co-promo",
-  sponsors: "Sponsors",
-  audience: "Audience",
-  email: "Email",
-};
-
-const ICON: Record<ArtifactType, (p: { className?: string }) => React.ReactNode> = {
-  opener_ranking: IconList,
-  crowd_map: IconMap,
-  proposal: IconDoc,
-  routing: IconRoute,
-  venues: IconPin,
-  partners: IconStore,
-  sponsors: IconTag,
-  audience: IconChart,
-  email: IconMail,
-};
-
-export const artifactIcon = (t: ArtifactType) => ICON[t];
+export { artifactIcon };
 
 type Props = {
   artifacts: Artifact[];
@@ -61,9 +26,11 @@ type Props = {
   onClose: () => void;
   onAsk: (prompt: string) => void;
   onToast: (msg: string) => void;
+  conversationId?: string;
+  defaultProjectId?: string;
 };
 
-export function ArtifactPanel({ artifacts, activeId, onSelect, onClose, onAsk, onToast }: Props) {
+export function ArtifactPanel({ artifacts, activeId, onSelect, onClose, onAsk, onToast, conversationId, defaultProjectId }: Props) {
   const active = artifacts.find((a) => a.id === activeId) ?? artifacts[artifacts.length - 1];
 
   const download = () => {
@@ -95,7 +62,7 @@ export function ArtifactPanel({ artifacts, activeId, onSelect, onClose, onAsk, o
             return (
               <button key={a.id} role="tab" aria-selected={a.id === active.id} className={s.tab} onClick={() => onSelect(a.id)} title={a.title}>
                 <Icon />
-                <span>{LABEL[a.type]}</span>
+                <span>{ARTIFACT_LABEL[a.type]}</span>
               </button>
             );
           })}
@@ -107,15 +74,12 @@ export function ArtifactPanel({ artifacts, activeId, onSelect, onClose, onAsk, o
 
       <div className={s.titleRow}>
         <div className={s.titleText}>
-          <span className={s.kind}>{LABEL[active.type]}</span>
+          <span className={s.kind}>{ARTIFACT_LABEL[active.type]}</span>
           <h2>{active.title}</h2>
           <p>{active.subtitle}</p>
         </div>
         <div className={s.actions}>
-          <button className={s.action} onClick={() => onToast(`Saved to ${active.show.headliner} · Spring tour`)}>
-            <IconBookmark />
-            <span>Save</span>
-          </button>
+          <SaveMenu artifact={active} conversationId={conversationId} defaultProjectId={defaultProjectId} onToast={onToast} />
           <button className={s.action} onClick={copy} aria-label="Copy">
             <IconCopy />
           </button>
@@ -127,18 +91,25 @@ export function ArtifactPanel({ artifacts, activeId, onSelect, onClose, onAsk, o
       </div>
 
       <div className={s.body} key={active.id}>
-        {active.type === "opener_ranking" && <OpenerRanking artifact={active} onAsk={onAsk} onShowMap={() => {
-          const m = artifacts.find((a) => a.type === "crowd_map");
-          if (m) onSelect(m.id);
-        }} />}
+        {active.type === "opener_ranking" && (
+          <OpenerRanking
+            artifact={active}
+            onAsk={onAsk}
+            onShowMap={() => {
+              const m = artifacts.find((a) => a.type === "crowd_map");
+              if (m) onSelect(m.id);
+              else onAsk(`Where would ${active.rows[0].name}'s fans add crowd for ${active.show.headliner} in ${active.show.city}?`);
+            }}
+          />
+        )}
         {active.type === "crowd_map" && <CrowdMapView artifact={active} />}
-        {active.type === "proposal" && <ProposalView artifact={active} />}
+        {active.type === "proposal" && <ProposalView artifact={active} onChange={updateArtifact} />}
         {active.type === "routing" && <RoutingView artifact={active} onAsk={onAsk} />}
         {active.type === "venues" && <VenuesView artifact={active} onAsk={onAsk} />}
         {active.type === "partners" && <PartnersView artifact={active} onAsk={onAsk} />}
         {active.type === "sponsors" && <SponsorsView artifact={active} onAsk={onAsk} />}
         {active.type === "audience" && <AudienceView artifact={active} />}
-        {active.type === "email" && <EmailView artifact={active} />}
+        {active.type === "email" && <EmailView artifact={active} onChange={updateArtifact} />}
       </div>
     </aside>
   );

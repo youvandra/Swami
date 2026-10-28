@@ -4,16 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { site } from "@/lib/site";
-import { useConversations } from "@/lib/store";
+import { useConversations, useProjects } from "@/lib/store";
 import { Logo } from "../landing/Logo";
-import { IconChat, IconClose, IconPlus, IconSearch, IconSettings, IconSidebar } from "./icons";
+import { IconChat, IconClose, IconFolder, IconPlus, IconSearch, IconSettings, IconSidebar } from "./icons";
 import s from "./AppShell.module.css";
-
-const PROJECTS = [
-  { name: "Marlow Vane · Spring tour", count: 3, tone: "#46DCEC" },
-  { name: "Northside Fridays", count: 5, tone: "#F4ECDD" },
-  { name: "Halcyon Drive · Midwest", count: 2, tone: "#0E3A45" },
-];
 
 type Shell = { openNav: () => void };
 const ShellContext = createContext<Shell>({ openNav: () => {} });
@@ -22,6 +16,7 @@ export const useShell = () => useContext(ShellContext);
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const conversations = useConversations();
+  const projects = useProjects();
   const [navOpen, setNavOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState("");
@@ -61,17 +56,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </label>
 
           <nav className={s.scroll}>
-            <p className={s.group}>Projects</p>
+            <div className={s.groupRow}>
+              <p className={s.group}>Projects</p>
+              <Link href="/app/projects" className={s.groupLink}>
+                View all
+              </Link>
+            </div>
             <ul className={s.list}>
-              {PROJECTS.map((p) => (
-                <li key={p.name}>
-                  <span className={s.item}>
-                    <i className={s.swatch} style={{ background: p.tone }} />
-                    <span className={s.label}>{p.name}</span>
-                    <span className={s.count}>{p.count}</span>
-                  </span>
-                </li>
-              ))}
+              <li>
+                <Link href="/app/projects" className={s.item} aria-current={pathname === "/app/projects" ? "page" : undefined}>
+                  <IconFolder className={s.itemIcon} />
+                  <span className={s.label}>All projects</span>
+                </Link>
+              </li>
+              {projects.slice(0, 6).map((p) => {
+                const href = `/app/projects/${p.id}`;
+                const chats = conversations.filter((c) => c.projectId === p.id).length;
+                return (
+                  <li key={p.id}>
+                    <Link href={href} className={s.item} aria-current={pathname === href ? "page" : undefined}>
+                      <i className={s.swatch} style={{ background: p.tone }} />
+                      <span className={s.label}>{p.name}</span>
+                      <span className={s.count}>{chats}</span>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
 
             <p className={s.group}>Recent</p>

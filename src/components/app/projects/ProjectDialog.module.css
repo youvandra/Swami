@@ -1,0 +1,48 @@
+.dialog {
+  margin: auto;
+  width: min(520px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  padding: 0;
+  border: 0;
+  border-radius: 20px;
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 40px 100px -30px rgba(9, 19, 31, 0.5);
+}
+.dialog::backdrop { background: rgba(9, 19, 31, 0.42); }
+.form { display: grid; gap: 14px; padding: 20px 22px 22px; }
+.head { display: flex; align-items: center; justify-content: space-between; }
+.head h2 { font-family: var(--font-serif); font-stretch: 76%; font-weight: 360; font-size: 28px; letter-spacing: -0.01em; }
+.close { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; color: var(--muted); }
+.close svg { width: 17px; height: 17px; }
+.close:hover { background: var(--mist); color: var(--text); }
+
+.kind { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.kind button { display: grid; gap: 2px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); text-align: left; transition: border-color 0.15s, background 0.15s; }
+.kind button:hover { background: var(--mist); }
+.kind button[aria-checked="true"] { border-color: var(--teal); box-shadow: 0 0 0 1px var(--teal); background: #f4fbfc; }
+.kind b { font-size: 14px; font-weight: 600; }
+.kind span { font-size: 12.5px; color: var(--muted); }
+
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field { display: grid; gap: 6px; }
+.field span { font-size: 12.5px; font-weight: 500; color: #34434f; }
+.field input {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(10, 15, 21, 0.14);
+  font: inherit;
+  font-size: 14.5px;
+  color: var(--text);
+  outline: 0;
+  min-width: 0;
+}
+.field input:focus { border-color: rgba(14, 58, 69, 0.5); box-shadow: 0 0 0 3px rgba(70, 220, 236, 0.18); }
+.foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.foot button:disabled { opacity: 0.4; cursor: default; transform: none; }
+
+@media (max-width: 520px) {
+  .row { grid-template-columns: 1fr; }
+  .foot button { flex: 1; }
+}
