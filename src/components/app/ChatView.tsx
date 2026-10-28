@@ -20,14 +20,16 @@ import s from "./ChatView.module.css";
 const KIND_OF: Record<Artifact["type"], Exclude<Mode, "auto">> = { opener_ranking: "opener", crowd_map: "map", routing: "routing", venues: "venues", partners: "partners", sponsors: "sponsors", audience: "audience", proposal: "proposal", email: "email" };
 
 // The show and opener of the chat's latest result, so "now find venues" needs no names.
-function lastShow(messages: Message[]) {
+// A result open in the panel for that show names the opener: "same for X" follows the map you are looking at.
+function lastShow(messages: Message[], focused?: Artifact) {
   for (let i = messages.length - 1; i >= 0; i--) {
     const arts = messages[i].artifacts ?? [];
     if (!arts.length) continue;
     const { headliner, city, date } = arts[0].show;
     const withOpener = arts.find((a) => a.type === "crowd_map" || a.type === "audience");
     const ranking = arts.find((a) => a.type === "opener_ranking");
-    const opener = withOpener && "opener" in withOpener ? withOpener.opener : ranking?.type === "opener_ranking" ? ranking.rows[0]?.name : undefined;
+    const sameShow = focused && "opener" in focused && focused.show.headliner === headliner && focused.show.city === city;
+    const opener = sameShow ? focused.opener : withOpener && "opener" in withOpener ? withOpener.opener : ranking?.type === "opener_ranking" ? ranking.rows[0]?.name : undefined;
     return { headliner, city, date, opener, kind: KIND_OF[arts[0].type] };
   }
   return undefined;
@@ -156,7 +158,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
             roster: roster && { name: roster.name, acts: roster.acts },
             project: chatProject && { headliner: chatProject.headliner, city: chatProject.city, date: chatProject.date, venue: chatProject.venue, capacity: chatProject.capacity },
             entities,
-            last: lastShow(withUser.messages),
+            last: lastShow(withUser.messages, panelOpen ? artifacts.find((a) => a.id === activeId) : undefined),
           },
         }),
       });

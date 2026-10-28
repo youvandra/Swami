@@ -1,5 +1,6 @@
 "use client";
 
+import { askMap, findArtifactFor } from "@/lib/agent/ask";
 import type { Artifact } from "@/lib/agent/types";
 import { updateArtifact, useCanEdit } from "@/lib/store";
 import { AudienceView } from "./artifacts/AudienceView";
@@ -89,10 +90,10 @@ export function ArtifactPanel({ artifacts, activeId, onSelect, onClose, onAsk, o
           <OpenerRanking
             artifact={active}
             onAsk={onAsk}
-            onShowMap={() => {
-              const m = artifacts.find((a) => a.type === "crowd_map");
+            onShowMap={(opener) => {
+              const m = findArtifactFor(artifacts, { type: "crowd_map", headliner: active.show.headliner, city: active.show.city, opener });
               if (m) onSelect(m.id);
-              else onAsk(`Where would ${active.rows[0].name}'s fans add crowd for ${active.show.headliner} in ${active.show.city}?`);
+              else onAsk(askMap(active.show, opener));
             }}
           />
         )}

@@ -21,7 +21,7 @@ const Bar = ({ v }: { v: number }) => (
   </span>
 );
 
-export function OpenerRanking({ artifact, onAsk, onShowMap }: { artifact: Ranking; onAsk: (p: string) => void; onShowMap: () => void }) {
+export function OpenerRanking({ artifact, onAsk, onShowMap }: { artifact: Ranking; onAsk: (p: string) => void; onShowMap: (opener: string) => void }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [open, setOpen] = useState<string | null>(artifact.rows[0]?.name ?? null);
   const { show } = artifact;
@@ -122,7 +122,7 @@ export function OpenerRanking({ artifact, onAsk, onShowMap }: { artifact: Rankin
                     ))}
                   </div>
                   <div className={s.detailActions}>
-                    <button onClick={onShowMap}>
+                    <button onClick={() => onShowMap(r.name)}>
                       <IconMap />
                       View crowd map
                     </button>
