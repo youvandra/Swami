@@ -399,7 +399,7 @@ function AssistantMessage({ message, activeId, onOpen, onChoose }: { message: Me
                 <details className={s.steps}>
                   <summary>
                     {failed ? <IconWarn className={s.stepsIcon} /> : <IconCheck className={s.stepsIcon} />}
-                    Worked for {total < 100 ? "under 0.1s" : `${(total / 1000).toFixed(1)}s`}<span className={s.stepsCount}>{steps.length} steps{failed ? ` · ${failed} failed` : ""}</span>
+                    Worked for {total < 100 ? "under 0.1s" : `${(total / 1000).toFixed(1)}s`}<span className={s.stepsCount}>{steps.length} step{steps.length === 1 ? "" : "s"}{failed ? ` · ${failed} failed` : ""}</span>
                     <IconChevron className={s.stepsChevron} />
                   </summary>
                   <ol>
