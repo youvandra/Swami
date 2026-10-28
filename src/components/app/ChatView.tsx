@@ -74,6 +74,14 @@ export function ChatView({ id: routeId }: { id: string | null }) {
 
   useEffect(() => setHydrated(true), []);
 
+  // Escape stops a reply that is still streaming
+  useEffect(() => {
+    if (!busy) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && stopRef.current?.abort();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [busy]);
+
   const started = useRef(false);
   useEffect(() => {
     if (routeId || started.current) return;

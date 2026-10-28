@@ -65,6 +65,7 @@ export function titleFor(kind: string, show: { headliner?: string; city?: string
   if (!h) return "New chat";
   const where = [show.city, show.date].filter(Boolean).join(", ");
   const label: Record<string, string> = { opener: "Openers", map: "Crowd map", routing: "Tour leg", venues: "Venues", partners: "Co-promo", sponsors: "Sponsors", audience: "Audience", proposal: "Proposal", email: "Email" };
-  const at = kind === "routing" || kind === "sponsors" || !where ? "" : ` · ${where}`;
-  return `${label[kind] ?? "Chat"} · ${h}${at}`;
+  // the sidebar cuts long titles, so the parts that tell chats apart come first
+  const at = kind === "routing" || kind === "sponsors" || !where ? "" : `, ${where}`;
+  return `${label[kind] ?? "Chat"}${at} · ${h}`;
 }

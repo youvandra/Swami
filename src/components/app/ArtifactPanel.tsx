@@ -66,7 +66,14 @@ export function ArtifactPanel({ artifacts, activeId, onSelect, onClose, onAsk, o
       <div className={s.titleRow}>
         <div className={s.titleText}>
           <h2>{active.title}</h2>
-          <p>{active.subtitle}</p>
+          <p>
+            {active.source !== "live" && (
+              <span className={s.demo} data-tip="Made-up names and numbers, until a Qloo key is connected">
+                Demo data
+              </span>
+            )}
+            {active.subtitle}
+          </p>
         </div>
         <div className={s.actions}>
           {canEdit && <SaveMenu artifact={active} conversationId={conversationId} defaultProjectId={defaultProjectId} onToast={onToast} />}

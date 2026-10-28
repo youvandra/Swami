@@ -175,7 +175,7 @@ export function Composer({ onSend, mode, onMode, busy, onStop, readOnly, placeho
           <IconChevron />
         </label>
         {busy && onStop ? (
-          <button type="button" className={s.send} onClick={onStop} aria-label="Stop" data-tip="Stop" data-tip-pos="end">
+          <button type="button" className={s.send} onClick={onStop} aria-label="Stop" data-tip="Stop · Esc" data-tip-pos="end">
             <IconStop />
           </button>
         ) : (
