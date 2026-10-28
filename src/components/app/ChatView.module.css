@@ -148,6 +148,19 @@
   line-height: 1.55;
   white-space: pre-wrap;
 }
+.user[data-editing] { justify-self: stretch; max-width: none; }
+.edit { display: grid; gap: 8px; padding: 10px; border-radius: 18px; border: 1px solid var(--tint-ink); background: #fff; }
+.edit textarea { width: 100%; resize: vertical; border: 0; outline: none; font: inherit; font-size: 15px; line-height: 1.55; padding: 2px 6px; background: transparent; }
+.editActions { display: flex; justify-content: flex-end; gap: 8px; }
+.editActions button { height: 32px; padding: 0 14px; border-radius: 10px; font-size: 13.5px; font-weight: 500; }
+.editActions .quiet { color: var(--muted); }
+.editActions .quiet:hover { background: var(--mist); color: var(--ink); }
+.editActions .primary { background: var(--navy, #0e2233); color: #fff; }
+.editActions .primary:disabled { opacity: 0.5; }
+.branches { display: inline-flex; align-items: center; gap: 0; margin-right: 4px; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.branches button:disabled { opacity: 0.35; }
+.prev { rotate: 90deg; }
+.next { rotate: -90deg; }
 .userActions { display: flex; justify-content: flex-end; gap: 2px; margin-top: 4px; opacity: 0; transition: opacity 0.15s; }
 .user:hover .userActions,
 .user:focus-within .userActions { opacity: 1; }

@@ -6,7 +6,11 @@ import { artifactSchema } from "../agent/artifact.schema.ts";
 const id = z.string().min(1).max(64);
 const step = z.object({ label: z.string(), detail: z.string().optional(), ms: z.number(), status: z.enum(["running", "done", "failed"]).optional() });
 const choices = z.object({ prompt: z.string(), key: z.string(), name: z.string().optional(), ask: z.string().optional(), options: z.array(z.object({ id: z.string(), name: z.string(), image: z.string().optional(), detail: z.string(), reply: z.string() })) });
-const message = z.object({ id, role: z.enum(["user", "assistant"]), text: z.string().max(20_000), createdAt: z.number(), steps: z.array(step).optional(), artifacts: z.array(artifactSchema).optional(), choices: choices.optional(), failed: z.boolean().optional() });
+const messageBase = z.object({ id, role: z.enum(["user", "assistant"]), text: z.string().max(20_000), createdAt: z.number(), steps: z.array(step).optional(), artifacts: z.array(artifactSchema).optional(), choices: choices.optional(), failed: z.boolean().optional() });
+type MessageIn = z.infer<typeof messageBase> & { branches?: { active: number; list: { text: string; after: MessageIn[] }[] } };
+const message: z.ZodType<MessageIn> = messageBase.extend({
+  branches: z.lazy(() => z.object({ active: z.number().int().min(0), list: z.array(z.object({ text: z.string().max(20_000), after: z.array(message).max(400) })).max(20) })).optional(),
+});
 
 export const conversationSchema = z.object({
   id,

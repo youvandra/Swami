@@ -52,6 +52,11 @@ export type Bootstrap = {
   current: string;
 };
 
+// Migration 0003 adds messages.hidden and messages.branches. Until the database has them, undo and edit history
+// stay in the browser and every other write works as before. Checked once per server process.
+let ready: Promise<boolean> | undefined;
+const branchesReady = (sb: SupabaseClient) => (ready ??= Promise.resolve(sb.from("messages").select("hidden, branches").limit(1)).then(({ error }) => !error));
+
 export async function bootstrap(sb: SupabaseClient, ws: string): Promise<Bootstrap> {
   const { data: auth } = await sb.auth.getUser();
   const [w, team, projects, convs, rosters] = await Promise.all([
@@ -65,7 +70,7 @@ export async function bootstrap(sb: SupabaseClient, ws: string): Promise<Bootstr
   const ids = convRows.map((c) => c.id);
   const projectIds = must(projects).map((p) => p.id);
   const [msgs, saved] = await Promise.all([
-    ids.length ? sb.from("messages").select("*").in("conversation_id", ids).order("created_at") : Promise.resolve({ data: [], error: null }),
+    ids.length ? (await branchesReady(sb) ? sb.from("messages").select("*").in("conversation_id", ids).eq("hidden", false) : sb.from("messages").select("*").in("conversation_id", ids)).order("created_at") : Promise.resolve({ data: [], error: null }),
     projectIds.length ? sb.from("saved_artifacts").select("*").in("project_id", projectIds) : Promise.resolve({ data: [], error: null }),
   ]);
   const msgRows = must(msgs) as MessageRow[];
@@ -102,13 +107,15 @@ export async function apply(sb: SupabaseClient, ws: string, op: Op): Promise<voi
       const { data: auth } = await sb.auth.getUser();
       const rows = conversationToRows(op.conversation, ws, auth.user?.id ?? null);
       must(await sb.from("conversations").upsert(rows.conversation));
-      // messages the chat no longer has (undone, or on another branch) leave with their artifacts
-      // (ids are plain word characters from newId/uid; any other id skips the clean-up rather than risk the filter)
-      if (rows.messages.every((m) => /^[\w-]+$/.test(m.id))) {
-        const gone = sb.from("messages").delete().eq("conversation_id", rows.conversation.id);
+      const ready = await branchesReady(sb);
+      // messages the chat no longer shows (undone, or on another branch) are hidden, so saved results keep their rows
+      // (ids are plain word characters from newId/uid; any other id skips this rather than risk the filter)
+      if (ready && rows.messages.every((m) => /^[\w-]+$/.test(m.id))) {
+        const gone = sb.from("messages").update({ hidden: true }).eq("conversation_id", rows.conversation.id);
         must(await (rows.messages.length ? gone.not("id", "in", `(${rows.messages.map((m) => m.id).join(",")})`) : gone));
       }
-      if (rows.messages.length) must(await sb.from("messages").upsert(rows.messages));
+      const messages = ready ? rows.messages.map((m) => ({ ...m, hidden: false, branches: m.branches ?? null })) : rows.messages.map(({ branches: _, ...m }) => m);
+      if (messages.length) must(await sb.from("messages").upsert(messages));
       if (rows.artifacts.length) must(await sb.from("artifacts").upsert(rows.artifacts));
       return;
     }

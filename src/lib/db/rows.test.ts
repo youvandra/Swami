@@ -38,3 +38,18 @@ test("a project survives the trip", () => {
   const p: Project = { id: "p1", name: "Show", kind: "show", tone: "#fff", headliner: "H", city: "C", date: "Mar 14", venue: "V", capacity: 900, createdAt: 1000, updatedAt: 2000 };
   assert.deepEqual(rowToProject(projectToRow(p, "ws")), p);
 });
+
+test("an edited question keeps its versions through rows and the sync schema", async () => {
+  const { conversationSchema } = await import("./sync.ts");
+  const [q, a] = conv.messages;
+  const edited: Conversation = {
+    ...conv,
+    messages: [{ ...q, text: "Find an opener in Austin", branches: { active: 1, list: [{ text: q.text, after: [a] }, { text: "Find an opener in Austin", after: [] }] } }, { ...a, id: "m3" }],
+  };
+  const r = conversationToRows(edited, "ws", "u");
+  assert.equal(r.messages[0].branches?.list[0].after[0].id, "m2");
+  assert.equal(r.messages[1].branches, undefined, "messages without versions send no branches key");
+  const back = rowsToConversations([r.conversation], r.messages, r.artifacts)[0];
+  assert.deepEqual(back.messages[0].branches, edited.messages[0].branches);
+  assert.ok(conversationSchema.safeParse(edited).success);
+});

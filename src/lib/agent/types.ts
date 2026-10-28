@@ -94,7 +94,11 @@ export type Message = {
   choices?: Choices;
   /** A reply that did not finish; the chat offers to send the question again. */
   failed?: boolean;
+  /** An edited question: every version of it and what followed each. The open one's `after` is the live thread. */
+  branches?: Branches;
 };
+
+export type Branches = { active: number; list: { text: string; after: Message[] }[] };
 
 // The agent asks which one was meant instead of guessing; picking a card sends `reply` back.
 export type Choice = { id: string; name: string; image?: string; detail: string; reply: string };

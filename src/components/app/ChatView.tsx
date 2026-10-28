@@ -68,6 +68,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   const setToast = (m: string | null) => m && toast(m);
   const [hydrated, setHydrated] = useState(false);
   const [renaming, setRenaming] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
   const end = useRef<HTMLDivElement>(null);
   const stopRef = useRef<AbortController | null>(null);
   const dataMode = useServerStatus().data;
@@ -121,7 +122,8 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   }, [messages.length, busy]);
 
 
-  async function send(text: string, startProject = projectId, attached?: AttachedRoster, extraEntities: Record<string, string> = {}) {
+  // `opts.base` sends from an earlier point of the chat (an edited question), `opts.user` keeps that question's id and versions
+  async function send(text: string, startProject = projectId, attached?: AttachedRoster, extraEntities: Record<string, string> = {}, opts: { base?: Conversation; user?: Partial<Message> } = {}) {
     const chatProject = projects.find((p) => p.id === startProject);
     if (busy) return;
     // "roster only" with nothing attached means the workspace's newest roster
@@ -129,8 +131,8 @@ export function ChatView({ id: routeId }: { id: string | null }) {
     const roster = attached ?? (saved && { name: saved.name, acts: saved.acts.map((a) => a.name) });
     const convId = id ?? newId();
     const shown = roster ? `${text}\n\nRoster: ${roster.name} (${roster.acts.length} acts)` : text;
-    const user: Message = { id: newId(), role: "user", text: shown, createdAt: Date.now() };
-    const base: Conversation = stored ?? { id: convId, title: text.slice(0, 48), mode, projectId: startProject, updatedAt: Date.now(), messages: [] };
+    const user: Message = { id: newId(), role: "user", text: shown, createdAt: Date.now(), ...opts.user };
+    const base: Conversation = opts.base ?? stored ?? { id: convId, title: text.slice(0, 48), mode, projectId: startProject, updatedAt: Date.now(), messages: [] };
     const withUser = { ...base, mode, updatedAt: Date.now(), messages: [...base.messages, user] };
     opened.current = true; // the reply opens its own artifact below
     saveConversation(withUser);
@@ -238,6 +240,26 @@ export function ChatView({ id: routeId }: { id: string | null }) {
     } catch {
       toast("Clipboard is blocked in this browser");
     }
+  }
+
+  // An edit keeps the old version: the question and what followed it become a branch the < 1/2 > switch reopens.
+  function saveEdit(m: Message, text: string) {
+    setEditing(null);
+    if (!stored || !text.trim() || text.trim() === m.text) return;
+    const i = stored.messages.indexOf(m);
+    const prior = m.branches ?? { active: 0, list: [{ text: m.text, after: [] }] };
+    const list = prior.list.map((b, k) => (k === prior.active ? { text: m.text, after: stored.messages.slice(i + 1) } : b));
+    list.push({ text: text.trim(), after: [] });
+    void send(text.trim(), projectId, undefined, {}, { base: { ...stored, messages: stored.messages.slice(0, i) }, user: { id: m.id, branches: { active: list.length - 1, list } } });
+  }
+
+  function switchBranch(m: Message, to: number) {
+    if (!stored || !m.branches || busy) return;
+    const i = stored.messages.indexOf(m);
+    const { active, list } = m.branches;
+    // the open branch lives in the thread itself, so its stored copy stays empty
+    const next = list.map((b, k) => (k === active ? { text: m.text, after: stored.messages.slice(i + 1) } : k === to ? { text: b.text, after: [] } : b));
+    saveConversation({ ...stored, updatedAt: Date.now(), messages: [...stored.messages.slice(0, i), { ...m, text: list[to].text, branches: { active: to, list: next } }, ...list[to].after] });
   }
 
   // Takes back the last question and everything that answered it; the toast brings it back.
@@ -379,12 +401,34 @@ export function ChatView({ id: routeId }: { id: string | null }) {
               <div className={s.messages}>
                 {messages.map((m) =>
                   m.role === "user" ? (
-                    <div key={m.id} className={s.user}>
-                      <p>{m.text}</p>
+                    <div key={m.id} className={s.user} data-editing={editing === m.id || undefined}>
+                      {editing === m.id ? (
+                        <EditBox text={m.text.replace(/\n\nRoster: .*$/s, "")} onCancel={() => setEditing(null)} onSave={(t) => saveEdit(m, t)} />
+                      ) : (
+                        <p>{m.text}</p>
+                      )}
                       <div className={s.userActions}>
+                        {m.branches && m.branches.list.length > 1 && (
+                          <span className={s.branches}>
+                            <button onClick={() => switchBranch(m, m.branches!.active - 1)} disabled={busy || m.branches.active === 0} aria-label="Previous version">
+                              <IconChevron className={s.prev} />
+                            </button>
+                            <span aria-live="polite">
+                              {m.branches.active + 1}/{m.branches.list.length}
+                            </span>
+                            <button onClick={() => switchBranch(m, m.branches!.active + 1)} disabled={busy || m.branches.active === m.branches.list.length - 1} aria-label="Next version">
+                              <IconChevron className={s.next} />
+                            </button>
+                          </span>
+                        )}
                         <button onClick={() => void copyText(m.text)} aria-label="Copy message" data-tip="Copy">
                           <IconCopy />
                         </button>
+                        {canEdit && !busy && editing !== m.id && (
+                          <button onClick={() => setEditing(m.id)} aria-label="Edit message" data-tip="Edit">
+                            <IconPencil />
+                          </button>
+                        )}
                         {canEdit && !busy && m === lastUser && (
                           <button onClick={undoLast} aria-label="Undo this question" data-tip="Undo">
                             <IconUndo />
@@ -429,6 +473,37 @@ export function ChatView({ id: routeId }: { id: string | null }) {
           defaultProjectId={projectId}
         />
       )}
+    </div>
+  );
+}
+
+// Editing a question in place: Enter saves, Escape leaves it as it was.
+function EditBox({ text, onSave, onCancel }: { text: string; onSave: (t: string) => void; onCancel: () => void }) {
+  const [value, setValue] = useState(text);
+  return (
+    <div className={s.edit}>
+      <textarea
+        autoFocus
+        value={value}
+        rows={Math.min(8, value.split("\n").length + 1)}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            onSave(value);
+          }
+          if (e.key === "Escape") onCancel();
+        }}
+        aria-label="Edit your question"
+      />
+      <div className={s.editActions}>
+        <button className={s.quiet} onClick={onCancel}>
+          Cancel
+        </button>
+        <button className={s.primary} onClick={() => onSave(value)} disabled={!value.trim()}>
+          Send
+        </button>
+      </div>
     </div>
   );
 }
