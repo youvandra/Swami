@@ -18,3 +18,18 @@ export function budgeted<S extends QlooSource & { calls: number }>(source: S, ma
     },
   });
 }
+
+/** Makes every call take `ms`, so a demo on the fixture streams its steps the way a live run does. */
+export function slowed<S extends QlooSource>(source: S, ms: number): S {
+  if (ms <= 0) return source;
+  return new Proxy(source, {
+    get(target, prop, receiver) {
+      const v = Reflect.get(target, prop, receiver);
+      if (typeof v !== "function") return v;
+      return async (...args: unknown[]) => {
+        await new Promise((r) => setTimeout(r, ms));
+        return v.apply(target, args);
+      };
+    },
+  });
+}

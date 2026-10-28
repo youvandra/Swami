@@ -15,6 +15,8 @@ const schema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   NEXT_PUBLIC_SITE_URL: z.string().default("http://localhost:5192"),
   SWAMI_DAILY_RUNS_PER_WORKSPACE: z.coerce.number().int().positive().default(200),
+  // demo only: delay per fake Qloo call, so steps stream visibly
+  SWAMI_FIXTURE_DELAY_MS: z.coerce.number().int().min(0).max(5000).default(0),
 });
 
 // empty strings in .env files mean "unset"
