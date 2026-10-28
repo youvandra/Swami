@@ -33,7 +33,7 @@ export function draftProposal(template: ProposalTemplate, show: Show, picks: Pic
     headline = `${facts.sponsor ?? "Your brand"} × ${show.headliner}`;
     sections = [
       { heading: "The show", body: `${show.headliner} with ${top.name} ${at} on ${show.date}. A ${cap}-capacity room, promoted for two weeks across ${hoods}.` },
-      { heading: "Why this audience", body: `Fans of ${show.headliner} pick ${sponsor} far more often than the average concert-goer. ${top.name} adds a younger crowd from the neighbourhoods where your brand is growing.` },
+      { heading: "Why this audience", body: `Fans of ${show.headliner} pick ${sponsor} far more often than the average concert-goer. ${top.name} adds a crowd of its own from ${hoods}.` },
       { heading: "What we propose", body: "A sampling bar next to merch, your logo on the promo links we send to each neighbourhood, and a shout-out from the stage before the headliner's set." },
       { heading: "What you get", body: `Reach to ${cap} fans on the night, a tracked link per neighbourhood so you can see who came through you, and photo rights for your channels.` },
       { heading: "Next step", body: "A 20-minute call this week to agree on the activation and the fee." },
