@@ -1,11 +1,15 @@
 "use client";
 
-// Workspace data lives in localStorage until the backend has persistence.
-// Components read through the use* hooks and write through the actions below.
+// Components read through the use* hooks and write through the actions below. With accounts on, the server
+// holds the workspace: hooks read a cache filled by /api/bootstrap and every action is also sent to
+// /api/sync. Without accounts, the workspace lives in this browser's localStorage.
 
 import { useSyncExternalStore } from "react";
 import type { Artifact, Conversation, Message } from "./agent/types";
 import demo from "./demo-seed.json";
+import { accountsOn } from "./db/config";
+import type { Op } from "./db/sync";
+import { toast } from "./toast";
 import { TONES, type Member, type Project, type Roster, type SavedArtifact, type Workspace } from "./model";
 
 type State = {
@@ -82,8 +86,16 @@ const complete = (s: Partial<State>): State => ({
   rosters: s.rosters ?? DEFAULT_ROSTERS,
 } as State);
 
+const REMOTE = accountsOn;
+let loaded = !REMOTE;
+
 function read(): State {
   if (cache) return cache;
+  if (REMOTE) {
+    cache = { ...EMPTY, workspace: { ...DEFAULT_WORKSPACE, onboarded: true } };
+    if (typeof window !== "undefined") void pull();
+    return cache;
+  }
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
@@ -103,14 +115,98 @@ function read(): State {
   return cache;
 }
 
-function write(next: State) {
+function write(next: State, ops: Op[] = []) {
   cache = next;
-  try {
-    localStorage.setItem(KEY, JSON.stringify(next));
-  } catch {
-    // storage blocked: keep the in-memory copy for this tab
+  if (REMOTE) queue(ops);
+  else {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(next));
+    } catch {
+      // storage blocked: keep the in-memory copy for this tab
+    }
   }
   listeners.forEach((l) => l());
+}
+
+// ---------- server sync (accounts on) ----------
+
+let pending: Op[] = [];
+let flushing: Promise<void> | null = null;
+
+function queue(ops: Op[]) {
+  if (ops.length === 0) return;
+  pending.push(...ops);
+  flushing ??= Promise.resolve().then(flush);
+}
+
+async function flush() {
+  while (pending.length) {
+    const batch = pending.splice(0, 50);
+    try {
+      const res = await fetch("/api/sync", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ops: batch }) });
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `HTTP ${res.status}`);
+    } catch (e) {
+      // the server is the truth: drop what failed, say so, and reload what it holds
+      pending = [];
+      toast(e instanceof Error && !/^HTTP|fetch/i.test(e.message) ? e.message : "Could not save your last change. Reloaded the workspace.");
+      await pull();
+    }
+  }
+  flushing = null;
+}
+
+async function pull() {
+  try {
+    const res = await fetch("/api/bootstrap");
+    if (res.status === 401) return window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const b = (await res.json()) as State;
+    cache = complete({ conversations: b.conversations, projects: b.projects, saved: b.saved, workspace: b.workspace, team: b.team, rosters: b.rosters });
+    loaded = true;
+    listeners.forEach((l) => l());
+    offerImport();
+  } catch {
+    toast("Could not load your workspace. Check the connection and reload.");
+  }
+}
+
+// Demo rows a fresh browser starts with; they stay behind when a browser's chats move to the server.
+const DEMO_IDS = new Set(["demo", "demo-route", "demo-sponsors", "p-chicago", "p-spring", "p-fridays", "r-northlight"]);
+
+function offerImport() {
+  let local: Partial<State> | null = null;
+  try {
+    const raw = localStorage.getItem(KEY);
+    local = raw ? (JSON.parse(raw) as Partial<State>) : null;
+  } catch {
+    return;
+  }
+  if (!local) return;
+  const conversations = (local.conversations ?? []).filter((c) => !DEMO_IDS.has(c.id));
+  const projects = (local.projects ?? []).filter((p) => !DEMO_IDS.has(p.id));
+  const rosters = (local.rosters ?? []).filter((r) => !DEMO_IDS.has(r.id));
+  const forget = () => {
+    try {
+      localStorage.removeItem(KEY);
+    } catch {}
+  };
+  if (!conversations.length && !projects.length && !rosters.length) return forget();
+  const keep = new Set(projects.map((p) => p.id));
+  const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  toast(`Import ${plural(conversations.length, "chat")} and ${plural(projects.length, "project")} from this browser?`, {
+    label: "Import",
+    run: () => {
+      const s = read();
+      const ops: Op[] = [
+        ...projects.map((project): Op => ({ op: "project.put", project })),
+        ...rosters.map((roster): Op => ({ op: "roster.put", roster })),
+        ...conversations.map((c): Op => ({ op: "conversation.put", conversation: { ...c, projectId: c.projectId && keep.has(c.projectId) ? c.projectId : undefined } })),
+        ...(local!.saved ?? []).filter((x) => keep.has(x.projectId)).map((x): Op => ({ op: "saved.put", projectId: x.projectId, artifactId: x.artifact.id, conversationId: x.conversationId })),
+      ];
+      write({ ...s, projects: [...projects, ...s.projects], rosters: [...rosters, ...s.rosters], conversations: byRecent([...conversations, ...s.conversations]) }, ops);
+      forget();
+    },
+  });
 }
 
 const subscribe = (l: () => void) => {
@@ -128,7 +224,7 @@ export const useSaved = () => useSyncExternalStore(subscribe, () => read().saved
 export const useWorkspace = () => useSyncExternalStore(subscribe, () => read().workspace, () => EMPTY.workspace);
 export const useTeam = () => useSyncExternalStore(subscribe, () => read().team, () => EMPTY.team);
 export const useRosters = () => useSyncExternalStore(subscribe, () => read().rosters, () => EMPTY.rosters);
-export const useHydrated = () => useSyncExternalStore(subscribe, () => true, () => false);
+export const useHydrated = () => useSyncExternalStore(subscribe, () => loaded, () => false);
 
 export function useConversation(id: string | null) {
   const all = useConversations();
@@ -144,31 +240,35 @@ export function useProject(id: string | null | undefined) {
 
 export function saveConversation(c: Conversation) {
   const s = read();
-  write({ ...s, conversations: byRecent([c, ...s.conversations.filter((x) => x.id !== c.id)]) });
+  write({ ...s, conversations: byRecent([c, ...s.conversations.filter((x) => x.id !== c.id)]) }, [{ op: "conversation.put", conversation: c }]);
   if (c.projectId) touchProject(c.projectId);
 }
 
 export function deleteConversation(id: string) {
   const s = read();
-  write({ ...s, conversations: s.conversations.filter((c) => c.id !== id) });
+  write({ ...s, conversations: s.conversations.filter((c) => c.id !== id) }, [{ op: "conversation.delete", id }]);
 }
 
 export function setConversationProject(conversationId: string, projectId: string | undefined) {
   const s = read();
-  write({ ...s, conversations: s.conversations.map((c) => (c.id === conversationId ? { ...c, projectId } : c)) });
+  const conversations = s.conversations.map((c) => (c.id === conversationId ? { ...c, projectId } : c));
+  const moved = conversations.find((c) => c.id === conversationId);
+  write({ ...s, conversations }, moved ? [{ op: "conversation.put", conversation: { ...moved, messages: [] } }] : []);
   if (projectId) touchProject(projectId);
 }
 
 export function createProject(p: Omit<Project, "id" | "createdAt" | "updatedAt" | "tone">): Project {
   const s = read();
   const project: Project = { ...p, id: `p-${newId()}`, tone: TONES[s.projects.length % TONES.length], createdAt: Date.now(), updatedAt: Date.now() };
-  write({ ...s, projects: [project, ...s.projects] });
+  write({ ...s, projects: [project, ...s.projects] }, [{ op: "project.put", project }]);
   return project;
 }
 
 export function updateProject(id: string, patch: Partial<Omit<Project, "id">>) {
   const s = read();
-  write({ ...s, projects: s.projects.map((p) => (p.id === id ? { ...p, ...patch, updatedAt: Date.now() } : p)) });
+  const projects = s.projects.map((p) => (p.id === id ? { ...p, ...patch, updatedAt: Date.now() } : p));
+  const p = projects.find((x) => x.id === id);
+  write({ ...s, projects }, p ? [{ op: "project.put", project: p }] : []);
 }
 
 // Deleting a project keeps its chats; they just lose the link.
@@ -179,24 +279,26 @@ export function deleteProject(id: string) {
     conversations: s.conversations.map((c) => (c.projectId === id ? { ...c, projectId: undefined } : c)),
     projects: s.projects.filter((p) => p.id !== id),
     saved: s.saved.filter((x) => x.projectId !== id),
-  });
+  }, [{ op: "project.delete", id }]);
 }
 
 function touchProject(id: string) {
   const s = read();
-  write({ ...s, projects: byRecent(s.projects.map((p) => (p.id === id ? { ...p, updatedAt: Date.now() } : p))) });
+  const projects = byRecent(s.projects.map((p) => (p.id === id ? { ...p, updatedAt: Date.now() } : p)));
+  const p = projects.find((x) => x.id === id);
+  write({ ...s, projects }, p ? [{ op: "project.put", project: p }] : []);
 }
 
 export function saveArtifact(projectId: string, artifact: Artifact, conversationId?: string) {
   const s = read();
   const rest = s.saved.filter((x) => !(x.projectId === projectId && x.artifact.id === artifact.id));
-  write({ ...s, saved: [{ projectId, conversationId, artifact, savedAt: Date.now() }, ...rest] });
+  write({ ...s, saved: [{ projectId, conversationId, artifact, savedAt: Date.now() }, ...rest] }, [{ op: "saved.put", projectId, artifactId: artifact.id, conversationId }]);
   touchProject(projectId);
 }
 
 export function unsaveArtifact(projectId: string, artifactId: string) {
   const s = read();
-  write({ ...s, saved: s.saved.filter((x) => !(x.projectId === projectId && x.artifact.id === artifactId)) });
+  write({ ...s, saved: s.saved.filter((x) => !(x.projectId === projectId && x.artifact.id === artifactId)) }, [{ op: "saved.delete", projectId, artifactId }]);
 }
 
 // An edit made anywhere (chat panel or project page) updates every copy of that artifact.
@@ -210,46 +312,49 @@ export function updateArtifact(artifact: Artifact) {
         : c,
     ),
     saved: s.saved.map((x) => (x.artifact.id === artifact.id ? { ...x, artifact } : x)),
-  });
+  }, [{ op: "artifact.put", artifact }]);
 }
 
 // ---------- workspace ----------
 
 export function updateWorkspace(patch: Partial<Workspace>) {
   const s = read();
-  write({ ...s, workspace: { ...s.workspace, ...patch } });
+  write({ ...s, workspace: { ...s.workspace, ...patch } }, [{ op: "workspace.patch", patch }]);
 }
 
 export function inviteMember(email: string, role: Member["role"]) {
   const s = read();
   const name = email.split("@")[0].replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-  write({ ...s, team: [...s.team, { id: `m-${newId()}`, name, email, role, status: "invited" }] });
+  write({ ...s, team: [...s.team, { id: `m-${newId()}`, name, email, role, status: "invited" }] }, [{ op: "member.invite", email, role }]);
+  // the server picks the member's id; reload so later edits address the right row
+  if (REMOTE) void (flushing ?? Promise.resolve()).then(pull);
 }
 
 export function updateMember(id: string, patch: Partial<Member>) {
   const s = read();
-  write({ ...s, team: s.team.map((m) => (m.id === id ? { ...m, ...patch } : m)) });
+  write({ ...s, team: s.team.map((m) => (m.id === id ? { ...m, ...patch } : m)) }, [{ op: "member.patch", id, patch: { ...(patch.role ? { role: patch.role } : {}), ...(patch.name ? { name: patch.name } : {}) } }]);
 }
 
 export function removeMember(id: string) {
   const s = read();
-  write({ ...s, team: s.team.filter((m) => m.id !== id) });
+  write({ ...s, team: s.team.filter((m) => m.id !== id) }, [{ op: "member.remove", id }]);
 }
 
 export function saveRoster(name: string, acts: Roster["acts"]): Roster {
   const s = read();
   const roster: Roster = { id: `r-${newId()}`, name, acts, createdAt: Date.now() };
-  write({ ...s, rosters: [roster, ...s.rosters] });
+  write({ ...s, rosters: [roster, ...s.rosters] }, [{ op: "roster.put", roster }]);
   return roster;
 }
 
 export function deleteRoster(id: string) {
   const s = read();
-  write({ ...s, rosters: s.rosters.filter((r) => r.id !== id) });
+  write({ ...s, rosters: s.rosters.filter((r) => r.id !== id) }, [{ op: "roster.delete", id }]);
 }
 
 // Clears everything in this browser and starts again from the demo workspace.
 export function resetWorkspace() {
+  if (REMOTE) return void pull();
   try {
     localStorage.removeItem(KEY);
     localStorage.removeItem(LEGACY_KEY);
