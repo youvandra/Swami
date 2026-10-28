@@ -12,7 +12,7 @@ export const conversationSchema = z.object({
   id,
   title: z.string().max(200),
   projectId: id.optional(),
-  mode: z.string().max(20),
+  mode: z.enum(["auto", "opener", "map", "routing", "venues", "partners", "sponsors", "audience", "proposal", "email"]),
   updatedAt: z.number(),
   messages: z.array(message).max(400),
   entities: z.record(z.string(), z.string()).optional(),

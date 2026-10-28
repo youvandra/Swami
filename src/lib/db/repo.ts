@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import type { Artifact, Conversation, Message } from "../agent/types.ts";
 import type { Member, Project, Roster, SavedArtifact, Workspace } from "../model.ts";
 import type { Op } from "./sync.ts";
+import { conversationToRows, projectToRow, rowToProject, rowsToConversations, type ArtifactRow, type ConversationRow, type MessageRow, type ProjectRow } from "./rows.ts";
 import { env } from "../env.ts";
 import { sendInvite } from "./admin.ts";
 
@@ -63,29 +64,29 @@ export async function bootstrap(sb: SupabaseClient, ws: string): Promise<Bootstr
   const convRows = must(convs);
   const ids = convRows.map((c) => c.id);
   const projectIds = must(projects).map((p) => p.id);
-  const [msgs, arts, saved] = await Promise.all([
+  const [msgs, saved] = await Promise.all([
     ids.length ? sb.from("messages").select("*").in("conversation_id", ids).order("created_at") : Promise.resolve({ data: [], error: null }),
-    sb.from("artifacts").select("id, message_id, position, data").eq("workspace_id", ws),
     projectIds.length ? sb.from("saved_artifacts").select("*").in("project_id", projectIds) : Promise.resolve({ data: [], error: null }),
   ]);
-  const artRows = must(arts) as { id: string; message_id: string; position: number; data: Artifact }[];
-  const byMessage = new Map<string, Artifact[]>();
-  for (const a of [...artRows].sort((x, y) => x.position - y.position)) (byMessage.get(a.message_id) ?? byMessage.set(a.message_id, []).get(a.message_id)!).push(a.data);
-  const artById = new Map(artRows.map((a) => [a.id, a.data]));
-  const byConv = new Map<string, Message[]>();
-  for (const m of must(msgs) as { id: string; conversation_id: string; role: Message["role"]; text: string; steps: Message["steps"]; choices: Message["choices"]; created_at: string }[]) {
-    const message: Message = { id: m.id, role: m.role, text: m.text, createdAt: ms(m.created_at), steps: m.steps ?? undefined, choices: m.choices ?? undefined, artifacts: byMessage.get(m.id) };
-    (byConv.get(m.conversation_id) ?? byConv.set(m.conversation_id, []).get(m.conversation_id)!).push(message);
-  }
+  const msgRows = must(msgs) as MessageRow[];
+  const savedRows = must(saved) as { project_id: string; artifact_id: string; conversation_id: string | null; saved_at: string }[];
+  // artifacts of the chats on screen, plus saved ones whose chat is older than the recent list
+  const messageIds = msgRows.map((m) => m.id);
+  const [arts, savedArts] = await Promise.all([
+    messageIds.length ? sb.from("artifacts").select("id, message_id, position, data").in("message_id", messageIds) : Promise.resolve({ data: [], error: null }),
+    savedRows.length ? sb.from("artifacts").select("id, message_id, position, data").in("id", savedRows.map((x) => x.artifact_id)) : Promise.resolve({ data: [], error: null }),
+  ]);
+  const artRows = must(arts) as ArtifactRow[];
+  const artById = new Map([...artRows, ...(must(savedArts) as ArtifactRow[])].map((x) => [x.id, x.data]));
   const wr = must(w);
   const teamRows = must(team) as { id: string; user_id: string | null; email: string; name: string | null; role: Member["role"]; status: Member["status"] }[];
   const me = teamRows.find((t) => t.user_id === auth.user?.id);
   return {
     workspace: { name: wr.name, role: wr.role, cities: wr.cities, artists: wr.artists, plan: wr.plan, onboarded: wr.onboarded },
     team: teamRows.map((t) => ({ id: t.id, email: t.email, name: t.name ?? t.email.split("@")[0], role: t.role, status: t.status })),
-    projects: must(projects).map((p) => ({ id: p.id, name: p.name, kind: p.kind, tone: p.tone, headliner: p.headliner, city: p.city, date: p.date, venue: p.venue, capacity: p.capacity, createdAt: ms(p.created_at), updatedAt: ms(p.updated_at) })),
-    conversations: convRows.map((c) => ({ id: c.id, title: c.title, projectId: c.project_id ?? undefined, mode: c.mode, updatedAt: ms(c.updated_at), entities: c.entities, messages: byConv.get(c.id) ?? [] })),
-    saved: (must(saved) as { project_id: string; artifact_id: string; conversation_id: string | null; saved_at: string }[])
+    projects: (must(projects) as ProjectRow[]).map(rowToProject),
+    conversations: rowsToConversations(convRows as ConversationRow[], msgRows, artRows),
+    saved: savedRows
       .filter((s) => artById.has(s.artifact_id))
       .map((s) => ({ projectId: s.project_id, conversationId: s.conversation_id ?? undefined, artifact: artById.get(s.artifact_id)!, savedAt: ms(s.saved_at) })),
     rosters: must(rosters).map((r) => ({ id: r.id, name: r.name, acts: r.acts, createdAt: ms(r.created_at) })),
@@ -98,24 +99,19 @@ export async function bootstrap(sb: SupabaseClient, ws: string): Promise<Bootstr
 export async function apply(sb: SupabaseClient, ws: string, op: Op): Promise<void> {
   switch (op.op) {
     case "conversation.put": {
-      const c = op.conversation;
       const { data: auth } = await sb.auth.getUser();
-      must(await sb.from("conversations").upsert({ id: c.id, workspace_id: ws, project_id: c.projectId ?? null, title: c.title, mode: c.mode, entities: c.entities ?? {}, created_by: auth.user?.id ?? null, updated_at: iso(c.updatedAt) }));
-      if (c.messages.length) {
-        must(await sb.from("messages").upsert(c.messages.map((m) => ({ id: m.id, conversation_id: c.id, role: m.role, text: m.text, steps: m.steps ?? null, choices: m.choices ?? null, created_at: iso(m.createdAt) }))));
-        const arts = c.messages.flatMap((m) => (m.artifacts ?? []).map((a, i) => ({ id: a.id, message_id: m.id, workspace_id: ws, type: a.type, position: i, data: a, updated_at: iso(Date.now()) })));
-        if (arts.length) must(await sb.from("artifacts").upsert(arts));
-      }
+      const rows = conversationToRows(op.conversation, ws, auth.user?.id ?? null);
+      must(await sb.from("conversations").upsert(rows.conversation));
+      if (rows.messages.length) must(await sb.from("messages").upsert(rows.messages));
+      if (rows.artifacts.length) must(await sb.from("artifacts").upsert(rows.artifacts));
       return;
     }
     case "conversation.delete":
       must(await sb.from("conversations").delete().eq("id", op.id).eq("workspace_id", ws));
       return;
-    case "project.put": {
-      const p = op.project;
-      must(await sb.from("projects").upsert({ id: p.id, workspace_id: ws, name: p.name, kind: p.kind, tone: p.tone, headliner: p.headliner, city: p.city, date: p.date, venue: p.venue, capacity: p.capacity, created_at: iso(p.createdAt), updated_at: iso(p.updatedAt) }));
+    case "project.put":
+      must(await sb.from("projects").upsert(projectToRow(op.project, ws)));
       return;
-    }
     case "project.delete":
       must(await sb.from("projects").delete().eq("id", op.id).eq("workspace_id", ws));
       return;
