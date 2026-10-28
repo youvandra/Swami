@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import type { Artifact } from "@/lib/agent/types";
-import { MAP_H, MAP_W, buildDots, heat, isNamed, type Layer } from "@/lib/crowdmap";
+import { MAP_H, MAP_W, buildDots, isNamed, type Layer } from "@/lib/crowdmap";
+import { OVERLAP } from "@/lib/score/heat";
 import s from "./CrowdMapView.module.css";
 
 type CrowdMap = Extract<Artifact, { type: "crowd_map" }>;
@@ -14,7 +15,8 @@ export function CrowdMapView({ artifact }: { artifact: CrowdMap }) {
   const rows = useMemo(
     () =>
       hoods
-        .map((h) => ({ ...h, gain: heat(hoods, "gain", h.x, h.y), hl: heat(hoods, "headliner", h.x, h.y), op: heat(hoods, "opener", h.x, h.y) }))
+        // each neighbourhood's own values, the ones the scores were computed from (the map's dots blend neighbours)
+        .map((h) => ({ ...h, gain: Math.max(0, h.opener - OVERLAP * h.headliner), hl: h.headliner, op: h.opener }))
         .sort((a, b) => b.gain - a.gain)
         .map((h, i, all) => ({ ...h, label: isNamed(h) ? h.name : `Area ${i + 1} of ${all.length}` })),
     [hoods],

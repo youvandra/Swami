@@ -59,12 +59,16 @@ export function toHoods(city: string, headliner: HeatCell[], opener: HeatCell[])
   });
 }
 
-/** Neighbourhoods ranked by added crowd, weighted by how many people go out there. */
+/**
+ * Neighbourhoods ranked by added crowd, on the same per-neighbourhood values the crowd map's table shows,
+ * so the explanation and the map always name the same places. (Reach gain weights by popularity; this list
+ * names places.)
+ */
 export function topAdded(headliner: HeatCell[], opener: HeatCell[], n = 3): { name: string; gain: number }[] {
   const h = hoodHeat(headliner);
   const o = hoodHeat(opener);
   return [...o.entries()]
-    .map(([name, v]) => ({ name, gain: v.weight * addedCrowd(h.get(name)?.value ?? 0, v.value) }))
+    .map(([name, v]) => ({ name, gain: addedCrowd(h.get(name)?.value ?? 0, v.value) }))
     .filter((x) => x.gain > MIN_GAIN)
     .sort((a, b) => b.gain - a.gain)
     .slice(0, n);

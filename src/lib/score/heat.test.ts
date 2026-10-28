@@ -31,8 +31,8 @@ test("toHoods joins both sides; a side without a cell counts zero", () => {
   const hoods = toHoods("Chicago", [cell("A", 1)], [cell("B", 1, 41.8)]);
   assert.deepEqual(hoods.map((h) => [h.name, h.headliner, h.opener]), [["A", 1, 0], ["B", 0, 1]]);
 });
-test("topAdded ranks by weighted gain and drops overlap", () => {
+test("topAdded ranks by each neighbourhood's own gain and drops overlap", () => {
   const head = [cell("Home", 1), cell("Away", 0)];
   const open = [cell("Home", 1), cell("Away", 0.9, 41.8, -87.7, 0.5), cell("Far", 0.6, 41.7, -87.6, 1)];
-  assert.deepEqual(topAdded(head, open).map((x) => x.name), ["Far", "Away"]);
+  assert.deepEqual(topAdded(head, open).map((x) => x.name), ["Away", "Far"]);
 });
