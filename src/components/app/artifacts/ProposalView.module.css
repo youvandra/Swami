@@ -1,0 +1,56 @@
+.desk {
+  min-height: 100%;
+  padding: 28px 24px 48px;
+  background-color: var(--mist);
+  background-image: radial-gradient(rgba(10, 15, 21, 0.08) 1px, transparent 1.3px);
+  background-size: 9px 9px;
+}
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 44px 48px 36px;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 30px 60px -30px rgba(4, 30, 40, 0.3), 0 1px 2px rgba(4, 30, 40, 0.08);
+  display: grid;
+  gap: 28px;
+}
+.cover { display: grid; gap: 12px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--teal); }
+.logo { width: 20px; height: 20px; }
+.h1 {
+  font-family: var(--font-serif);
+  font-weight: 330;
+  font-stretch: 76%;
+  font-size: 40px;
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+}
+.lede { font-size: 14px; color: var(--muted); }
+.meta { margin-top: 6px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.meta dt { font-size: 11px; color: var(--muted); }
+.meta dd { margin-top: 2px; font-size: 13px; font-weight: 600; }
+
+.section { display: grid; gap: 10px; }
+.section h2 { display: flex; align-items: baseline; gap: 10px; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.section h2 span { font-family: var(--font-serif); font-stretch: 76%; font-weight: 360; font-size: 15px; color: rgba(10, 15, 21, 0.38); }
+.section p { font-size: 14.5px; line-height: 1.7; color: #2b3a46; }
+
+.page [contenteditable] { border-radius: 4px; outline: 0; transition: box-shadow 0.15s, background 0.15s; }
+.page [contenteditable]:hover { background: rgba(70, 220, 236, 0.07); }
+.page [contenteditable]:focus { background: rgba(70, 220, 236, 0.1); box-shadow: 0 0 0 3px rgba(70, 220, 236, 0.18); }
+
+.picks { width: 100%; border-collapse: collapse; }
+.picks td { padding: 12px 0; border-top: 1px solid var(--line); vertical-align: top; }
+.picks td b { display: block; font-size: 14px; }
+.picks td span { display: block; margin-top: 3px; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.pickRank { width: 32px; font-family: var(--font-serif); font-stretch: 76%; font-size: 20px; color: var(--teal); }
+.pickScore { width: 56px; text-align: right; font-family: var(--font-serif); font-stretch: 76%; font-size: 20px; font-variant-numeric: tabular-nums; }
+.foot { padding-top: 16px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); }
+
+@media (max-width: 640px) {
+  .desk { padding: 14px 10px 32px; }
+  .page { padding: 28px 22px; }
+  .h1 { font-size: 32px; }
+  .meta { grid-template-columns: 1fr; }
+}

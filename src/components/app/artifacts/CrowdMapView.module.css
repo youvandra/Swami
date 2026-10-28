@@ -1,0 +1,36 @@
+.wrap { padding: 18px 22px 28px; display: grid; gap: 18px; }
+
+.board { padding: 14px; border-radius: 18px; background: var(--navy); color: #fff; display: grid; gap: 10px; }
+.layers { display: inline-flex; justify-self: start; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 999px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); }
+.layers button { height: 30px; padding: 0 12px; border-radius: 999px; font-size: 12.5px; font-weight: 500; color: var(--sub); }
+.layers button:hover { color: #fff; }
+.layers button[aria-selected="true"] { background: var(--cream); color: #14181d; }
+.map { display: block; width: 100%; height: auto; }
+.map rect { transition: fill 0.3s, x 0.3s, y 0.3s, width 0.3s, height 0.3s; }
+@media (prefers-reduced-motion: reduce) { .map rect { transition: none; } }
+.pin circle { fill: #fff; }
+.pin text { fill: rgba(255, 255, 255, 0.82); font-size: 8.5px; font-family: var(--font-sans); font-weight: 500; paint-order: stroke; stroke: rgba(9, 19, 31, 0.85); stroke-width: 2.5px; }
+.legend { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--sub); }
+.legend i { width: 120px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, #1f2f3e, #46dcec, #e8fdff); }
+
+.table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.table th { text-align: left; font-size: 11.5px; font-weight: 500; color: var(--muted); padding: 0 8px 8px; border-bottom: 1px solid var(--text); }
+.table td { padding: 10px 8px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; color: #34434f; }
+.table td:first-child { font-weight: 600; color: var(--text); }
+.table th:nth-child(n + 2),
+.table td:nth-child(n + 2) { width: 18%; }
+.table th:last-child,
+.table td:last-child { width: 30%; }
+.added { display: flex; align-items: center; gap: 8px; }
+.gain { flex: 1; height: 5px; border-radius: 3px; background: rgba(10, 15, 21, 0.08); overflow: hidden; }
+.gain i { display: block; height: 100%; background: #2fc6dc; }
+.added b { width: 26px; text-align: right; font-weight: 600; color: var(--text); }
+.note { font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+
+@media (max-width: 640px) {
+  .wrap { padding: 14px 14px 24px; }
+  .table th:nth-child(2),
+  .table td:nth-child(2),
+  .table th:nth-child(3),
+  .table td:nth-child(3) { display: none; }
+}

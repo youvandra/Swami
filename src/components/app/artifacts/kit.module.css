@@ -1,0 +1,35 @@
+/* Pieces shared by the artifact renderers. */
+.wrap { padding: 18px 22px 28px; display: grid; gap: 18px; }
+.note { font-size: 12px; line-height: 1.5; color: var(--muted); }
+
+.bar { height: 5px; border-radius: 3px; background: rgba(10, 15, 21, 0.08); overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 3px; background: var(--teal); }
+.barHot i { background: #2fc6dc; }
+
+.num { font-family: var(--font-serif); font-stretch: 76%; font-weight: 380; font-variant-numeric: tabular-nums; }
+
+.act {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 11px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.act:hover { background: var(--mist); }
+.act svg { width: 14px; height: 14px; color: var(--teal); }
+
+.chip { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px; background: var(--mist); box-shadow: inset 0 0 0 1px var(--line); font-size: 11.5px; font-weight: 500; color: #34434f; }
+
+.th { font-size: 11.5px; font-weight: 500; color: var(--muted); }
+
+@media (max-width: 640px) {
+  .wrap { padding: 14px 14px 24px; }
+}
