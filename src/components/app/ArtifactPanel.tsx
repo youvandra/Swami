@@ -1,7 +1,7 @@
 "use client";
 
 import type { Artifact } from "@/lib/agent/types";
-import { updateArtifact } from "@/lib/store";
+import { updateArtifact, useCanEdit } from "@/lib/store";
 import { AudienceView } from "./artifacts/AudienceView";
 import { CrowdMapView } from "./artifacts/CrowdMapView";
 import { EmailView } from "./artifacts/EmailView";
@@ -32,6 +32,7 @@ type Props = {
 };
 
 export function ArtifactPanel({ artifacts, activeId, onSelect, onClose, onAsk, onToast, conversationId, defaultProjectId }: Props) {
+  const canEdit = useCanEdit();
   const active = artifacts.find((a) => a.id === activeId) ?? artifacts[artifacts.length - 1];
 
   const copy = async () => {
@@ -68,7 +69,7 @@ export function ArtifactPanel({ artifacts, activeId, onSelect, onClose, onAsk, o
           <p>{active.subtitle}</p>
         </div>
         <div className={s.actions}>
-          <SaveMenu artifact={active} conversationId={conversationId} defaultProjectId={defaultProjectId} onToast={onToast} />
+          {canEdit && <SaveMenu artifact={active} conversationId={conversationId} defaultProjectId={defaultProjectId} onToast={onToast} />}
           <button className={s.action} onClick={copy} aria-label="Copy as text" data-tip="Copy as text">
             <IconCopy />
           </button>
@@ -89,13 +90,13 @@ export function ArtifactPanel({ artifacts, activeId, onSelect, onClose, onAsk, o
           />
         )}
         {active.type === "crowd_map" && <CrowdMapView artifact={active} />}
-        {active.type === "proposal" && <ProposalView artifact={active} onChange={updateArtifact} />}
+        {active.type === "proposal" && <ProposalView artifact={active} onChange={updateArtifact} readOnly={!canEdit} />}
         {active.type === "routing" && <RoutingView artifact={active} onAsk={onAsk} />}
         {active.type === "venues" && <VenuesView artifact={active} onAsk={onAsk} />}
         {active.type === "partners" && <PartnersView artifact={active} onAsk={onAsk} />}
         {active.type === "sponsors" && <SponsorsView artifact={active} onAsk={onAsk} />}
         {active.type === "audience" && <AudienceView artifact={active} />}
-        {active.type === "email" && <EmailView artifact={active} onChange={updateArtifact} />}
+        {active.type === "email" && <EmailView artifact={active} onChange={updateArtifact} readOnly={!canEdit} />}
       </div>
     </aside>
   );
