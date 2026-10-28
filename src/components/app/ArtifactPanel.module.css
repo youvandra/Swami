@@ -3,6 +3,7 @@
   min-height: 0;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   background: #fff;
   border-left: 1px solid var(--line);
 }
@@ -16,7 +17,32 @@
   padding: 0 10px 0 12px;
   border-bottom: 1px solid var(--line);
 }
-.tabs { flex: 1; min-width: 0; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.strip { position: relative; flex: 1; min-width: 0; display: flex; }
+.tabs { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; overflow-x: auto; scrollbar-width: none; scroll-padding: 0 36px; }
+.tabs::-webkit-scrollbar { display: none; }
+/* fade the edge that has more tabs behind it */
+.strip[data-left] .tabs { mask-image: linear-gradient(to right, transparent 0, #000 40px); }
+.strip[data-right] .tabs { mask-image: linear-gradient(to left, transparent 0, #000 40px); }
+.strip[data-left][data-right] .tabs { mask-image: linear-gradient(to right, transparent 0, #000 40px, #000 calc(100% - 40px), transparent 100%); }
+.scroll { position: absolute; z-index: 1; top: 50%; translate: 0 -50%; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; background: #fff; box-shadow: var(--raise); color: var(--muted); }
+.scroll[data-side="left"] { left: 0; }
+.scroll[data-side="right"] { right: 0; }
+.scroll svg { width: 14px; height: 14px; }
+.scroll[data-side="left"] svg { rotate: 90deg; }
+.scroll[data-side="right"] svg { rotate: -90deg; }
+.scroll:hover { color: var(--text); }
+.divider { flex: none; width: 1px; height: 18px; margin: 0 4px; background: var(--line); }
+.tabWrap { position: relative; flex: none; display: inline-flex; align-items: center; border-radius: 9px; }
+.tabWrap:has(.tabClose) .tab { padding-right: 30px; }
+.tabClose { position: absolute; right: 6px; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 6px; color: var(--muted); opacity: 0; transition: opacity 0.15s; }
+.tabClose svg { width: 12px; height: 12px; }
+.tabClose:hover { background: var(--mist); color: var(--text); }
+.tabWrap:hover .tabClose,
+.tabWrap[data-active] .tabClose,
+.tabWrap:focus-within .tabClose { opacity: 1; }
+@media (hover: none) { .tabClose { opacity: 1; } }
+.more { height: 30px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--line); background: #fff; font-size: 12.5px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.more:hover { color: var(--text); background: var(--mist); }
 .tab {
   height: 34px;
   flex: none;

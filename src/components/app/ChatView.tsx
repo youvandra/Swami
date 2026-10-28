@@ -38,6 +38,28 @@ function lastShow(messages: Message[], focused?: Artifact) {
   return undefined;
 }
 
+// Closed result tabs, per chat, in this browser only: closing a tab is a view choice, nothing the team shares.
+function useHiddenTabs(chatId: string | null): [string[], (ids: string[]) => void] {
+  const key = chatId && `swami.hiddenTabs.${chatId}`;
+  const [ids, setIds] = useState<string[]>([]);
+  useEffect(() => {
+    try {
+      setIds(key ? (JSON.parse(localStorage.getItem(key) ?? "[]") as string[]) : []);
+    } catch {
+      setIds([]);
+    }
+  }, [key]);
+  const set = (next: string[]) => {
+    setIds(next);
+    try {
+      if (key) localStorage.setItem(key, JSON.stringify(next));
+    } catch {
+      // storage blocked: tabs stay closed for this visit
+    }
+  };
+  return [ids, set];
+}
+
 // An error whose message is written for the person reading the chat.
 class ShownError extends Error {}
 
@@ -66,6 +88,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   const [pending, setPending] = useState<Message | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [hidden, setHidden] = useHiddenTabs(id);
   const setToast = (m: string | null) => m && toast(m);
   const [hydrated, setHydrated] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -107,6 +130,9 @@ export function ChatView({ id: routeId }: { id: string | null }) {
 
   const messages = useMemo(() => [...(stored?.messages ?? []), ...(pending ? [pending] : [])], [stored, pending]);
   const lastUser = [...messages].reverse().find((m) => m.role === "user");
+  // tabs closed on the panel; their chips in the chat bring them back
+  const shown = useMemo(() => messages.flatMap((m) => m.artifacts ?? []).filter((a) => !hidden.includes(a.id)), [messages, hidden]);
+  const turnOf = useMemo(() => new Map(messages.flatMap((m, i) => (m.artifacts ?? []).map((a) => [a.id, i] as const))), [messages]);
   const artifacts = useMemo(() => messages.flatMap((m) => m.artifacts ?? []), [messages]);
 
   // open the newest artifact when a conversation is first shown on a wide screen
@@ -281,7 +307,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   const empty = messages.length === 0;
 
   return (
-    <div className={s.view} data-panel={panelOpen && artifacts.length > 0 ? "" : undefined}>
+    <div className={s.view} data-panel={panelOpen && shown.length > 0 ? "" : undefined}>
       <section className={s.chat}>
         <header className={s.header}>
           <button className={s.iconBtn} onClick={openNav} aria-label="Open sidebar" data-tip="Menu">
@@ -439,6 +465,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
                       onChoose={busy || m !== messages[messages.length - 1] ? undefined : choose}
                       onRetry={busy || m !== messages[messages.length - 1] || !m.failed ? undefined : retry}
                       onOpen={(a) => {
+                        if (hidden.includes(a.id)) setHidden(hidden.filter((x) => x !== a.id));
                         setActiveId(a.id);
                         setPanelOpen(true);
                       }}
@@ -456,11 +483,13 @@ export function ChatView({ id: routeId }: { id: string | null }) {
         )}
       </section>
 
-      {artifacts.length > 0 && panelOpen && (
+      {shown.length > 0 && panelOpen && (
         <ArtifactPanel
-          artifacts={artifacts}
-          activeId={activeId ?? artifacts[0].id}
+          artifacts={shown}
+          activeId={activeId && shown.some((a) => a.id === activeId) ? activeId : shown[shown.length - 1].id}
           onSelect={setActiveId}
+          onHide={(aid) => setHidden([...hidden, aid])}
+          turnOf={(aid) => turnOf.get(aid) ?? 0}
           onClose={() => setPanelOpen(false)}
           onAsk={(q) => send(q)}
           onToast={setToast}

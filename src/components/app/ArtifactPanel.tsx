@@ -15,7 +15,9 @@ import { VenuesView } from "./artifacts/VenuesView";
 import { toPlainText } from "./artifacts/export";
 import { ARTIFACT_LABEL, artifactIcon } from "./artifacts/meta";
 import { ExportMenu } from "./ExportMenu";
-import { IconClose, IconCopy } from "./icons";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { IconChevron, IconClose, IconCopy } from "./icons";
+import { Dropdown } from "./ui/Dropdown";
 import { SaveMenu } from "./SaveMenu";
 import s from "./ArtifactPanel.module.css";
 
@@ -30,11 +32,55 @@ type Props = {
   onToast: (msg: string) => void;
   conversationId?: string;
   defaultProjectId?: string;
+  /** Takes a result off the panel (it stays in the chat as a chip). Without it, tabs have no close button. */
+  onHide?: (id: string) => void;
+  /** Which ask a result came from, so tabs from different asks get a divider. */
+  turnOf?: (id: string) => number;
 };
 
-export function ArtifactPanel({ artifacts, activeId, onSelect, onClose, onAsk, onToast, conversationId, defaultProjectId }: Props) {
+// Tabs on the strip; older ones wait behind the "+N" list.
+const STRIP = 6;
+
+export function ArtifactPanel({ artifacts, activeId, onSelect, onClose, onAsk, onToast, conversationId, defaultProjectId, onHide, turnOf }: Props) {
   const canEdit = useCanEdit();
   const active = artifacts.find((a) => a.id === activeId) ?? artifacts[artifacts.length - 1];
+  // the newest tabs, and the open one wherever it is
+  const recent = artifacts.slice(-STRIP);
+  const strip = recent.includes(active) ? recent : artifacts.filter((a) => a === active || recent.slice(1).includes(a));
+  const rest = artifacts.filter((a) => !strip.includes(a));
+  const tabs = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ left: false, right: false });
+
+  const measure = () => {
+    const el = tabs.current;
+    if (el) setEdges({ left: el.scrollLeft > 2, right: el.scrollLeft + el.clientWidth < el.scrollWidth - 2 });
+  };
+  useEffect(() => {
+    const el = tabs.current;
+    if (!el) return;
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [strip.length]);
+  useEffect(() => {
+    tabs.current?.querySelector<HTMLElement>(`[data-tab="${active.id}"]`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [active.id]);
+
+  const onTabKey = (e: React.KeyboardEvent, i: number) => {
+    const go = (j: number) => {
+      const a = strip[(j + strip.length) % strip.length];
+      onSelect(a.id);
+      tabs.current?.querySelector<HTMLElement>(`[data-tab="${a.id}"] [role=tab]`)?.focus();
+    };
+    if (e.key === "ArrowRight") go(i + 1);
+    else if (e.key === "ArrowLeft") go(i - 1);
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(strip.length - 1);
+    else if ((e.key === "Delete" || e.key === "Backspace") && onHide) onHide(strip[i].id);
+    else return;
+    e.preventDefault();
+  };
 
   const copy = async () => {
     try {
@@ -48,17 +94,54 @@ export function ArtifactPanel({ artifacts, activeId, onSelect, onClose, onAsk, o
   return (
     <aside className={s.panel} aria-label="Results">
       <div className={s.head}>
-        <div className={s.tabs} role="tablist">
-          {artifacts.map((a) => {
-            const Icon = artifactIcon(a.type);
-            return (
-              <button key={a.id} role="tab" aria-selected={a.id === active.id} className={s.tab} onClick={() => onSelect(a.id)} title={a.title}>
-                <Icon />
-                <span>{ARTIFACT_LABEL[a.type]}</span>
-              </button>
-            );
-          })}
+        <div className={s.strip} data-left={edges.left || undefined} data-right={edges.right || undefined}>
+          {edges.left && (
+            <button className={s.scroll} data-side="left" onClick={() => tabs.current?.scrollBy({ left: -200, behavior: "smooth" })} aria-label="Scroll tabs left" tabIndex={-1}>
+              <IconChevron />
+            </button>
+          )}
+          <div
+            className={s.tabs}
+            role="tablist"
+            aria-label="Results"
+            ref={tabs}
+            onScroll={measure}
+            onWheel={(e) => {
+              if (tabs.current && Math.abs(e.deltaY) > Math.abs(e.deltaX)) tabs.current.scrollLeft += e.deltaY;
+            }}
+          >
+            {strip.map((a, i) => {
+              const Icon = artifactIcon(a.type);
+              const newTurn = i > 0 && turnOf && turnOf(a.id) !== turnOf(strip[i - 1].id);
+              return (
+                <Fragment key={a.id}>
+                  {newTurn && <span className={s.divider} aria-hidden />}
+                  <span className={s.tabWrap} data-tab={a.id} data-active={a.id === active.id || undefined}>
+                    <button role="tab" aria-selected={a.id === active.id} tabIndex={a.id === active.id ? 0 : -1} className={s.tab} onClick={() => onSelect(a.id)} onKeyDown={(e) => onTabKey(e, i)} title={a.title}>
+                      <Icon />
+                      <span>{ARTIFACT_LABEL[a.type]}</span>
+                    </button>
+                    {onHide && (
+                      <button className={s.tabClose} onClick={() => onHide(a.id)} aria-label={`Close ${ARTIFACT_LABEL[a.type]} tab`} tabIndex={-1}>
+                        <IconClose />
+                      </button>
+                    )}
+                  </span>
+                </Fragment>
+              );
+            })}
+          </div>
+          {edges.right && (
+            <button className={s.scroll} data-side="right" onClick={() => tabs.current?.scrollBy({ left: 200, behavior: "smooth" })} aria-label="Scroll tabs right" tabIndex={-1}>
+              <IconChevron />
+            </button>
+          )}
         </div>
+        {rest.length > 0 && (
+          <Dropdown className={s.more} label="More results" value={active.id} align="end" options={rest.map((a) => ({ value: a.id, label: ARTIFACT_LABEL[a.type], hint: a.title }))} onChange={onSelect}>
+            +{rest.length}
+          </Dropdown>
+        )}
         <button className={s.iconBtn} onClick={onClose} aria-label="Close results" data-tip="Close" data-tip-pos="end">
           <IconClose />
         </button>
