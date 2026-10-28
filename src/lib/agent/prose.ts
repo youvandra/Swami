@@ -3,6 +3,8 @@
 import { listing } from "../score/normalize.ts";
 import type { ToolOutcome } from "../tools/index.ts";
 
+const ASSUMED = " Room sizes assume a 1,000-cap show; give me the capacity, or set it on a project, for sizes that fit.";
+
 type F = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- facts are per-tool records
 
 const LINES: Partial<Record<ToolOutcome["name"], (f: F) => string>> = {
@@ -15,8 +17,8 @@ const LINES: Partial<Record<ToolOutcome["name"], (f: F) => string>> = {
     return `I ranked ${f.candidates} acts for ${f.headliner} in ${f.city}. ${top.name} leads with a score of ${top.score.toFixed(2)}${where}.${second ? ` ${second.name} is next at ${second.score.toFixed(2)}.` : ""}${est}${heat}`;
   },
   crowd_map: (f) => (f.addedIn?.length ? `${f.opener} adds the most new crowd in ${listing(f.addedIn)}. ${f.headliner} already owns ${listing(f.headlinerStrongIn)}, so ads there mostly reach people who would come anyway.` : `${f.opener}'s fans mostly live where ${f.headliner} already sells, so the added crowd is small.`),
-  route_tour: (f) => `${listing(f.strongest)} are the strongest markets for ${f.headliner} on this leg. ${listing(f.weakest)} run thinner, so I suggested smaller rooms there. The route covers about ${f.miles.toLocaleString("en-US")} miles.`,
-  find_venues: (f) => `${f.best} fits current demand best${typeof f.bestCapacity === "number" ? ` at ${f.bestCapacity.toLocaleString("en-US")} capacity` : ""}.${f.next ? ` ${f.next} is the next strongest fit.` : ""}`,
+  route_tour: (f) => `${listing(f.strongest)} are the strongest markets for ${f.headliner} on this leg. ${listing(f.weakest)} run thinner, so I suggested smaller rooms there. The route covers about ${f.miles.toLocaleString("en-US")} miles.${f.capacityAssumed ? ASSUMED : ""}`,
+  find_venues: (f) => `${f.best} fits current demand best${typeof f.bestCapacity === "number" ? ` at ${f.bestCapacity.toLocaleString("en-US")} capacity` : ""}.${f.next ? ` ${f.next} is the next strongest fit.` : ""}${f.capacityAssumed ? ASSUMED : ""}`,
   find_partners: (f) => `${f.count} places in ${listing(f.hoods) || "the city"} share the crowd. ${listing(f.top)} ${f.top.length > 1 ? "are" : "is"} the strongest fit; give each its own promo link so you can see what sold.`,
   match_sponsors: (f) => `${f.top} is the strongest match: ${f.headliner} fans are ${f.topLift}× likelier than average to pick it. Each brand comes with a one-line pitch you can send as is.`,
   audience: (f) => (f.demographics ? `${f.opener} brings ${f.under30Pct.opener > f.under30Pct.headliner ? "a younger" : "an older"} crowd: ${f.under30Pct.opener}% under 30, against ${f.under30Pct.headliner}% for ${f.headliner}.` : `Demographics are thin for one of the acts, so the age split leans on the general concert crowd.`),

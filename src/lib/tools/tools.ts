@@ -14,7 +14,7 @@ import { rankPartners } from "../score/partners.ts";
 import { inRegion, routeTour } from "../score/routing.ts";
 import { rankSponsors } from "../score/sponsors.ts";
 import { rankVenues } from "../score/venues.ts";
-import { once, resolveArtist, showOf, step, ToolError, uid, type ToolContext } from "./context.ts";
+import { capacityAssumed, once, resolveArtist, showOf, step, ToolError, uid, type ToolContext } from "./context.ts";
 
 /** How many related acts get their own heat pulled; bounds the Qloo calls per ranking. */
 const POOL = 10;
@@ -221,8 +221,8 @@ export async function routeTourTool(ctx: ToolContext, input: { headliner: string
   const leg = input.date ? `${region}, ${input.date}` : region;
   const ranked = [...stops].sort((a, b) => b.affinity - a.affinity);
   return {
-    artifact: { id: uid(), type: "routing", title: `${region === "Tour" ? "Tour" : `${region} leg`} · ${head.name}`, subtitle: `${stops.length} cities ranked by fan affinity · suggested order`, show, leg, stops },
-    facts: { headliner: head.name, region, strongest: ranked.slice(0, 3).map((s) => s.city), weakest: ranked.slice(-2).map((s) => s.city), miles: stops.reduce((n, x) => n + x.milesFromPrev, 0) },
+    artifact: { id: uid(), type: "routing", title: `${region === "Tour" ? "Tour" : `${region} leg`} · ${head.name}`, subtitle: `${stops.length} cities ranked by fan affinity · suggested order${capacityAssumed(ctx, input) ? ` · rooms assume ${show.capacity.toLocaleString("en-US")} cap` : ""}`, show, leg, stops },
+    facts: { capacityAssumed: capacityAssumed(ctx, input), headliner: head.name, region, strongest: ranked.slice(0, 3).map((s) => s.city), weakest: ranked.slice(-2).map((s) => s.city), miles: stops.reduce((n, x) => n + x.milesFromPrev, 0) },
   };
 }
 
@@ -238,8 +238,8 @@ export async function findVenuesTool(ctx: ToolContext, input: { headliner: strin
   const base = await ctx.q.baseline({ type: "place", seeds: [], city: show.city, tags: [PLACE_TAG.venue] }, places.map((p) => p.id));
   const venues = await step(ctx, "Scored venues by audience fit", async () => rankVenues(head.name, show.capacity, places.map((p) => ({ name: p.name, hood: p.hood, capacity: p.capacity, tags: displayTags(p), affinity: p.affinity ?? 0, baseline: base.get(p.id) }))), () => `${head.name} fans`);
   return {
-    artifact: { id: uid(), type: "venues", title: `Rooms for ${head.name} in ${show.city}`, subtitle: `${venues.length} venues ranked by audience fit`, show, venues },
-    facts: { city: show.city, best: venues[0].name, bestCapacity: venues[0].capacity ?? "unknown", next: venues[1]?.name, capacityWanted: show.capacity },
+    artifact: { id: uid(), type: "venues", title: `Rooms for ${head.name} in ${show.city}`, subtitle: `${venues.length} venues ranked by audience fit${capacityAssumed(ctx, input) ? ` · sized against ${show.capacity.toLocaleString("en-US")} cap` : ""}`, show, venues },
+    facts: { capacityAssumed: capacityAssumed(ctx, input), city: show.city, best: venues[0].name, bestCapacity: venues[0].capacity ?? "unknown", next: venues[1]?.name, capacityWanted: show.capacity },
   };
 }
 

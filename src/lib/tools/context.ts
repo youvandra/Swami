@@ -77,6 +77,10 @@ export async function resolveArtist(ctx: ToolContext, nameOrId: string): Promise
   return hit;
 }
 
+/** Room size used when neither the ask nor the project gives one; artifacts that depend on it say so. */
+export const ASSUMED_CAPACITY = 1000;
+export const capacityAssumed = (ctx: ToolContext, input: { capacity?: number }) => input.capacity === undefined && ctx.defaults.capacity === undefined;
+
 export function showOf(ctx: ToolContext, input: { headliner: string; city?: string; date?: string; venue?: string; capacity?: number }): Show {
   const d = ctx.defaults;
   return {
@@ -84,7 +88,7 @@ export function showOf(ctx: ToolContext, input: { headliner: string; city?: stri
     city: input.city ?? d.city ?? "Chicago",
     date: input.date ?? d.date ?? "Date TBC",
     venue: input.venue ?? d.venue ?? "",
-    capacity: input.capacity ?? d.capacity ?? 1000,
+    capacity: input.capacity ?? d.capacity ?? ASSUMED_CAPACITY,
   };
 }
 

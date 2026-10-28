@@ -53,7 +53,9 @@ export function plan(text: string, mode: Mode, ctx?: ChatContext): Plan {
   const city = cityIn(text)?.name ?? last?.city;
   const date = text.match(MONTH)?.[0] ?? last?.date;
   const t = text.toLowerCase();
-  const input: Record<string, unknown> = { headliner, city, date };
+  const cap = text.match(/\b(\d{1,3}(?:,\d{3})+|\d{2,6})\s*-?\s*(?:cap\b|capacity|people|tickets|seats)|\bcapacity (?:of )?(\d{1,3}(?:,\d{3})+|\d{2,6})\b/i);
+  const capacity = cap ? Number((cap[1] ?? cap[2]).replace(/,/g, "")) : undefined;
+  const input: Record<string, unknown> = { headliner, city, date, capacity };
   if (/rising|up-and-coming|breaking/.test(t)) input.risingOnly = true;
   if (ctx?.roster && (kind === "opener" || /roster/.test(t))) input.roster = ctx.roster;
   // "Marlow Vane with Halcyon Drive", "Marlow Vane and Halcyon Drive": the second name is the opener

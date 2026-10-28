@@ -72,6 +72,15 @@ test("a follow-up keeps the chat's show and opener; a new name starts over", asy
   assert.deepEqual([fresh.headliner, fresh.input.city], ["Saint Rook", undefined]);
 });
 
+test("capacity is read from the ask, and an assumed one is said", async () => {
+  assert.equal(plan("Which venue fits Marlow Vane in Chicago for 1,500 people?", "auto").input.capacity, 1500);
+  assert.equal(plan("Rooms for Marlow Vane, 800-cap", "auto").input.capacity, 800);
+  assert.equal(plan("Rooms for Marlow Vane on Mar 14", "auto").input.capacity, undefined);
+  const { out } = await run(req("Which venue fits Marlow Vane in Chicago?"));
+  assert.match(out.text, /assume a 1,000-cap show/);
+  assert.match(out.artifacts[0].subtitle, /sized against 1,000 cap/);
+});
+
 test("no headliner anywhere asks for one; the project's headliner fills in", async () => {
   assert.match((await run(req("find me an opener"))).out.text, /Which artist/);
   const { out } = await run(req("who should open?", { context: { workspace: "W", role: "Promoter", cities: [], project: { headliner: "Marlow Vane", city: "Chicago", date: "Mar 14", venue: "The Thalia Room", capacity: 1100 } } }));
