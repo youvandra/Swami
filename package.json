@@ -8,7 +8,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "node --test \"src/**/*.test.ts\"",
-    "probe": "node --env-file=.env.local scripts/probe-qloo.ts"
+    "probe": "node --env-file=.env.local scripts/probe-qloo.ts",
+    "test:rls": "node scripts/rls-test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",
