@@ -38,10 +38,12 @@ test("partners inside the added-crowd hoods come first, angles vary per kind", (
 test("sponsors: lift is seeded over baseline, weak lifts are dropped", () => {
   const s = rankSponsors([
     { name: "Strong", category: "Beverage", affinity: 0.85, baseline: 0.25 },
-    { name: "Flat", category: "Retail", affinity: 0.6, baseline: 0.55 },
+    { name: "Flat", category: "Retail", affinity: 0.6, baseline: 0.6 },
+    { name: "Slight", category: "Retail", affinity: 0.66, baseline: 0.6 },
     { name: "NoBase", category: "Retail", affinity: 0.9 },
   ]);
-  assert.deepEqual(s.map((x) => [x.brand, x.lift]), [["Strong", 3.4]]);
+  assert.deepEqual(s.map((x) => [x.brand, x.lift]), [["Strong", 3.4], ["Slight", 1.1]]);
+  assert.match(s[1].pitch, /more than its overall popularity/);
   assert.equal(s[0].fit, 1);
   assert.match(s[0].pitch, /3\.4×/);
   assert.ok(MIN_LIFT > 1);

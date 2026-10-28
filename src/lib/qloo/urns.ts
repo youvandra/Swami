@@ -1,8 +1,8 @@
-// Tag ids Swami filters on. The place categories follow Qloo's urn:tag:category:place naming; check them with
-// the tags endpoint before relying on them live (the probe script prints what it finds).
+// Tag ids Swami filters on, checked against the tags endpoint on 29 Oct 2026. Venues have no category tag;
+// the "music venue" setting tag is the one that returns concert rooms.
 
 export const PLACE_TAG = {
-  venue: "urn:tag:category:place:music_venue",
+  venue: "urn:tag:setting:qloo:music_venue",
   bar: "urn:tag:category:place:bar",
   restaurant: "urn:tag:category:place:restaurant",
   recordShop: "urn:tag:category:place:record_store",

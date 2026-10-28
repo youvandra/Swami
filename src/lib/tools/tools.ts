@@ -19,6 +19,8 @@ import { capacityAssumed, once, resolveArtist, showOf, step, ToolError, uid, typ
 /** How many related acts get their own heat pulled; bounds the Qloo calls per ranking. */
 const POOL = 10;
 const ROSTER_MAX = 30;
+/** Places an act must climb under bias.trends to count as rising. */
+const RISE = 3;
 
 export type ToolResult = { artifact?: Artifact; facts: Record<string, unknown> };
 
@@ -34,17 +36,16 @@ export async function searchArtist(ctx: ToolContext, input: { name: string; take
 }
 
 /**
- * Two hits close in popularity, or two that both contain the name, mean the name alone does not pick one.
- * An exact name match that also leads on popularity by a margin is taken as meant.
+ * One hit whose name is exactly the query is the act meant. Two exact names (two bands called Phoenix), or no
+ * exact name and two hits close in popularity, mean the name alone picks none. Live popularity sits near 1 for
+ * most known acts, so popularity alone never settles it when the name matches.
  */
 export function isAmbiguous(query: string, hits: Entity[]): boolean {
   if (hits.length < 2) return false;
-  const [a, b] = hits;
-  const q = query.trim().toLowerCase();
-  const exact = hits.filter((h) => h.name.toLowerCase() === q);
-  if (exact.length === 1 && exact[0] === a && (a.popularity ?? 0) - (b.popularity ?? 0) > 0.15) return false;
+  const exact = hits.filter((h) => actKey(h.name) === actKey(query));
+  if (exact.length === 1) return false;
   if (exact.length > 1) return true;
-  return Math.abs((a.popularity ?? 0) - (b.popularity ?? 0)) <= 0.15;
+  return Math.abs((hits[0].popularity ?? 0) - (hits[1].popularity ?? 0)) <= 0.15;
 }
 
 /** Resolve the headliner, as a visible step only when the name was not looked up already this turn. */
@@ -97,7 +98,9 @@ function ranking(ctx: ToolContext, input: RankInput): Promise<Ranking> {
         ]),
       ([r]) => `${head.name} → ${r.length} related acts`,
     );
-    const risingIds = new Set(rising.map((r) => r.id));
+    // rising: acts the trend bias lifts well above where they sit in the plain list
+    const plainRank = new Map(related.map((r, i) => [r.id, i]));
+    const risingIds = new Set(rising.filter((r, i) => !plainRank.has(r.id) || plainRank.get(r.id)! - i >= RISE).map((r) => r.id));
     const rank = new Map(related.map((r, i) => [r.id, i + 1]));
     const localBy = new Map(local.map((r) => [r.id, r.affinity ?? 0]));
 
@@ -224,7 +227,7 @@ export async function routeTourTool(ctx: ToolContext, input: { headliner: string
   const head = await findHeadliner(ctx, input.headliner);
   const show = showOf(ctx, { ...input, headliner: head.name, city: input.anchorCity });
   const allowed = input.cities?.length ? input.cities.map(findCity).filter((c) => !!c) : inRegion(CITIES, input.region);
-  const locs = await step(ctx, "Ranked cities by fan affinity", () => once(ctx, `localities:${head.id}`, () => ctx.q.insights({ type: "locality", seeds: [head.id], take: 100 })), (l) => `${head.name} across ${l.length} cities`);
+  const locs = await step(ctx, "Ranked cities by fan affinity", () => once(ctx, `localities:${head.id}`, () => ctx.q.insights({ type: "locality", seeds: [head.id], city: "United States", take: 100 })), (l) => `${head.name} across ${l.length} cities`);
   const known = locs.map((l) => ({ l, city: findCity(l.name) })).filter((x) => x.city && allowed.includes(x.city));
   if (known.length === 0) throw new ToolError(`Qloo has no city affinity for ${head.name}${input.region ? ` in the ${input.region}` : ""}.`);
   const base = await ctx.q.baseline({ type: "locality", seeds: [] }, known.map((k) => k.l.id));
@@ -282,7 +285,7 @@ export async function matchSponsorsTool(ctx: ToolContext, input: { headliner: st
   const categoryOf = (b: Entity) => b.tags?.find((t) => t.type?.includes("brand"))?.name ?? "Brand";
   const wanted = brands.filter((b) => !input.categories?.length || input.categories.some((c) => categoryOf(b).toLowerCase().includes(c.toLowerCase())));
   const base = await ctx.q.baseline({ type: "brand", seeds: [] }, wanted.map((b) => b.id));
-  const sponsors = await step(ctx, "Ranked brands by lift", async () => rankSponsors(wanted.map((b) => ({ name: b.name, category: categoryOf(b), affinity: b.affinity ?? 0, baseline: base.get(b.id) }))), (s) => `${s.length} brands above 1.3×`);
+  const sponsors = await step(ctx, "Ranked brands by lift", async () => rankSponsors(wanted.map((b) => ({ name: b.name, category: categoryOf(b), affinity: b.affinity ?? 0, baseline: base.get(b.id) }))), (s) => `${s.length} brands these fans pick beyond their usual pull`);
   if (sponsors.length === 0) throw new ToolError(`No brand stands out for ${head.name}'s fans yet.`);
   return {
     artifact: { id: uid(), type: "sponsors", title: `Sponsors for ${head.name}`, subtitle: `${sponsors.length} brands whose customers love this music`, show, sponsors },

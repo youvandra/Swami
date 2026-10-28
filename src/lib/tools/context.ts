@@ -70,7 +70,9 @@ export async function resolveArtist(ctx: ToolContext, nameOrId: string): Promise
   const id = ctx.entities[key];
   if (id && ctx.seen.has(id)) return ctx.seen.get(id)!;
   const hits = await once(ctx, `search:${key}`, () => ctx.q.search(nameOrId, "artist", 5));
-  const hit = (id && hits.find((h) => h.id === id)) || hits[0];
+  // the remembered id, else the exact name, else the top hit
+  const exact = hits.find((h) => h.name.trim().toLowerCase() === key);
+  const hit = (id && hits.find((h) => h.id === id)) || exact || hits[0];
   if (!hit) throw new ToolError(`No artist called “${nameOrId}” in the taste graph.`);
   ctx.seen.set(hit.id, hit);
   ctx.entities[key] = hit.id;

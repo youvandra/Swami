@@ -1,7 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- raw Qloo JSON, mapped in toEntity / toCell */
-// Live Qloo over HTTP. Ported from the Kinsong client, which was exercised against the hackathon host:
-// retries, the 429 backoff and the timeout are verified there. The heatmap, demographics and tag
-// mappings are new and unverified until the probe script records real responses.
+/* eslint-disable @typescript-eslint/no-explicit-any -- raw Qloo JSON, mapped in toEntity / neighbourhoodCells */
+// Live Qloo over HTTP. Ported from the Kinsong client (retries, 429 backoff, timeout). Shapes checked against
+// the hackathon host on 29 Oct 2026 with scripts/probe-qloo.ts:
+// - heatmap with output.heatmap.boundary=urn:entity:locality returns named localities with a polygon; the list
+//   mixes neighbourhoods with the city, county, state and country, and affinity is a rank (1.00, 0.99, ...).
+// - seedless insights carry no affinity, so popularity stands in as the baseline.
+// - localities need a location filter to answer at all.
 
 import { AGE_KEYS, ENTITY_URN, type Demographics, type Entity, type EntityType, type HeatCell, type HeatSignal, type InsightQuery, type QlooSource, type Tag } from "./types.ts";
 
@@ -86,18 +89,19 @@ export class HttpQloo implements QlooSource {
     if (ids.length === 0) return out;
     const body = await this.get("/v2/insights", { ...filterParams({ ...q, seeds: [], trending: false, ids }), take: String(ids.length) });
     for (const r of body.results?.entities ?? []) {
-      const a = num(r.query?.affinity);
+      // a seedless query has no affinity; how popular the entity is overall is the honest stand-in
+      const a = num(r.query?.affinity) ?? num(r.popularity);
       if (a !== undefined) out.set(r.entity_id, a);
     }
     return out;
   }
 
   async heatmap(signal: HeatSignal, city: string): Promise<HeatCell[]> {
-    const params: Record<string, string> = { "filter.type": "urn:heatmap", "filter.location.query": city, "output.heatmap.boundary": "neighborhood" };
+    const params: Record<string, string> = { "filter.type": "urn:heatmap", "filter.location.query": city, "output.heatmap.boundary": "urn:entity:locality" };
     if ("entity" in signal) params["signal.interests.entities"] = signal.entity;
     else params["signal.interests.tags"] = signal.tag;
     const body = await this.get("/v2/insights", params);
-    return (body.results?.heatmap ?? []).map(toCell).filter((c: HeatCell | null): c is HeatCell => c !== null);
+    return neighbourhoodCells(body.results?.entities ?? [], city);
   }
 
   async demographics(entityId: string): Promise<Demographics | null> {
@@ -150,19 +154,39 @@ export function toEntity(r: any, fallback: EntityType): Entity {
     tags: Array.isArray(r.tags) ? r.tags.map((t: any): Tag => ({ id: t.tag_id ?? t.id, name: String(t.name).trim(), type: t.type })) : undefined,
     lat: num(r.location?.lat ?? p.geocode?.latitude),
     lng: num(r.location?.lon ?? p.geocode?.longitude),
-    hood: p.neighborhood ?? p.geocode?.neighborhood ?? undefined,
+    hood: (typeof p.neighborhood === "string" ? p.neighborhood : undefined) ?? p.geocode?.name ?? undefined,
     capacity: num(p.capacity),
     detail: p.short_description ?? p.address ?? undefined,
   };
 }
 
-function toCell(r: any): HeatCell | null {
-  const lat = num(r.location?.latitude ?? r.location?.lat);
-  const lng = num(r.location?.longitude ?? r.location?.lon);
-  const affinity = num(r.query?.affinity);
-  if (lat === undefined || lng === undefined || affinity === undefined) return null;
-  return { lat, lng, name: r.location?.name ?? r.location?.neighborhood, affinity, popularity: num(r.query?.popularity) ?? 1 };
+/**
+ * Keep the localities inside the city ("Logan Square, Chicago, Cook County, ...") and drop the city itself and
+ * everything around it. Each keeps its rank-like affinity and sits at the middle of its polygon.
+ */
+export function neighbourhoodCells(entities: any[], city: string): HeatCell[] {
+  const c = city.trim().toLowerCase();
+  const out: HeatCell[] = [];
+  for (const e of entities) {
+    const parts = String(e.disambiguation ?? "").split(",").map((x: string) => x.trim().toLowerCase());
+    if (parts.length < 2 || parts[1] !== c || parts[0] === c || /township|county/i.test(e.name)) continue;
+    const centre = centroid(String(e.boundary ?? ""));
+    const affinity = num(e.query?.affinity);
+    if (!centre || affinity === undefined) continue;
+    out.push({ name: e.name, lat: centre.lat, lng: centre.lng, affinity, popularity: num(e.popularity) ?? 1 });
+  }
+  return out;
 }
+
+/** Mean of a WKT polygon's vertices; close enough to place a label. */
+export function centroid(wkt: string): { lat: number; lng: number } | null {
+  const pts = [...wkt.matchAll(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g)].map((m) => [Number(m[1]), Number(m[2])]);
+  if (pts.length === 0) return null;
+  const lng = pts.reduce((a, p) => a + p[0], 0) / pts.length;
+  const lat = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+  return { lat: Math.round(lat * 1e5) / 1e5, lng: Math.round(lng * 1e5) / 1e5 };
+}
+
 
 function num(v: unknown): number | undefined {
   const n = typeof v === "string" ? Number(v) : v;

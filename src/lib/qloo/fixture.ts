@@ -55,12 +55,12 @@ export class FixtureQloo implements QlooSource {
       const total = Object.values(bySeed).reduce((a, b) => a + b, 0) / q.seeds.length;
       // A city leans the music a little, the way signal.location.query does live.
       const lean = q.city && q.type === "artist" ? (unit(`${q.city}:${id}`) - 0.5) * 0.1 : 0;
-      const trend = q.trending && this.graph.trending.includes(id) ? 0.08 : 0;
+      const trend = q.trending && this.graph.trending.includes(id) ? 0.3 : 0;
       out.push({ ...e, affinity: round(Math.min(1, Math.max(0, total + lean + trend))), explain: Object.fromEntries(Object.keys(bySeed).map((k) => [k, round(1 / q.seeds.length)])) });
     }
     out.sort((a, b) => (b.affinity ?? 0) - (a.affinity ?? 0));
-    const top = out.slice(0, q.take ?? 50);
-    return q.trending ? top.filter((e) => this.graph.trending.includes(e.id)) : top;
+    // like the live API, a trend bias reorders the whole list rather than shortening it
+    return out.slice(0, q.take ?? 50);
   }
 
   async baseline(_q: InsightQuery, ids: string[]): Promise<Map<string, number>> {

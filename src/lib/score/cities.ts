@@ -3,7 +3,7 @@
 export type City = { name: string; region: string; lat: number; lng: number; aliases?: string[] };
 
 export const CITIES: City[] = [
-  { name: "New York", region: "NY", lat: 40.71, lng: -74.01, aliases: ["NYC", "Manhattan"] },
+  { name: "New York", region: "NY", lat: 40.71, lng: -74.01, aliases: ["NYC", "Manhattan", "New York City"] },
   { name: "Brooklyn", region: "NY", lat: 40.68, lng: -73.94 },
   { name: "Los Angeles", region: "CA", lat: 34.05, lng: -118.24, aliases: ["LA"] },
   { name: "Chicago", region: "IL", lat: 41.88, lng: -87.63 },
