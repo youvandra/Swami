@@ -345,14 +345,19 @@ const SOURCES = [
 ] as const;
 
 function DataTab() {
-  const live = useServerStatus().data === "live";
+  const status = useServerStatus();
+  const live = status.data === "live";
+  const writing =
+    status.agent === "model"
+      ? { name: "Writing", by: "Swami agent", status: "On", note: "Plans which tools to run and writes the reply. Every number it writes is checked against the tools' results.", tone: "live" }
+      : { name: "Writing", by: "Templates", status: "Templates", note: "Replies come from fixed templates filled with the tools' results. Connect a model for replies in your own words.", tone: "off" };
   const taste = live
     ? { name: "Taste graph", by: "Qloo", status: "Live", note: "Artist affinity, neighbourhood heat, places, brands and demographics, fetched for every answer.", tone: "live" }
     : { name: "Taste graph", by: "Qloo", status: "Demo data", note: "Artist affinity, neighbourhood heat, places, brands and demographics. Every name and number is made up until the API key is connected.", tone: "demo" };
   return (
     <Section title="Data sources" hint="Where Swami's numbers come from. Every score in the app is labelled with its source.">
       <ul className={s.sources}>
-        {[taste, ...SOURCES].map((src) => (
+        {[taste, writing, ...SOURCES].map((src) => (
           <li key={src.name}>
             <div>
               <b>{src.name}</b>
