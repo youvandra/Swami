@@ -10,6 +10,8 @@ import {
   inviteMember,
   removeMember,
   resetWorkspace,
+  useCurrentWorkspaceId,
+  useMemberships,
   updateMember,
   updateWorkspace,
   useConversations,
@@ -105,6 +107,8 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
 function WorkspaceTab({ onToast }: { onToast: (m: string) => void }) {
   const ws = useWorkspace();
   const { accounts } = useServerStatus();
+  const memberships = useMemberships();
+  const current = useCurrentWorkspaceId();
   const [name, setName] = useState(ws.name);
   return (
     <>
@@ -147,6 +151,28 @@ function WorkspaceTab({ onToast }: { onToast: (m: string) => void }) {
       <Section title="Artists" hint="Quick tasks on a new chat start from these names.">
         <ChipInput label="Artists" values={ws.artists} onChange={(artists) => updateWorkspace({ artists })} placeholder="Add an artist" />
       </Section>
+      {memberships.length > 1 && (
+        <Section title="Workspaces" hint="You belong to more than one. Pick the one this browser opens.">
+          <div className={s.roleGrid} role="radiogroup">
+            {memberships.map((m) => (
+              <button
+                key={m.id}
+                role="radio"
+                aria-checked={m.id === current}
+                onClick={async () => {
+                  if (m.id === current) return;
+                  const res = await fetch("/api/workspace", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: m.id }) });
+                  if (res.ok) window.location.assign("/app");
+                  else onToast("Could not switch workspaces");
+                }}
+              >
+                <b>{m.name}</b>
+                <span>{m.role}</span>
+              </button>
+            ))}
+          </div>
+        </Section>
+      )}
       {accounts ? (
         <Section title="Account" hint="Your workspace is saved on the server and follows you to any browser.">
           <div>

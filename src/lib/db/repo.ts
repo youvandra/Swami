@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
 import type { Artifact, Conversation, Message } from "../agent/types.ts";
 import type { Member, Project, Roster, SavedArtifact, Workspace } from "../model.ts";
 import type { Op } from "./sync.ts";
@@ -20,12 +21,22 @@ const must = <T = any>(r: { data: T | null; error: { message: string } | null })
   return (r.data ?? []) as NonNullable<T>;
 };
 
-/** The workspace the app opens: the one the user joined last (an accepted invite wins over their own). */
-export async function currentWorkspace(sb: SupabaseClient): Promise<{ id: string; role: Member["role"] } | null> {
+export const WS_COOKIE = "swami.ws";
+
+/** The workspaces the user belongs to, the one picked in this browser (cookie) first, else the one joined last. */
+export async function memberships(sb: SupabaseClient): Promise<{ id: string; name: string; role: Member["role"] }[]> {
   const { data: auth } = await sb.auth.getUser();
-  if (!auth.user) return null;
-  const rows = must(await sb.from("members").select("workspace_id, role").eq("user_id", auth.user.id).eq("status", "active").order("joined_at", { ascending: false }).limit(1));
-  return rows[0] ? { id: rows[0].workspace_id, role: rows[0].role } : null;
+  if (!auth.user) return [];
+  const rows = must(await sb.from("members").select("workspace_id, role, joined_at, workspaces(name)").eq("user_id", auth.user.id).eq("status", "active").order("joined_at", { ascending: false })) as { workspace_id: string; role: Member["role"]; workspaces: { name: string } | null }[];
+  return rows.map((r) => ({ id: r.workspace_id, name: r.workspaces?.name ?? "Workspace", role: r.role }));
+}
+
+/** The workspace this request works in. */
+export async function currentWorkspace(sb: SupabaseClient): Promise<{ id: string; role: Member["role"] } | null> {
+  const all = await memberships(sb);
+  const picked = (await cookies()).get(WS_COOKIE)?.value;
+  const ws = all.find((w) => w.id === picked) ?? all[0];
+  return ws ? { id: ws.id, role: ws.role } : null;
 }
 
 export type Bootstrap = {
@@ -36,6 +47,8 @@ export type Bootstrap = {
   saved: SavedArtifact[];
   rosters: Roster[];
   you: { role: Member["role"]; email: string };
+  workspaces: { id: string; name: string; role: Member["role"] }[];
+  current: string;
 };
 
 export async function bootstrap(sb: SupabaseClient, ws: string): Promise<Bootstrap> {
@@ -77,6 +90,8 @@ export async function bootstrap(sb: SupabaseClient, ws: string): Promise<Bootstr
       .map((s) => ({ projectId: s.project_id, conversationId: s.conversation_id ?? undefined, artifact: artById.get(s.artifact_id)!, savedAt: ms(s.saved_at) })),
     rosters: must(rosters).map((r) => ({ id: r.id, name: r.name, acts: r.acts, createdAt: ms(r.created_at) })),
     you: { role: me?.role ?? "Viewer", email: auth.user?.email ?? "" },
+    workspaces: await memberships(sb),
+    current: ws,
   };
 }
 

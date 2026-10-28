@@ -19,6 +19,9 @@ type State = {
   workspace: Workspace;
   team: Member[];
   rosters: Roster[];
+  /** Accounts on: every workspace the user belongs to, and the one open. */
+  memberships?: { id: string; name: string; role: Member["role"] }[];
+  current?: string;
 };
 
 const KEY = "swami.state.v2";
@@ -160,8 +163,8 @@ async function pull() {
     const res = await fetch("/api/bootstrap");
     if (res.status === 401) return window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const b = (await res.json()) as State;
-    cache = complete({ conversations: b.conversations, projects: b.projects, saved: b.saved, workspace: b.workspace, team: b.team, rosters: b.rosters });
+    const b = (await res.json()) as State & { workspaces: State["memberships"] };
+    cache = complete({ conversations: b.conversations, projects: b.projects, saved: b.saved, workspace: b.workspace, team: b.team, rosters: b.rosters, memberships: b.workspaces, current: b.current });
     loaded = true;
     listeners.forEach((l) => l());
     offerImport();
@@ -224,6 +227,9 @@ export const useSaved = () => useSyncExternalStore(subscribe, () => read().saved
 export const useWorkspace = () => useSyncExternalStore(subscribe, () => read().workspace, () => EMPTY.workspace);
 export const useTeam = () => useSyncExternalStore(subscribe, () => read().team, () => EMPTY.team);
 export const useRosters = () => useSyncExternalStore(subscribe, () => read().rosters, () => EMPTY.rosters);
+const NO_MEMBERSHIPS: NonNullable<State["memberships"]> = [];
+export const useMemberships = () => useSyncExternalStore(subscribe, () => read().memberships ?? NO_MEMBERSHIPS, () => NO_MEMBERSHIPS);
+export const useCurrentWorkspaceId = () => useSyncExternalStore(subscribe, () => read().current, () => undefined);
 export const useHydrated = () => useSyncExternalStore(subscribe, () => loaded, () => false);
 
 export function useConversation(id: string | null) {
