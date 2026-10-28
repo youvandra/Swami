@@ -34,8 +34,10 @@ import {
   Plus,
   SidebarSimple,
   Sparkle,
+  Stop,
   Storefront,
   Trash,
+  WarningCircle,
   UsersThree,
   VinylRecord,
   X,
@@ -87,3 +89,5 @@ export const IconFood = make(ForkKnife);
 export const IconVinyl = make(VinylRecord);
 export const IconCoffee = make(Coffee);
 export const IconPencil = make(PencilSimple);
+export const IconStop = make(Stop, "fill");
+export const IconWarn = make(WarningCircle);

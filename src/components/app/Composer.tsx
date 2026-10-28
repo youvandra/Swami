@@ -5,7 +5,7 @@ import type { Mode } from "@/lib/agent/types";
 import Link from "next/link";
 import { parseRoster } from "@/lib/roster";
 import { useRosters } from "@/lib/store";
-import { IconArrowUp, IconCheck, IconChevron, IconClip, IconPlus, IconSpark } from "./icons";
+import { IconArrowUp, IconCheck, IconChevron, IconClip, IconPlus, IconSpark, IconStop } from "./icons";
 import s from "./Composer.module.css";
 import m from "./SaveMenu.module.css";
 
@@ -29,11 +29,12 @@ type Props = {
   mode: Mode;
   onMode: (m: Mode) => void;
   busy: boolean;
+  onStop?: () => void;
   placeholder?: string;
   autoFocus?: boolean;
 };
 
-export function Composer({ onSend, mode, onMode, busy, placeholder = "Ask about a show, a tour or a pitch…", autoFocus }: Props) {
+export function Composer({ onSend, mode, onMode, busy, onStop, placeholder = "Ask about a show, a tour or a pitch…", autoFocus }: Props) {
   const [text, setText] = useState("");
   const [roster, setRoster] = useState<AttachedRoster | null>(null);
   const [menu, setMenu] = useState(false);
@@ -170,9 +171,15 @@ export function Composer({ onSend, mode, onMode, busy, placeholder = "Ask about 
           </select>
           <IconChevron />
         </label>
-        <button type="submit" className={s.send} disabled={!canSend} aria-label="Send" data-tip="Send · Enter" data-tip-pos="end">
-          <IconArrowUp />
-        </button>
+        {busy && onStop ? (
+          <button type="button" className={s.send} onClick={onStop} aria-label="Stop" data-tip="Stop" data-tip-pos="end">
+            <IconStop />
+          </button>
+        ) : (
+          <button type="submit" className={s.send} disabled={!canSend} aria-label="Send" data-tip="Send · Enter" data-tip-pos="end">
+            <IconArrowUp />
+          </button>
+        )}
       </div>
     </form>
   );

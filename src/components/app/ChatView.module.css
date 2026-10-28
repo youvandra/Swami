@@ -177,6 +177,40 @@
 .steps li { display: grid; gap: 1px; padding-top: 8px; }
 .steps li b { font-weight: 500; }
 .steps li span { color: var(--muted); }
+.steps li em, .liveSteps li em { font-style: normal; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; }
+.steps li[data-status="failed"] b { color: #8a3b12; }
+
+.liveSteps { list-style: none; display: grid; gap: 7px; font-size: 13.5px; }
+.liveSteps li { display: grid; grid-template-columns: 16px auto minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.liveSteps li b { font-weight: 500; }
+.liveSteps li span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.liveSteps li[data-status="running"] b { color: var(--text); }
+.stepDone { width: 14px; height: 14px; color: var(--tint-ink); }
+.stepFail { width: 15px; height: 15px; color: #a04a1c; }
+.spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--tint); border-top-color: var(--tint-ink); animation: spin 0.8s linear infinite; justify-self: center; }
+@keyframes spin { to { rotate: 360deg; } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+@media (max-width: 560px) { .liveSteps li { grid-template-columns: 16px minmax(0, 1fr) auto; } .liveSteps li span { display: none; } }
+
+.choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.choice {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 8px 8px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+.choice:hover:not(:disabled) { border-color: var(--tint-ink); background: var(--tint); }
+.choice:disabled { opacity: 0.6; cursor: default; }
+.choiceImg { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; background: var(--tint); color: var(--tint-ink); display: grid; place-items: center; font-weight: 600; }
+.choiceText { display: grid; min-width: 0; }
+.choiceText b { font-weight: 600; font-size: 14px; }
+.choiceText span { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .thinking { display: flex; align-items: center; gap: 10px; font-size: 14.5px; color: var(--muted); }
 .pulse { display: inline-flex; gap: 4px; }

@@ -48,7 +48,8 @@ export function OpenerRanking({ artifact, onAsk, onShowMap }: { artifact: Rankin
         <div>
           <dt>Venue</dt>
           <dd>
-            {show.venue} · {show.capacity.toLocaleString("en-US")}
+            {show.venue ? `${show.venue} · ` : ""}
+            {show.capacity.toLocaleString("en-US")} cap
           </dd>
         </div>
       </dl>

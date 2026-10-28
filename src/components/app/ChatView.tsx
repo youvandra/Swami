@@ -3,14 +3,16 @@
 import { toast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Artifact, ChatResponse, Conversation, Message, Mode } from "@/lib/agent/types";
+import type { AgentEvent } from "@/lib/agent/events";
+import type { Artifact, Choice, Conversation, Message, Mode, Step } from "@/lib/agent/types";
+import { readEvents } from "@/lib/sse";
 import { ROLES } from "@/lib/model";
 import { deleteConversation, newId, saveConversation, setConversationProject, useConversation, useProjects, useWorkspace } from "@/lib/store";
 import { Logo } from "../landing/Logo";
 import { ArtifactPanel, artifactIcon } from "./ArtifactPanel";
 import { useShell } from "./AppShell";
 import { Composer, type AttachedRoster } from "./Composer";
-import { IconArrowRight, IconChart, IconCheck, IconChevron, IconDoc, IconFolder, IconMenu, IconPanel, IconPencil, IconRoute, IconStore, IconTag, IconTrash, IconUsers } from "./icons";
+import { IconArrowRight, IconChart, IconCheck, IconChevron, IconDoc, IconFolder, IconMenu, IconPanel, IconPencil, IconRoute, IconStore, IconTag, IconTrash, IconUsers, IconWarn } from "./icons";
 import { MoreMenu } from "./MoreMenu";
 import s from "./ChatView.module.css";
 
@@ -38,6 +40,8 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   const [hydrated, setHydrated] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const end = useRef<HTMLDivElement>(null);
+  const stopRef = useRef<AbortController | null>(null);
+  const [dataMode, setDataMode] = useState<"live" | "fixture">("fixture");
   const projects = useProjects();
   const workspace = useWorkspace();
   const tasks = tasksFor(workspace.artists[0] ?? "Marlow Vane", workspace.cities[0] ?? "Chicago");
@@ -77,7 +81,8 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   }, [messages.length, busy]);
 
 
-  async function send(text: string, startProject = projectId, roster?: AttachedRoster) {
+  async function send(text: string, startProject = projectId, roster?: AttachedRoster, extraEntities: Record<string, string> = {}) {
+    const chatProject = projects.find((p) => p.id === startProject);
     if (busy) return;
     const convId = id ?? newId();
     const shown = roster ? `${text}\n\nRoster: ${roster.name} (${roster.acts.length} acts)` : text;
@@ -92,40 +97,81 @@ export function ChatView({ id: routeId }: { id: string | null }) {
     }
 
     setBusy(true);
-    setPending({ id: "pending", role: "assistant", text: "", createdAt: Date.now() });
+    const live: Message = { id: "pending", role: "assistant", text: "", createdAt: Date.now(), steps: [], artifacts: [] };
+    const keyed = new Map<string, Step>();
+    const show = () => setPending({ ...live, steps: [...keyed.values()], artifacts: [...(live.artifacts ?? [])] });
+    show();
+    const abort = new AbortController();
+    stopRef.current = abort;
+    const entities = { ...(base.entities ?? {}), ...extraEntities };
+    const finish = (message: Message, patch: Partial<Conversation> = {}) =>
+      saveConversation({ ...withUser, entities, ...patch, updatedAt: Date.now(), messages: [...withUser.messages, message] });
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", accept: "text/event-stream" },
+        signal: abort.signal,
         body: JSON.stringify({
           conversationId: convId,
           mode,
-          messages: withUser.messages.map(({ role, text }) => ({ role, text })),
-          context: { workspace: workspace.name, role: ROLES.find((r) => r.id === workspace.role)?.label ?? workspace.role, cities: workspace.cities, roster },
+          messages: withUser.messages.slice(-24).map(({ role, text }) => ({ role, text })),
+          context: {
+            workspace: workspace.name,
+            role: ROLES.find((r) => r.id === workspace.role)?.label ?? workspace.role,
+            cities: workspace.cities,
+            artists: workspace.artists,
+            roster: roster && { name: roster.name, acts: roster.acts },
+            project: chatProject && { headliner: chatProject.headliner, city: chatProject.city, date: chatProject.date, venue: chatProject.venue, capacity: chatProject.capacity },
+            entities,
+          },
         }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as ChatResponse;
-      saveConversation({
-        ...withUser,
-        title: base.messages.length ? withUser.title : data.title,
-        updatedAt: Date.now(),
-        messages: [...withUser.messages, data.message],
-      });
-      const first = data.message.artifacts?.[0];
-      if (first) {
-        setActiveId(first.id);
-        setPanelOpen(true);
+      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+      let done = false;
+      for await (const e of readEvents<AgentEvent>(res.body)) {
+        if (e.type === "step") keyed.set(e.step.key, e.step);
+        else if (e.type === "text") live.text += (live.text ? " " : "") + e.delta;
+        else if (e.type === "choices") live.choices = e.choices;
+        else if (e.type === "artifact") {
+          live.artifacts = [...(live.artifacts ?? []), e.artifact];
+          if (live.artifacts.length === 1) {
+            setActiveId(e.artifact.id);
+            setPanelOpen(true);
+          }
+        } else if (e.type === "done") {
+          done = true;
+          setPending(null); // the stored message replaces the live one in the same render
+          setDataMode(e.dataMode);
+          finish(e.message, { entities: e.entities, title: base.messages.length ? withUser.title : e.title });
+          const first = e.message.artifacts?.[0];
+          if (first) setActiveId((cur) => cur ?? first.id);
+        } else if (e.type === "error") throw new Error(e.message);
+        if (!done) show();
       }
-    } catch {
-      saveConversation({
-        ...withUser,
-        messages: [...withUser.messages, { id: newId(), role: "assistant", text: "Swami could not reach the server. Your message is saved; send it again in a moment.", createdAt: Date.now() }],
-      });
+      if (!done) throw new Error("The reply was cut off.");
+    } catch (err) {
+      const stopped = abort.signal.aborted;
+      const kept: Message = {
+        id: newId(),
+        role: "assistant",
+        createdAt: Date.now(),
+        // keep what arrived; say plainly what happened to the rest
+        text: [live.text, stopped ? "Stopped." : "Swami could not finish this reply. Your message is saved; send it again in a moment."].filter(Boolean).join(" "),
+        steps: [...keyed.values()].map((st) => (st.status === "running" ? { ...st, status: "failed" as const, detail: stopped ? "stopped" : st.detail } : st)),
+        artifacts: live.artifacts,
+      };
+      if (!stopped) console.warn(err);
+      setPending(null);
+      finish(kept);
     } finally {
+      stopRef.current = null;
       setPending(null);
       setBusy(false);
     }
+  }
+
+  function choose(c: Choice, key: string) {
+    void send(c.reply, projectId, undefined, { [key]: c.id, [c.name.toLowerCase()]: c.id });
   }
 
   const missing = hydrated && routeId && !stored && id === routeId;
@@ -235,7 +281,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
               <p className={s.sub}>Ask about any show or tour. Swami answers with rankings, maps and drafts you can edit and send.</p>
             </div>
             <div className={s.composerWrap}>
-              <Composer onSend={(q, r) => send(q, projectId, r)} mode={mode} onMode={setMode} busy={busy} autoFocus />
+              <Composer onSend={(q, r) => send(q, projectId, r)} mode={mode} onMode={setMode} busy={busy} onStop={() => stopRef.current?.abort()} autoFocus />
             </div>
             <div className={s.tasks}>
               {tasks.map((t) => (
@@ -261,6 +307,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
                       key={m.id}
                       message={m}
                       activeId={panelOpen ? activeId : null}
+                      onChoose={busy || m !== messages[messages.length - 1] ? undefined : choose}
                       onOpen={(a) => {
                         setActiveId(a.id);
                         setPanelOpen(true);
@@ -272,8 +319,8 @@ export function ChatView({ id: routeId }: { id: string | null }) {
               </div>
             </div>
             <div className={s.dock}>
-              <Composer onSend={(q, r) => send(q, projectId, r)} mode={mode} onMode={setMode} busy={busy} placeholder="Reply to Swami…" />
-              <p className={s.disclaimer}>Demo data · Review drafts before you send them</p>
+              <Composer onSend={(q, r) => send(q, projectId, r)} mode={mode} onMode={setMode} busy={busy} onStop={() => stopRef.current?.abort()} placeholder="Reply to Swami…" />
+              <p className={s.disclaimer}>{dataMode === "fixture" ? "Demo data · " : ""}Review drafts before you send them</p>
             </div>
           </>
         )}
@@ -295,14 +342,16 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   );
 }
 
-function AssistantMessage({ message, activeId, onOpen }: { message: Message; activeId: string | null; onOpen: (a: Artifact) => void }) {
-  const thinking = message.id === "pending";
-  const total = (message.steps ?? []).reduce((n, st) => n + st.ms, 0);
+function AssistantMessage({ message, activeId, onOpen, onChoose }: { message: Message; activeId: string | null; onOpen: (a: Artifact) => void; onChoose?: (c: Choice, key: string) => void }) {
+  const streaming = message.id === "pending";
+  const steps = message.steps ?? [];
+  const total = steps.reduce((n, st) => n + st.ms, 0);
+  const failed = steps.filter((st) => st.status === "failed").length;
   return (
     <div className={s.assistant}>
       <Logo className={s.avatar} />
       <div className={s.body}>
-        {thinking ? (
+        {streaming && steps.length === 0 ? (
           <p className={s.thinking}>
             <span className={s.pulse} aria-hidden="true">
               <i />
@@ -313,24 +362,51 @@ function AssistantMessage({ message, activeId, onOpen }: { message: Message; act
           </p>
         ) : (
           <>
-            {message.steps && message.steps.length > 0 && (
-              <details className={s.steps}>
-                <summary>
-                  <IconCheck className={s.stepsIcon} />
-                  Worked for {(total / 1000).toFixed(1)}s<span className={s.stepsCount}>{message.steps.length} steps</span>
-                  <IconChevron className={s.stepsChevron} />
-                </summary>
-                <ol>
-                  {message.steps.map((st) => (
-                    <li key={st.label}>
-                      <b>{st.label}</b>
-                      {st.detail && <span>{st.detail}</span>}
-                    </li>
-                  ))}
-                </ol>
-              </details>
+            {streaming ? (
+              <ol className={s.liveSteps} aria-live="polite">
+                {steps.map((st, i) => (
+                  <li key={i} data-status={st.status}>
+                    {st.status === "running" ? <span className={s.spin} aria-hidden="true" /> : st.status === "failed" ? <IconWarn className={s.stepFail} /> : <IconCheck className={s.stepDone} />}
+                    <b>{st.label}</b>
+                    {st.detail && <span>{st.detail}</span>}
+                    {st.status !== "running" && <em>{(st.ms / 1000).toFixed(1)}s</em>}
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              steps.length > 0 && (
+                <details className={s.steps}>
+                  <summary>
+                    {failed ? <IconWarn className={s.stepsIcon} /> : <IconCheck className={s.stepsIcon} />}
+                    Worked for {total < 100 ? "under 0.1s" : `${(total / 1000).toFixed(1)}s`}<span className={s.stepsCount}>{steps.length} steps{failed ? ` · ${failed} failed` : ""}</span>
+                    <IconChevron className={s.stepsChevron} />
+                  </summary>
+                  <ol>
+                    {steps.map((st, i) => (
+                      <li key={i} data-status={st.status}>
+                        <b>{st.label}</b>
+                        {st.detail && <span>{st.detail}</span>}
+                        <em>{(st.ms / 1000).toFixed(1)}s</em>
+                      </li>
+                    ))}
+                  </ol>
+                </details>
+              )
             )}
-            <p className={s.text}>{message.text}</p>
+            {message.text && <p className={s.text}>{message.text}</p>}
+            {message.choices && (
+              <div className={s.choices} role="group" aria-label={message.choices.prompt}>
+                {message.choices.options.map((c) => (
+                  <button key={c.id} className={s.choice} disabled={!onChoose} onClick={() => onChoose?.(c, message.choices!.key)}>
+                    {c.image ? <img src={c.image} alt="" className={s.choiceImg} /> : <span className={s.choiceImg}>{c.name.slice(0, 1)}</span>}
+                    <span className={s.choiceText}>
+                      <b>{c.name}</b>
+                      <span>{c.detail}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
             {message.artifacts && message.artifacts.length > 0 && (
               <div className={s.chips}>
                 {message.artifacts.map((a) => {

@@ -105,7 +105,7 @@ export function ProposalView({ artifact, onChange, readOnly = false }: { artifac
             {headline}
           </h1>
           <p className={s.lede}>
-            {show.venue}, {show.city} · {show.date} · {show.capacity.toLocaleString("en-US")} capacity
+            {[show.venue, show.city].filter(Boolean).join(", ")} · {show.date} · {show.capacity.toLocaleString("en-US")} capacity
           </p>
           <dl className={s.meta}>
             <div>

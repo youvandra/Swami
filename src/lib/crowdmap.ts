@@ -2,6 +2,7 @@
 // Heat at a point is a sum of gaussian bumps centred on each neighbourhood.
 
 import type { Hood } from "./agent/types";
+import { OVERLAP } from "./score/heat";
 
 export type Layer = "headliner" | "opener" | "gain";
 
@@ -26,7 +27,7 @@ function field(hoods: Hood[], key: "headliner" | "opener", x: number, y: number)
 export function heat(hoods: Hood[], layer: Layer, x: number, y: number) {
   const h = field(hoods, "headliner", x, y);
   const o = field(hoods, "opener", x, y);
-  const v = layer === "headliner" ? h : layer === "opener" ? o : Math.max(0, o - h * 0.9);
+  const v = layer === "headliner" ? h : layer === "opener" ? o : Math.max(0, o - h * OVERLAP);
   // rounded so server and client render identical attributes
   return Math.round(v * 100) / 100;
 }

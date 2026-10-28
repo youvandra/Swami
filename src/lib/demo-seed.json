@@ -1,0 +1,418 @@
+{
+ "note": "FAKE demo data from fixtures/fake",
+ "asks": [
+  {
+   "id": "demo",
+   "text": "Find an opener for Marlow Vane in Chicago, Mar 14. Roster only."
+  },
+  {
+   "id": "demo-route",
+   "text": "Which cities should Marlow Vane play on a Midwest leg in March?"
+  },
+  {
+   "id": "demo-sponsors",
+   "text": "Find sponsors whose customers love Marlow Vane, for the Chicago show."
+  }
+ ],
+ "replies": {
+  "demo": {
+   "title": "Chicago, Mar 14 · openers",
+   "text": "I ranked 5 acts for Marlow Vane in Chicago. Halcyon Drive leads with a score of 0.92, and its fans live in Logan Square and Pilsen, where Marlow Vane runs cold. The Low Orchard is next at 0.71. 2 picks are estimated from their scene because their own data is thin.",
+   "steps": [
+    {
+     "label": "Looked up “Marlow Vane”",
+     "detail": "1 match",
+     "ms": 300,
+     "status": "done"
+    },
+    {
+     "label": "Searched the taste graph",
+     "detail": "Marlow Vane → 10 related acts",
+     "ms": 437,
+     "status": "done"
+    },
+    {
+     "label": "Matched Northlight Agency · spring",
+     "detail": "5 of 5 acts known to Qloo",
+     "ms": 574,
+     "status": "done"
+    },
+    {
+     "label": "Pulled neighbourhood heat for Chicago",
+     "detail": "7 neighbourhoods, 5 acts, 2 from their scene",
+     "ms": 711,
+     "status": "done"
+    },
+    {
+     "label": "Scored every act",
+     "detail": "fit × reach gain, roster filter on",
+     "ms": 348,
+     "status": "done"
+    },
+    {
+     "label": "Searched the taste graph",
+     "detail": "Marlow Vane → 10 related acts",
+     "ms": 485,
+     "status": "done"
+    },
+    {
+     "label": "Pulled neighbourhood heat for Chicago",
+     "detail": "7 neighbourhoods, 10 acts, 2 from their scene",
+     "ms": 622,
+     "status": "done"
+    },
+    {
+     "label": "Scored every act",
+     "detail": "fit × reach gain",
+     "ms": 759,
+     "status": "done"
+    },
+    {
+     "label": "Compared fan maps",
+     "detail": "added crowd across 7 neighbourhoods",
+     "ms": 396,
+     "status": "done"
+    }
+   ],
+   "artifacts": [
+    {
+     "id": "demo-a0",
+     "type": "opener_ranking",
+     "title": "Openers for Marlow Vane",
+     "subtitle": "Chicago · Mar 14 · 5 acts on Northlight Agency · spring",
+     "show": {
+      "headliner": "Marlow Vane",
+      "city": "Chicago",
+      "date": "Mar 14",
+      "venue": "The Thalia Room",
+      "capacity": 1100
+     },
+     "rows": [
+      {
+       "name": "Halcyon Drive",
+       "genre": "Indie rock",
+       "fit": 0.95,
+       "reachGain": 0.87,
+       "score": 0.92,
+       "why": "Ranks 3rd of 10 among acts Marlow Vane's fans love, and owns Logan Square and Pilsen, where Marlow Vane runs cold.",
+       "hoods": [
+        "Logan Square",
+        "Pilsen"
+       ],
+       "onRoster": true,
+       "rising": true,
+       "estimated": false
+      },
+      {
+       "name": "The Low Orchard",
+       "genre": "Folk pop",
+       "fit": 0.85,
+       "reachGain": 0.54,
+       "score": 0.71,
+       "why": "Ranks 2nd of 10 among acts Marlow Vane's fans love, and owns Avondale and Logan Square, where Marlow Vane runs cold.",
+       "hoods": [
+        "Avondale",
+        "Logan Square"
+       ],
+       "onRoster": true,
+       "rising": false,
+       "estimated": false
+      },
+      {
+       "name": "Copper Hours",
+       "genre": "Garage",
+       "fit": 0.65,
+       "reachGain": 0.68,
+       "score": 0.66,
+       "why": "Ranks 7th of 10 among acts Marlow Vane's fans love, and owns Logan Square and Avondale, where Marlow Vane runs cold. Its own data is thin, so the heat is estimated from its scene.",
+       "hoods": [
+        "Logan Square",
+        "Avondale"
+       ],
+       "onRoster": true,
+       "rising": false,
+       "estimated": true
+      },
+      {
+       "name": "Fieldwork",
+       "genre": "Post-punk",
+       "fit": 0.59,
+       "reachGain": 0.62,
+       "score": 0.6,
+       "why": "Ranks 8th of 10 among acts Marlow Vane's fans love, and owns Avondale and Logan Square, where Marlow Vane runs cold. Its own data is thin, so the heat is estimated from its scene.",
+       "hoods": [
+        "Avondale",
+        "Logan Square"
+       ],
+       "onRoster": true,
+       "rising": true,
+       "estimated": true
+      },
+      {
+       "name": "Glass Meridian",
+       "genre": "Synth pop",
+       "fit": 0.43,
+       "reachGain": 0.39,
+       "score": 0.41,
+       "why": "Ranks 10th of 10 among acts Marlow Vane's fans love, with some new crowd in Hyde Park and Logan Square.",
+       "hoods": [
+        "Hyde Park",
+        "Logan Square"
+       ],
+       "onRoster": true,
+       "rising": false,
+       "estimated": false
+      }
+     ]
+    },
+    {
+     "id": "demo-a1",
+     "type": "crowd_map",
+     "title": "Halcyon Drive + Marlow Vane",
+     "subtitle": "Chicago · added crowd by neighbourhood",
+     "show": {
+      "headliner": "Marlow Vane",
+      "city": "Chicago",
+      "date": "Mar 14",
+      "venue": "The Thalia Room",
+      "capacity": 1100
+     },
+     "opener": "Halcyon Drive",
+     "hoods": [
+      {
+       "name": "Lincoln Park",
+       "x": 330,
+       "y": 70,
+       "headliner": 1,
+       "opener": 0.11
+      },
+      {
+       "name": "Wicker Park",
+       "x": 262,
+       "y": 122,
+       "headliner": 0.75,
+       "opener": 0.47
+      },
+      {
+       "name": "West Loop",
+       "x": 352,
+       "y": 165,
+       "headliner": 0.85,
+       "opener": 0.05
+      },
+      {
+       "name": "Logan Square",
+       "x": 178,
+       "y": 92,
+       "headliner": 0.05,
+       "opener": 1
+      },
+      {
+       "name": "Pilsen",
+       "x": 228,
+       "y": 214,
+       "headliner": 0.05,
+       "opener": 0.95
+      },
+      {
+       "name": "Avondale",
+       "x": 140,
+       "y": 50,
+       "headliner": 0.05,
+       "opener": 0.63
+      },
+      {
+       "name": "Hyde Park",
+       "x": 372,
+       "y": 262,
+       "headliner": 0.1,
+       "opener": 0.58
+      }
+     ]
+    }
+   ]
+  },
+  "demo-route": {
+   "title": "Tour leg · Marlow Vane",
+   "text": "Chicago, Minneapolis and Detroit are the strongest markets for Marlow Vane on this leg. St. Louis and Cleveland run thinner, so I suggested smaller rooms there. The route covers about 1,764 miles.",
+   "steps": [
+    {
+     "label": "Looked up “Marlow Vane”",
+     "detail": "1 match",
+     "ms": 300,
+     "status": "done"
+    },
+    {
+     "label": "Ranked cities by fan affinity",
+     "detail": "Marlow Vane across 33 cities",
+     "ms": 437,
+     "status": "done"
+    },
+    {
+     "label": "Ordered the leg by distance",
+     "detail": "8 stops, 1,764 miles",
+     "ms": 574,
+     "status": "done"
+    }
+   ],
+   "artifacts": [
+    {
+     "id": "demo-route-a0",
+     "type": "routing",
+     "title": "Midwest leg · Marlow Vane",
+     "subtitle": "8 cities ranked by fan affinity · suggested order",
+     "show": {
+      "headliner": "Marlow Vane",
+      "city": "Chicago",
+      "date": "March",
+      "venue": "The Thalia Room",
+      "capacity": 1000
+     },
+     "leg": "Midwest, March",
+     "stops": [
+      {
+       "city": "Chicago",
+       "region": "IL",
+       "affinity": 0.97,
+       "milesFromPrev": 0,
+       "room": "1,000–1,300",
+       "note": "Anchor date. Strongest market on the leg."
+      },
+      {
+       "city": "Milwaukee",
+       "region": "WI",
+       "affinity": 0.8,
+       "milesFromPrev": 98,
+       "room": "900–1,200",
+       "note": "Steady; good for a weeknight."
+      },
+      {
+       "city": "Madison",
+       "region": "WI",
+       "affinity": 0.78,
+       "milesFromPrev": 90,
+       "room": "900–1,200",
+       "note": "Steady; good for a weeknight."
+      },
+      {
+       "city": "Minneapolis",
+       "region": "MN",
+       "affinity": 0.89,
+       "milesFromPrev": 280,
+       "room": "900–1,200",
+       "note": "Second strongest. Worth a Saturday."
+      },
+      {
+       "city": "St. Louis",
+       "region": "MO",
+       "affinity": 0.66,
+       "milesFromPrev": 560,
+       "room": "800–1,100",
+       "note": "Steady; good for a weeknight."
+      },
+      {
+       "city": "Columbus",
+       "region": "OH",
+       "affinity": 0.74,
+       "milesFromPrev": 475,
+       "room": "800–1,100",
+       "note": "Steady; good for a weeknight."
+      },
+      {
+       "city": "Cleveland",
+       "region": "OH",
+       "affinity": 0.61,
+       "milesFromPrev": 152,
+       "room": "800–1,100",
+       "note": "Weakest stop. Consider a smaller room."
+      },
+      {
+       "city": "Detroit",
+       "region": "MI",
+       "affinity": 0.84,
+       "milesFromPrev": 109,
+       "room": "900–1,200",
+       "note": "Steady; good for a weeknight."
+      }
+     ]
+    }
+   ]
+  },
+  "demo-sponsors": {
+   "title": "Sponsors · Marlow Vane",
+   "text": "Northwind Cold Brew is the strongest match: Marlow Vane fans are 3.4× likelier than average to pick it. Each brand comes with a one-line pitch you can send as is.",
+   "steps": [
+    {
+     "label": "Looked up “Marlow Vane”",
+     "detail": "1 match",
+     "ms": 300,
+     "status": "done"
+    },
+    {
+     "label": "Searched brand affinity",
+     "detail": "Marlow Vane fans vs the national baseline",
+     "ms": 437,
+     "status": "done"
+    },
+    {
+     "label": "Ranked brands by lift",
+     "detail": "5 brands above 1.3×",
+     "ms": 574,
+     "status": "done"
+    }
+   ],
+   "artifacts": [
+    {
+     "id": "demo-sponsors-a0",
+     "type": "sponsors",
+     "title": "Sponsors for Marlow Vane",
+     "subtitle": "5 brands whose customers love this music",
+     "show": {
+      "headliner": "Marlow Vane",
+      "city": "Chicago",
+      "date": "Mar 14",
+      "venue": "The Thalia Room",
+      "capacity": 1100
+     },
+     "sponsors": [
+      {
+       "brand": "Northwind Cold Brew",
+       "category": "Beverage",
+       "fit": 1,
+       "lift": 3.4,
+       "pitch": "Fans are 3.4× likelier than average to pick it. A sampling bar at the merch table fits the room."
+      },
+      {
+       "brand": "Fieldline Outfitters",
+       "category": "Outdoor apparel",
+       "fit": 0.95,
+       "lift": 2.9,
+       "pitch": "Fans are 2.9× likelier than average to pick it. A co-branded tour tee is the natural ask."
+      },
+      {
+       "brand": "Lumen Audio",
+       "category": "Headphones",
+       "fit": 0.92,
+       "lift": 2.6,
+       "pitch": "Fans are 2.6× likelier than average to pick it. Offer a listening booth and a giveaway."
+      },
+      {
+       "brand": "Halo Seltzer",
+       "category": "Beverage",
+       "fit": 0.74,
+       "lift": 2.1,
+       "pitch": "Fans are 2.1× likelier than average to pick it. A sampling bar at the merch table fits the room."
+      },
+      {
+       "brand": "Tidewater Bikes",
+       "category": "Mobility",
+       "fit": 0.64,
+       "lift": 1.8,
+       "pitch": "Fans are 1.8× likelier than average to pick it. Valet bike parking on show night."
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

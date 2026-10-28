@@ -92,7 +92,8 @@ export type Message = {
 
 // The agent asks which one was meant instead of guessing; picking a card sends `reply` back.
 export type Choice = { id: string; name: string; image?: string; detail: string; reply: string };
-export type Choices = { prompt: string; options: Choice[] };
+// `key` is the name as the user wrote it; the chosen id is remembered under it.
+export type Choices = { prompt: string; key: string; options: Choice[] };
 
 export type Conversation = {
   id: string;
@@ -101,6 +102,8 @@ export type Conversation = {
   mode: Mode;
   updatedAt: number;
   messages: Message[];
+  /** Artist names resolved in this chat (lower-case name -> Qloo id), sent back with every request. */
+  entities?: Record<string, string>;
 };
 
 // What the workspace tells the agent on every request: who is asking, and the roster to rank inside, if any.
@@ -108,6 +111,7 @@ export type ChatContext = {
   workspace: string;
   role: string;
   cities: string[];
+  artists?: string[];
   roster?: { name: string; acts: string[] };
   project?: { headliner: string; city: string; date: string; venue: string; capacity: number };
   /** Names already resolved in this chat: name -> Qloo id. */

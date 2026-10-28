@@ -4,8 +4,8 @@
 // Components read through the use* hooks and write through the actions below.
 
 import { useSyncExternalStore } from "react";
-import { mockReply } from "./agent/mock";
-import type { Artifact, Conversation } from "./agent/types";
+import type { Artifact, Conversation, Message } from "./agent/types";
+import demo from "./demo-seed.json";
 import { TONES, type Member, type Project, type Roster, type SavedArtifact, type Workspace } from "./model";
 
 type State = {
@@ -55,9 +55,10 @@ function seed(): State {
     { id: "p-fridays", name: "Northside Fridays", kind: "show", tone: TONES[1], headliner: "Various", city: "Chicago", date: "Weekly", venue: "Lantern Works", capacity: 650, createdAt: now - 20 * 1440 * min, updatedAt: now - 2 * 1440 * min },
   ];
   const chat = (id: string, projectId: string, ask: string, ago: number): Conversation => {
-    const reply = mockReply({ conversationId: id, mode: "auto", messages: [{ role: "user", text: ask }] });
+    const reply = (demo.replies as Record<string, { title: string; text: string; steps: Message["steps"]; artifacts: Message["artifacts"] }>)[id];
     const t = now - ago * min;
-    return { id, projectId, title: reply.title, mode: "auto", updatedAt: t, messages: [{ id: `${id}-q`, role: "user", text: ask, createdAt: t - 4000 }, { ...reply.message, createdAt: t }] };
+    const message: Message = { id: `${id}-a`, role: "assistant", text: reply.text, createdAt: t, steps: reply.steps, artifacts: reply.artifacts };
+    return { id, projectId, title: reply.title, mode: "auto", updatedAt: t, messages: [{ id: `${id}-q`, role: "user", text: ask, createdAt: t - 4000 }, message] };
   };
   const conversations = [
     chat("demo", "p-chicago", "Find an opener for Marlow Vane in Chicago, Mar 14. Roster only.", 42),

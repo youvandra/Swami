@@ -27,7 +27,7 @@ export type ToolResult = { artifact?: Artifact; facts: Record<string, unknown> }
 export type Candidate = { id: string; name: string; image?: string; popularity?: number; genre?: string; detail?: string };
 
 export async function searchArtist(ctx: ToolContext, input: { name: string; take?: number }): Promise<{ candidates: Candidate[]; ambiguous: boolean }> {
-  const hits = await step(ctx, `Looked up “${input.name}”`, () => once(ctx, `search:${input.name.trim().toLowerCase()}`, () => ctx.q.search(input.name, "artist", input.take ?? 5)), (h) => `${h.length} matches`);
+  const hits = await step(ctx, `Looked up “${input.name}”`, () => once(ctx, `search:${input.name.trim().toLowerCase()}`, () => ctx.q.search(input.name, "artist", input.take ?? 5)), (h) => (h.length === 1 ? "1 match" : `${h.length} matches`));
   for (const h of hits) ctx.seen.set(h.id, h);
   const candidates = hits.map((h) => ({ id: h.id, name: h.name, image: h.imageUrl, popularity: h.popularity, genre: genreOf(h), detail: h.detail }));
   return { candidates, ambiguous: isAmbiguous(input.name, hits) };
@@ -45,6 +45,12 @@ export function isAmbiguous(query: string, hits: Entity[]): boolean {
   if (exact.length === 1 && exact[0] === a && (a.popularity ?? 0) - (b.popularity ?? 0) > 0.15) return false;
   if (exact.length > 1) return true;
   return Math.abs((a.popularity ?? 0) - (b.popularity ?? 0)) <= 0.15;
+}
+
+/** Resolve the headliner, as a visible step only when the name was not looked up already this turn. */
+function findHeadliner(ctx: ToolContext, name: string): Promise<Entity> {
+  if (ctx.memo.has(`search:${name.trim().toLowerCase()}`)) return resolveArtist(ctx, name);
+  return step(ctx, "Found the headliner in the taste graph", () => resolveArtist(ctx, name), (h) => h.name);
 }
 
 // ── openers ────────────────────────────────────────────────────────────────────────────────────────────────
@@ -65,7 +71,7 @@ function ranking(ctx: ToolContext, input: RankInput): Promise<Ranking> {
   const show = showOf(ctx, input);
   const key = `rank:${input.headliner}:${show.city}:${input.roster?.name ?? ""}:${input.risingOnly ?? ""}:${(input.exclude ?? []).join(",")}`;
   return once(ctx, key, async () => {
-    const head = await step(ctx, "Found the headliner in the taste graph", () => resolveArtist(ctx, input.headliner), (h) => h.name);
+    const head = await findHeadliner(ctx, input.headliner);
     show.headliner = head.name;
     const [related, local, rising, headHeat] = await step(
       ctx,
@@ -202,7 +208,7 @@ export async function crowdMapTool(ctx: ToolContext, input: RankInput & { opener
 // ── routing ────────────────────────────────────────────────────────────────────────────────────────────────
 
 export async function routeTourTool(ctx: ToolContext, input: { headliner: string; region?: string; cities?: string[]; anchorCity?: string; stops?: number; date?: string; capacity?: number }): Promise<ToolResult> {
-  const head = await step(ctx, "Found the headliner in the taste graph", () => resolveArtist(ctx, input.headliner), (h) => h.name);
+  const head = await findHeadliner(ctx, input.headliner);
   const show = showOf(ctx, { ...input, headliner: head.name, city: input.anchorCity });
   const allowed = input.cities?.length ? input.cities.map(findCity).filter((c) => !!c) : inRegion(CITIES, input.region);
   const locs = await step(ctx, "Ranked cities by fan affinity", () => once(ctx, `localities:${head.id}`, () => ctx.q.insights({ type: "locality", seeds: [head.id], take: 100 })), (l) => `${head.name} across ${l.length} cities`);
@@ -225,7 +231,7 @@ export async function routeTourTool(ctx: ToolContext, input: { headliner: string
 const displayTags = (e: Entity) => (e.tags ?? []).filter((t) => !t.type?.startsWith("urn:tag:category")).map((t) => t.name);
 
 export async function findVenuesTool(ctx: ToolContext, input: { headliner: string; city?: string; capacity?: number; date?: string }): Promise<ToolResult> {
-  const head = await step(ctx, "Found the headliner in the taste graph", () => resolveArtist(ctx, input.headliner), (h) => h.name);
+  const head = await findHeadliner(ctx, input.headliner);
   const show = showOf(ctx, { ...input, headliner: head.name });
   const places = await step(ctx, `Searched music venues in ${show.city}`, () => ctx.q.insights({ type: "place", seeds: [head.id], city: show.city, tags: [PLACE_TAG.venue], take: 20 }), (p) => `${p.length} venues`);
   if (places.length === 0) throw new ToolError(`No music venues for ${show.city} in the taste graph.`);
@@ -257,7 +263,7 @@ export async function findPartnersTool(ctx: ToolContext, input: RankInput & { op
 // ── sponsors ───────────────────────────────────────────────────────────────────────────────────────────────
 
 export async function matchSponsorsTool(ctx: ToolContext, input: { headliner: string; city?: string; date?: string; categories?: string[] }): Promise<ToolResult> {
-  const head = await step(ctx, "Found the headliner in the taste graph", () => resolveArtist(ctx, input.headliner), (h) => h.name);
+  const head = await findHeadliner(ctx, input.headliner);
   const show = showOf(ctx, { ...input, headliner: head.name });
   const brands = await step(ctx, "Searched brand affinity", () => once(ctx, `brands:${head.id}`, () => ctx.q.insights({ type: "brand", seeds: [head.id], take: 30 })), () => `${head.name} fans vs the national baseline`);
   const categoryOf = (b: Entity) => b.tags?.find((t) => t.type?.includes("brand"))?.name ?? "Brand";
