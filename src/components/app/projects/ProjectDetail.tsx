@@ -8,8 +8,9 @@ import type { ArtifactType } from "@/lib/agent/types";
 import { deleteProject, saveArtifact, unsaveArtifact, updateProject, useConversations, useHydrated, useProject, useSaved } from "@/lib/store";
 import { useShell } from "../AppShell";
 import { ArtifactPanel } from "../ArtifactPanel";
+import { askFor } from "@/lib/agent/ask";
 import { ARTIFACT_LABEL, artifactIcon, artifactSummary, timeAgo } from "../artifacts/meta";
-import { IconCheck, IconChat, IconClose, IconDoc, IconMenu, IconPencil, IconPlus, IconRoute, IconTag, IconTrash, IconUsers } from "../icons";
+import { IconCheck, IconChat, IconClose, IconDoc, IconMenu, IconPencil, IconPlus, IconRetry, IconRoute, IconTag, IconTrash, IconUsers } from "../icons";
 import { MoreMenu } from "../MoreMenu";
 import { ProjectDialog } from "./ProjectDialog";
 import s from "./Projects.module.css";
@@ -180,6 +181,15 @@ export function ProjectDetail({ id }: { id: string }) {
                             <b className={s.savedTitle}>{x.artifact.title}</b>
                             <span className={s.savedSummary}>{artifactSummary(x.artifact)}</span>
                             <span className={s.savedTime}>Saved {timeAgo(x.savedAt)}</span>
+                          </button>
+                          <button
+                            className={`${s.savedRemove} ${s.savedRerun}`}
+                            aria-label={`Run ${x.artifact.title} again`}
+                            data-tip="Run again with fresh data"
+                            data-tip-pos="end"
+                            onClick={() => router.push(`/app?project=${project.id}&q=${encodeURIComponent(askFor(x.artifact))}`)}
+                          >
+                            <IconRetry />
                           </button>
                           <button
                             className={s.savedRemove}

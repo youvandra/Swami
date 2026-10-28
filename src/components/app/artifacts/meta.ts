@@ -62,3 +62,4 @@ export function timeAgo(t: number, now = Date.now()) {
   const d = Math.round(h / 24);
   return d === 1 ? "yesterday" : `${d} days ago`;
 }
+

@@ -153,6 +153,7 @@
 .savedTime { margin-top: 6px; font-size: 12px; color: var(--muted); }
 .savedRemove { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; color: var(--muted); opacity: 0; transition: opacity 0.15s, background 0.15s; }
 .savedRemove svg { width: 14px; height: 14px; }
+.savedRerun { right: 42px; }
 .savedCard:hover .savedRemove,
 .savedRemove:focus-visible { opacity: 1; }
 .savedRemove:hover { background: var(--mist); color: var(--text); }
