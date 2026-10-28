@@ -22,6 +22,8 @@ type State = {
   /** Accounts on: every workspace the user belongs to, and the one open. */
   memberships?: { id: string; name: string; role: Member["role"] }[];
   current?: string;
+  /** Accounts on: the signed-in user's role here. Local mode is always the owner. */
+  you?: { role: Member["role"]; email: string };
 };
 
 const KEY = "swami.state.v2";
@@ -164,7 +166,7 @@ async function pull() {
     if (res.status === 401) return window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const b = (await res.json()) as State & { workspaces: State["memberships"] };
-    cache = complete({ conversations: b.conversations, projects: b.projects, saved: b.saved, workspace: b.workspace, team: b.team, rosters: b.rosters, memberships: b.workspaces, current: b.current });
+    cache = complete({ conversations: b.conversations, projects: b.projects, saved: b.saved, workspace: b.workspace, team: b.team, rosters: b.rosters, memberships: b.workspaces, current: b.current, you: b.you });
     loaded = true;
     listeners.forEach((l) => l());
     offerImport();
@@ -230,6 +232,7 @@ export const useRosters = () => useSyncExternalStore(subscribe, () => read().ros
 const NO_MEMBERSHIPS: NonNullable<State["memberships"]> = [];
 export const useMemberships = () => useSyncExternalStore(subscribe, () => read().memberships ?? NO_MEMBERSHIPS, () => NO_MEMBERSHIPS);
 export const useCurrentWorkspaceId = () => useSyncExternalStore(subscribe, () => read().current, () => undefined);
+export const useCanEdit = () => useSyncExternalStore(subscribe, () => (read().you?.role ?? "Owner") !== "Viewer", () => true);
 export const useHydrated = () => useSyncExternalStore(subscribe, () => loaded, () => false);
 
 export function useConversation(id: string | null) {

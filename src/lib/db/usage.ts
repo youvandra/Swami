@@ -14,6 +14,8 @@ export async function chatGate(): Promise<Gate> {
   const sb = await supabaseForUser();
   const ws = await currentWorkspace(sb);
   if (!ws) return { ok: false, status: 401, error: "Log in to ask Swami." };
+  // a chat is saved to the workspace, which Viewers cannot write
+  if (ws.role === "Viewer") return { ok: false, status: 403, error: "You can read this workspace. Ask an owner for edit access to chat." };
   const since = new Date();
   since.setUTCHours(0, 0, 0, 0);
   const { count } = await sb.from("usage_events").select("id", { count: "exact", head: true }).eq("workspace_id", ws.id).eq("kind", "chat").gte("created_at", since.toISOString());

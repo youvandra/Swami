@@ -8,7 +8,7 @@ import type { Artifact, Choice, Conversation, Message, Mode, Step } from "@/lib/
 import { readEvents } from "@/lib/sse";
 import { useServerStatus } from "@/lib/status";
 import { ROLES } from "@/lib/model";
-import { deleteConversation, newId, saveConversation, setConversationProject, useConversation, useProjects, useWorkspace } from "@/lib/store";
+import { deleteConversation, newId, saveConversation, setConversationProject, useCanEdit, useConversation, useProjects, useWorkspace } from "@/lib/store";
 import { Logo } from "../landing/Logo";
 import { ArtifactPanel, artifactIcon } from "./ArtifactPanel";
 import { useShell } from "./AppShell";
@@ -60,6 +60,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   const end = useRef<HTMLDivElement>(null);
   const stopRef = useRef<AbortController | null>(null);
   const dataMode = useServerStatus().data;
+  const canEdit = useCanEdit();
   const projects = useProjects();
   const workspace = useWorkspace();
   const tasks = tasksFor(workspace.artists[0] ?? "Marlow Vane", workspace.cities[0] ?? "Chicago");
@@ -302,7 +303,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
               <p className={s.sub}>Ask about any show or tour. Swami answers with rankings, maps and drafts you can edit and send.</p>
             </div>
             <div className={s.composerWrap}>
-              <Composer onSend={(q, r) => send(q, projectId, r)} mode={mode} onMode={setMode} busy={busy} onStop={() => stopRef.current?.abort()} autoFocus />
+              <Composer onSend={(q, r) => send(q, projectId, r)} mode={mode} onMode={setMode} busy={busy} onStop={() => stopRef.current?.abort()} readOnly={!canEdit} autoFocus />
             </div>
             <div className={s.tasks}>
               {tasks.map((t) => (
@@ -340,7 +341,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
               </div>
             </div>
             <div className={s.dock}>
-              <Composer onSend={(q, r) => send(q, projectId, r)} mode={mode} onMode={setMode} busy={busy} onStop={() => stopRef.current?.abort()} placeholder="Reply to Swami…" />
+              <Composer onSend={(q, r) => send(q, projectId, r)} mode={mode} onMode={setMode} busy={busy} onStop={() => stopRef.current?.abort()} readOnly={!canEdit} placeholder="Reply to Swami…" />
               <p className={s.disclaimer}>{dataMode === "fixture" ? "Demo data · " : ""}Review drafts before you send them</p>
             </div>
           </>

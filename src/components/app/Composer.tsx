@@ -30,11 +30,13 @@ type Props = {
   onMode: (m: Mode) => void;
   busy: boolean;
   onStop?: () => void;
+  /** Viewers read the workspace; the composer says so instead of taking input. */
+  readOnly?: boolean;
   placeholder?: string;
   autoFocus?: boolean;
 };
 
-export function Composer({ onSend, mode, onMode, busy, onStop, placeholder = "Ask about a show, a tour or a pitch…", autoFocus }: Props) {
+export function Composer({ onSend, mode, onMode, busy, onStop, readOnly, placeholder = "Ask about a show, a tour or a pitch…", autoFocus }: Props) {
   const [text, setText] = useState("");
   const [roster, setRoster] = useState<AttachedRoster | null>(null);
   const [menu, setMenu] = useState(false);
@@ -63,7 +65,7 @@ export function Composer({ onSend, mode, onMode, busy, onStop, placeholder = "As
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
   }, [text]);
 
-  const canSend = text.trim().length > 0 && !busy;
+  const canSend = text.trim().length > 0 && !busy && !readOnly;
   const submit = () => {
     if (!canSend) return;
     onSend(text.trim(), roster ?? undefined);
@@ -95,8 +97,9 @@ export function Composer({ onSend, mode, onMode, busy, onStop, placeholder = "As
         className={s.input}
         rows={1}
         value={text}
-        autoFocus={autoFocus}
-        placeholder={placeholder}
+        autoFocus={autoFocus && !readOnly}
+        disabled={readOnly}
+        placeholder={readOnly ? "You can read this workspace. Ask an owner for edit access to chat." : placeholder}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
