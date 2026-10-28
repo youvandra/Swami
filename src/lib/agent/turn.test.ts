@@ -119,4 +119,5 @@ test("a failed tool is said plainly while the others still return", async () => 
 test("numbers the tools never produced are caught", () => {
   assert.equal(numbersBacked("Score 0.92, 52% women", [{ score: 0.92, women: 0.52 }]), true);
   assert.equal(numbersBacked("Sells 4,000 tickets", [{ score: 0.92 }]), false);
+  assert.equal(numbersBacked("Score 0.90", [{ score: 0.9 }]), true);
 });

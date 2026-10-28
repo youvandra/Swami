@@ -3,7 +3,7 @@
 import type { OpenerRow } from "../agent/types.ts";
 import type { HeatCell } from "../qloo/types.ts";
 import { addedCrowd, hoodHeat, topAdded } from "./heat.ts";
-import { clamp01, fits, listing, ordinal, round2 } from "./normalize.ts";
+import { clamp01, listing, ordinal, round2, standing } from "./normalize.ts";
 
 export const A = 0.6;
 export const B = 0.4;
@@ -15,10 +15,8 @@ export type OpenerCandidate = {
   genre: string;
   /** Seeded affinity in the headliner's related list, globally. */
   affinity: number;
-  baseline?: number;
   /** Same, with the city as signal; absent when the city query skipped this act. */
   cityAffinity?: number;
-  cityBaseline?: number;
   /** Position in the headliner's related list (1-based), when the act was in it. */
   relatedRank?: number;
   relatedOf?: number;
@@ -31,19 +29,29 @@ export type OpenerCandidate = {
 
 export type RankInput = {
   headliner: string;
+  /** Affinities of the headliner's whole related list, and of its city-signal list, that the pool came from. */
+  field?: { related: number[]; city?: number[] };
   headlinerHeat: HeatCell[];
   candidates: OpenerCandidate[];
   exclude?: string[];
 };
 
-export function rankOpeners({ headliner, headlinerHeat, candidates, exclude = [] }: RankInput): (OpenerRow & { id: string })[] {
+/**
+ * Fit is where the act stands in the headliner's related list. There is no lift term: live, seedless queries carry
+ * no affinity, so the only baseline is popularity, and "seeded minus popularity" just marks acts as less famous.
+ * Weighted in at all, it moved the act the fans rank 1st below the one they rank 7th. Qloo's order already
+ * corrects for popularity, and reach gain is what rewards bringing someone else's crowd.
+ */
+const fitsOf = (affinities: number[], field?: number[]) => affinities.map((a) => standing(a, field));
+
+export function rankOpeners({ headliner, headlinerHeat, candidates, field, exclude = [] }: RankInput): (OpenerRow & { id: string })[] {
   const skip = new Set(exclude.map((x) => x.toLowerCase()));
   const pool = candidates.filter((c) => !skip.has(c.name.toLowerCase()) && !skip.has(c.id));
   if (pool.length === 0) return [];
 
-  const global = fits(pool.map((c) => ({ affinity: c.affinity, baseline: c.baseline })));
+  const global = fitsOf(pool.map((c) => c.affinity), field?.related);
   const hasCity = pool.some((c) => c.cityAffinity !== undefined);
-  const city = hasCity ? fits(pool.map((c) => ({ affinity: c.cityAffinity ?? c.affinity, baseline: c.cityBaseline ?? c.baseline }))) : global;
+  const city = hasCity ? fitsOf(pool.map((c) => c.cityAffinity ?? c.affinity), field?.city ?? field?.related) : global;
 
   const head = hoodHeat(headlinerHeat);
   const raw = pool.map((c) => {
@@ -59,7 +67,7 @@ export function rankOpeners({ headliner, headlinerHeat, candidates, exclude = []
 
   return pool
     .map((c, i) => {
-      const fit = round2(c.cityAffinity !== undefined ? 0.6 * city[i] + 0.4 * global[i] : global[i]);
+      const fit = round2(clamp01(c.cityAffinity !== undefined ? 0.6 * city[i] + 0.4 * global[i] : global[i]));
       // Half "how much of this act's crowd is new", half "how big that new crowd is next to the others".
       const reachGain = round2(0.5 * raw[i].share + 0.5 * (maxGain > 0 ? raw[i].gain / maxGain : 0));
       const hoods = topAdded(headlinerHeat, c.heat, 2).map((h) => h.name);

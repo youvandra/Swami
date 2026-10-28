@@ -22,6 +22,16 @@ export function fits(rows: { affinity: number; baseline?: number }[]): number[] 
   return rows.map((r, i) => round2(clamp01(0.5 * clamp01(r.affinity) + 0.5 * (top > 0 ? lifts[i] / top : 0))));
 }
 
+/**
+ * Where an affinity stands in the full list it came from: 1 at the top, falling evenly to 0 below the last.
+ * Live seeded affinities bunch together (0.95 to 0.98 across a top 50), so the position carries the signal
+ * and the raw value does not. Without a list, the affinity stands for itself.
+ */
+export function standing(affinity: number, field?: number[]): number {
+  if (!field?.length) return clamp01(affinity);
+  return 1 - field.filter((f) => f > affinity).length / field.length;
+}
+
 /** "4th", "21st" */
 export function ordinal(n: number): string {
   const s = n % 100 >= 11 && n % 100 <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th";

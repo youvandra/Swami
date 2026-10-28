@@ -131,12 +131,11 @@ function ranking(ctx: ToolContext, input: RankInput): Promise<Ranking> {
     if (pool.length === 0 && unknown.length === 0) throw new ToolError(input.risingOnly ? `No rising acts among ${head.name}'s matches.` : `Qloo has no related acts for ${head.name}.`);
     for (const p of pool) ctx.seen.set(p.id, p);
 
-    const ids = pool.map((p) => p.id);
-    const [base, cityBase, heats] = await step(
+    const heats = await step(
       ctx,
       `Pulled neighbourhood heat for ${show.city}`,
-      () => Promise.all([ctx.q.baseline({ type: "artist", seeds: [] }, ids), ctx.q.baseline({ type: "artist", seeds: [], city: show.city }, ids), Promise.all(pool.map((p) => heatOf(ctx, p, show.city)))]),
-      ([, , h]) => (headHeat.length ? `${headHeat.length} neighbourhoods, ${pool.length} acts${h.some((x) => x.estimated) ? `, ${h.filter((x) => x.estimated).length} from their scene` : ""}` : `no neighbourhood heat for ${show.city} yet`),
+      () => Promise.all(pool.map((p) => heatOf(ctx, p, show.city))),
+      (h) => (headHeat.length ? `${headHeat.length} neighbourhoods, ${pool.length} acts${h.some((x) => x.estimated) ? `, ${h.filter((x) => x.estimated).length} from their scene` : ""}` : `no neighbourhood heat for ${show.city} yet`),
     );
 
     const rosterSet = new Set((input.roster?.acts ?? []).map(actKey));
@@ -145,9 +144,7 @@ function ranking(ctx: ToolContext, input: RankInput): Promise<Ranking> {
       name: p.name,
       genre: genreOf(p) ?? "Artist",
       affinity: p.affinity ?? 0,
-      baseline: base.get(p.id),
       cityAffinity: localBy.get(p.id),
-      cityBaseline: cityBase.get(p.id),
       relatedRank: rank.get(p.id),
       relatedOf: related.length,
       heat: heats[i].cells,
@@ -159,7 +156,7 @@ function ranking(ctx: ToolContext, input: RankInput): Promise<Ranking> {
     const floor = Math.min(...candidates.map((c) => c.affinity), 0.4);
     for (const name of unknown) candidates.push({ id: `unknown:${name}`, name, genre: "From roster", affinity: floor * 0.9, heat: [], estimated: true, rising: false, onRoster: true });
 
-    const rows = await step(ctx, "Scored every act", async () => rankOpeners({ headliner: head.name, headlinerHeat: headHeat, candidates, exclude: input.exclude }), () => `fit × reach gain${input.roster ? ", roster filter on" : ""}`);
+    const rows = await step(ctx, "Scored every act", async () => rankOpeners({ headliner: head.name, headlinerHeat: headHeat, candidates, exclude: input.exclude, field: { related: related.map((r) => r.affinity ?? 0), city: local.map((r) => r.affinity ?? 0) } }), () => `fit × reach gain${input.roster ? ", roster filter on" : ""}`);
     for (const r of rows) if (r.id.startsWith("unknown:")) r.why = "Qloo has no profile for this act yet, so it sits below the field on fit with no heat of its own. Add it again once it has releases out.";
     return { show, head, headHeat, rows, heatByAct: new Map(pool.map((p, i) => [p.id, heats[i].cells])), related: related.length };
   });

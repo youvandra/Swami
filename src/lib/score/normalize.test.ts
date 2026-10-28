@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { clamp01, fits, listing, minmax, ordinal } from "./normalize.ts";
+import { clamp01, fits, listing, minmax, ordinal, standing } from "./normalize.ts";
 
 test("minmax spreads a set over 0..1", () => assert.deepEqual(minmax([2, 4, 6]), [0, 0.5, 1]));
 test("minmax of an empty set is empty, of a flat set is all ones", () => {
@@ -21,4 +21,9 @@ test("ordinals and listings read like English", () => {
   assert.equal(listing(["A", "B", "C"]), "A, B and C");
   assert.equal(listing(["A"]), "A");
   assert.equal(listing([]), "");
+});
+test("standing follows position in the list, not the raw gap", () => {
+  const field = [0.981, 0.98, 0.976, 0.97, 0.95];
+  assert.deepEqual([0.981, 0.97, 0.95, 0.9].map((a) => Math.round(standing(a, field) * 100) / 100), [1, 0.4, 0.2, 0]);
+  assert.equal(standing(0.7), 0.7);
 });

@@ -44,10 +44,10 @@ test("the loop runs the model's tools, feeds results back and keeps backed prose
   const { out, seen, usage } = await turn([
     [call("t1", "search_artist", { name: "Marlow Vane" })],
     [call("t2", "rank_openers", { headliner: "Marlow Vane", city: "Chicago" }), call("t3", "crowd_map", { headliner: "Marlow Vane", city: "Chicago" })],
-    [{ type: "text", text: "Halcyon Drive leads at 0.92 and brings Logan Square and Pilsen." }],
+    [{ type: "text", text: "Halcyon Drive leads at 0.90 and brings Logan Square and Pilsen." }],
   ]);
   assert.deepEqual(out.artifacts.map((a) => a.type), ["opener_ranking", "crowd_map"]);
-  assert.equal(out.text, "Halcyon Drive leads at 0.92 and brings Logan Square and Pilsen.");
+  assert.equal(out.text, "Halcyon Drive leads at 0.90 and brings Logan Square and Pilsen.");
   assert.equal(seen.length, 3);
   const results = seen[2].messages[seen[2].messages.length - 1].content as { type: string; tool_use_id: string }[];
   assert.deepEqual(results.map((r) => r.tool_use_id), ["t2", "t3"]);

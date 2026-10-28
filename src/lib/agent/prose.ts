@@ -53,9 +53,12 @@ export function numbersBacked(text: string, sources: unknown[]): boolean {
   return nums.every((n) => {
     const plain = n.replace(/,/g, "");
     if (pool.includes(plain) || pool.includes(n)) return true;
-    // percentages of a 0..1 value: 52% from 0.52
     const v = Number(plain);
-    return Number.isFinite(v) && v <= 100 && pool.includes(String(v / 100));
+    if (!Number.isFinite(v)) return false;
+    // a trailing zero the JSON drops: 0.90 from 0.9
+    if (pool.includes(String(v))) return true;
+    // percentages of a 0..1 value: 52% from 0.52
+    return v <= 100 && pool.includes(String(v / 100));
   });
 }
 

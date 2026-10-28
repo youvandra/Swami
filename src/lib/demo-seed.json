@@ -17,7 +17,7 @@
  "replies": {
   "demo": {
    "title": "Openers, Chicago, Mar 14 · Marlow Vane",
-   "text": "I ranked the 5 acts on Northlight Agency · spring for Marlow Vane in Chicago. Halcyon Drive leads with a score of 0.92, and its fans live in Logan Square and Pilsen, where Marlow Vane runs cold. The Low Orchard is next at 0.71. 2 picks are estimated from their scene because their own data is thin.",
+   "text": "I ranked the 5 acts on Northlight Agency · spring for Marlow Vane in Chicago. Halcyon Drive leads with a score of 0.90, and its fans live in Logan Square and Pilsen, where Marlow Vane runs cold. The Low Orchard is next at 0.73. 2 picks are estimated from their scene because their own data is thin.",
    "steps": [
     {
      "label": "Looked up “Marlow Vane”",
@@ -91,24 +91,24 @@
       {
        "name": "Halcyon Drive",
        "genre": "Indie rock",
-       "fit": 0.95,
+       "fit": 0.92,
        "reachGain": 0.87,
-       "score": 0.92,
+       "score": 0.9,
        "why": "Ranks 3rd of 10 among acts Marlow Vane's fans love, and owns Logan Square and Pilsen, where Marlow Vane runs cold.",
        "hoods": [
         "Logan Square",
         "Pilsen"
        ],
        "onRoster": true,
-       "rising": true,
+       "rising": false,
        "estimated": false
       },
       {
        "name": "The Low Orchard",
        "genre": "Folk pop",
-       "fit": 0.85,
+       "fit": 0.9,
        "reachGain": 0.54,
-       "score": 0.71,
+       "score": 0.73,
        "why": "Ranks 2nd of 10 among acts Marlow Vane's fans love, and owns Avondale and Logan Square, where Marlow Vane runs cold.",
        "hoods": [
         "Avondale",
@@ -121,9 +121,9 @@
       {
        "name": "Copper Hours",
        "genre": "Garage",
-       "fit": 0.65,
+       "fit": 0.46,
        "reachGain": 0.68,
-       "score": 0.66,
+       "score": 0.54,
        "why": "Ranks 7th of 10 among acts Marlow Vane's fans love, and owns Logan Square and Avondale, where Marlow Vane runs cold. Its own data is thin, so the heat is estimated from its scene.",
        "hoods": [
         "Logan Square",
@@ -136,9 +136,9 @@
       {
        "name": "Fieldwork",
        "genre": "Post-punk",
-       "fit": 0.59,
+       "fit": 0.3,
        "reachGain": 0.62,
-       "score": 0.6,
+       "score": 0.4,
        "why": "Ranks 8th of 10 among acts Marlow Vane's fans love, and owns Avondale and Logan Square, where Marlow Vane runs cold. Its own data is thin, so the heat is estimated from its scene.",
        "hoods": [
         "Avondale",
@@ -151,9 +151,9 @@
       {
        "name": "Glass Meridian",
        "genre": "Synth pop",
-       "fit": 0.43,
+       "fit": 0.16,
        "reachGain": 0.39,
-       "score": 0.41,
+       "score": 0.23,
        "why": "Ranks 10th of 10 among acts Marlow Vane's fans love, with some new crowd in Hyde Park and Logan Square.",
        "hoods": [
         "Hyde Park",
@@ -246,7 +246,7 @@
     },
     {
      "label": "Ranked cities by fan affinity",
-     "detail": "Marlow Vane across 33 cities",
+     "detail": "Marlow Vane across 13 cities",
      "ms": 437,
      "status": "done"
     },
@@ -359,7 +359,7 @@
     },
     {
      "label": "Ranked brands by lift",
-     "detail": "5 brands above 1.3×",
+     "detail": "5 brands these fans pick beyond their usual pull",
      "ms": 574,
      "status": "done"
     }
