@@ -4,7 +4,7 @@ import { currentWorkspace } from "./repo.ts";
 import { supabaseForUser } from "./server.ts";
 import { env } from "../env.ts";
 
-export type Gate = { ok: true; record: (u: { qlooCalls: number; tokensIn: number; tokensOut: number; ms: number }) => Promise<void> } | { ok: false; status: number; error: string };
+export type Gate = { ok: true; who?: string; record: (u: { qlooCalls: number; tokensIn: number; tokensOut: number; ms: number }) => Promise<void> } | { ok: false; status: number; error: string };
 
 const noop = async () => {};
 
@@ -21,8 +21,10 @@ export async function chatGate(): Promise<Gate> {
   const { count } = await sb.from("usage_events").select("id", { count: "exact", head: true }).eq("workspace_id", ws.id).eq("kind", "chat").gte("created_at", since.toISOString());
   const max = env.SWAMI_DAILY_RUNS_PER_WORKSPACE;
   if ((count ?? 0) >= max) return { ok: false, status: 429, error: `You have used today's ${max} runs. They reset at midnight UTC.` };
+  const { data: auth } = await sb.auth.getUser();
   return {
     ok: true,
+    who: auth.user?.id,
     record: async (u) => {
       await sb.from("usage_events").insert({ workspace_id: ws.id, kind: "chat", qloo_calls: u.qlooCalls, llm_input_tokens: u.tokensIn, llm_output_tokens: u.tokensOut, ms: u.ms });
     },

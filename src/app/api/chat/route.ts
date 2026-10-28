@@ -32,16 +32,18 @@ const body = z.object({
 
 // Streams the turn as server-sent events; `Accept: application/json` gets one JSON reply (used by tests).
 export async function POST(req: Request) {
-  const who = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "local";
-  if (!perMinute.take(who)) {
-    const wait = perMinute.retryAfter(who);
-    return Response.json({ error: `That is a lot of questions at once. Try again in ${wait} seconds.` }, { status: 429, headers: { "retry-after": String(wait) } });
-  }
   const parsed = body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Invalid request", issues: parsed.error.issues.slice(0, 5) }, { status: 400 });
   const chat = parsed.data;
   const gate = await chatGate();
   if (!gate.ok) return Response.json({ error: gate.error }, { status: gate.status });
+  // signed-in users are limited per account, everyone else per address
+  const who = gate.who ?? (req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "local");
+  if (!perMinute.take(who)) {
+    const wait = perMinute.retryAfter(who);
+    return Response.json({ error: `That is a lot of questions at once. Try again in ${wait} seconds.` }, { status: 429, headers: { "retry-after": String(wait) } });
+  }
+
   const requestId = uid();
   const dataMode = env.qlooLive ? "live" : "fixture";
   const log = (r: Awaited<ReturnType<typeof runChat>>) => {
