@@ -8,8 +8,12 @@ export async function GET(req: Request) {
   const next = url.searchParams.get("next");
   const safe = next && next.startsWith("/") && !next.startsWith("//") ? next : "/app";
   if (code) {
-    const { error } = await (await supabaseForUser()).auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL(safe, url.origin));
+    const sb = await supabaseForUser();
+    const { error } = await sb.auth.exchangeCodeForSession(code);
+    if (!error) {
+      await sb.rpc("accept_invites");
+      return NextResponse.redirect(new URL(safe, url.origin));
+    }
   }
   return NextResponse.redirect(new URL("/login?error=link", url.origin));
 }

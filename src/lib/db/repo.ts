@@ -3,6 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Artifact, Conversation, Message } from "../agent/types.ts";
 import type { Member, Project, Roster, SavedArtifact, Workspace } from "../model.ts";
 import type { Op } from "./sync.ts";
+import { env } from "../env.ts";
+import { sendInvite } from "./admin.ts";
 
 // Every query runs as the signed-in user; row-level security decides what exists. Rows map to the client's
 // types here and nowhere else.
@@ -18,11 +20,11 @@ const must = <T = any>(r: { data: T | null; error: { message: string } | null })
   return (r.data ?? []) as NonNullable<T>;
 };
 
-/** The user's workspace: the first one they joined. */
+/** The workspace the app opens: the one the user joined last (an accepted invite wins over their own). */
 export async function currentWorkspace(sb: SupabaseClient): Promise<{ id: string; role: Member["role"] } | null> {
   const { data: auth } = await sb.auth.getUser();
   if (!auth.user) return null;
-  const rows = must(await sb.from("members").select("workspace_id, role").eq("user_id", auth.user.id).eq("status", "active").order("id").limit(1));
+  const rows = must(await sb.from("members").select("workspace_id, role").eq("user_id", auth.user.id).eq("status", "active").order("joined_at", { ascending: false }).limit(1));
   return rows[0] ? { id: rows[0].workspace_id, role: rows[0].role } : null;
 }
 
@@ -117,6 +119,8 @@ export async function apply(sb: SupabaseClient, ws: string, op: Op): Promise<voi
     case "member.invite": {
       const name = op.email.split("@")[0].replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       must(await sb.from("members").insert({ workspace_id: ws, email: op.email.toLowerCase(), name, role: op.role, status: "invited" }));
+      // the row is the invitation; the email is a courtesy, and an existing account simply joins on next login
+      await sendInvite(op.email, `${env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/app`).catch(() => false);
       return;
     }
     case "member.patch":

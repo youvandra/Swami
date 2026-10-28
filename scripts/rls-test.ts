@@ -60,6 +60,14 @@ try {
   check("the viewer reads A's project", as(V, `select count(*) from projects`).out === "1");
   check("the viewer cannot edit it", as(V, `update projects set name = 'x' where id = 'pa' returning id`).out === "");
   check("the viewer cannot invite", !as(V, `insert into members (workspace_id, email, role) values ('${wsA}', 'z@z.example', 'Editor')`).ok);
+  // an invite for someone who already has an account: it waits until they accept on their next login
+  check("A invites B", as(A, `insert into members (workspace_id, email, role, status) values ('${wsA}', 'b@two.example', 'Editor', 'invited')`).ok);
+  check("B sees nothing of A's until accepting", as(B, `select count(*) from projects`).out === "0");
+  check("B accepts the invite", as(B, `select accept_invites()`).out === "1");
+  check("B now reads A's project and keeps their own workspace", as(B, `select count(*) from projects`).out === "1" && as(B, `select count(*) from workspaces`).out === "2");
+  check("the accepted invite is the workspace B opens next", psql(`select workspace_id from members where user_id = '${B}' order by joined_at desc limit 1`) === wsA);
+  check("accepting twice changes nothing", as(B, `select accept_invites()`).out === "0");
+
   check("only an Owner deletes the workspace", as(V, `delete from workspaces returning id`).out === "" && as(A, `select count(*) from workspaces`).out === "1");
 } finally {
   try {
