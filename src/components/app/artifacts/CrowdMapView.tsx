@@ -10,7 +10,7 @@ type CrowdMap = Extract<Artifact, { type: "crowd_map" }>;
 export function CrowdMapView({ artifact }: { artifact: CrowdMap }) {
   const [layer, setLayer] = useState<Layer>("gain");
   const { hoods, show, opener } = artifact;
-  const dots = useMemo(() => buildDots(hoods, layer), [hoods, layer]);
+  const dots = useMemo(() => buildDots(hoods, layer, artifact.show.city), [hoods, layer, artifact.show.city]);
   const rows = useMemo(
     () =>
       hoods

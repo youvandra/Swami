@@ -31,19 +31,20 @@ export function hoodHeat(cells: HeatCell[]): Map<string, { value: number; weight
 /** Project lat/lng into the map frame: the city's known box, else the cells' own extent with a margin. */
 export function projector(city: string, cells: { lat: number; lng: number }[]) {
   const known = CITY_BOX[findCity(city)?.name ?? city];
-  let [n, s, w, e] = known ?? [-Infinity, Infinity, Infinity, -Infinity];
-  if (!known) {
-    for (const c of cells) {
-      n = Math.max(n, c.lat);
-      s = Math.min(s, c.lat);
-      w = Math.min(w, c.lng);
-      e = Math.max(e, c.lng);
-    }
-    const padY = (n - s || 0.05) * 0.18;
-    const padX = (e - w || 0.05) * 0.18;
-    [n, s, w, e] = [n + padY, s - padY, w - padX, e + padX];
+  if (known) {
+    const [n, s, w, e] = known;
+    return (p: { lat: number; lng: number }) => ({ x: Math.round(((p.lng - w) / (e - w)) * W), y: Math.round(((n - p.lat) / (n - s)) * H) });
   }
-  return (p: { lat: number; lng: number }) => ({ x: Math.round(((p.lng - w) / (e - w)) * W), y: Math.round(((n - p.lat) / (n - s)) * H) });
+  // No fixed frame: fit the cells' extent with a margin, keeping a mile a mile in both directions.
+  const lats = cells.map((c) => c.lat);
+  const lngs = cells.map((c) => c.lng);
+  const midLat = (Math.max(...lats) + Math.min(...lats)) / 2 || 0;
+  const midLng = (Math.max(...lngs) + Math.min(...lngs)) / 2 || 0;
+  const k = Math.cos((midLat * Math.PI) / 180) || 1;
+  const spanX = (Math.max(...lngs) - Math.min(...lngs)) * k || 0.05;
+  const spanY = Math.max(...lats) - Math.min(...lats) || 0.05;
+  const scale = Math.min((W * 0.7) / spanX, (H * 0.7) / spanY);
+  return (p: { lat: number; lng: number }) => ({ x: Math.round(W / 2 + (p.lng - midLng) * k * scale), y: Math.round(H / 2 - (p.lat - midLat) * scale) });
 }
 
 /** Join two acts' cells into the map's neighbourhoods. Cells only one side has count as zero on the other. */

@@ -15,7 +15,13 @@ export const MAP_H = MAP_ROWS * MAP_PITCH;
 // Lakefront to the east, a ragged western edge, a narrowing south side.
 const lakeEdge = (y: number) => 404 - 22 * Math.sin(y / 46) - y * 0.12;
 const westEdge = (y: number) => 30 + 18 * Math.sin(y / 23) + (y > 150 ? (y - 150) * 0.55 : 0) + (y < 60 ? (60 - y) * 0.9 : 0);
-const inCity = (x: number, y: number) => x > westEdge(y) && x < lakeEdge(y) && !(y < 34 && x > 300);
+const inChicago = (x: number, y: number) => x > westEdge(y) && x < lakeEdge(y) && !(y < 34 && x > 300);
+
+// Other cities have no drawn outline: the land is whatever lies near a neighbourhood with data.
+const REACH = 78;
+const nearHood = (hoods: Hood[]) => (x: number, y: number) => hoods.some((h) => (x - h.x) ** 2 + (y - h.y) ** 2 < REACH * REACH);
+
+export const outlineFor = (city: string | undefined, hoods: Hood[]) => (!city || city.toLowerCase() === "chicago" ? inChicago : nearHood(hoods));
 
 const RADIUS = 56;
 function field(hoods: Hood[], key: "headliner" | "opener", x: number, y: number) {
@@ -34,7 +40,8 @@ export function heat(hoods: Hood[], layer: Layer, x: number, y: number) {
 
 export type Dot = { x: number; y: number; size: number; fill: string };
 
-export function buildDots(hoods: Hood[], layer: Layer): Dot[] {
+export function buildDots(hoods: Hood[], layer: Layer, city?: string): Dot[] {
+  const inCity = outlineFor(city, hoods);
   const out: Dot[] = [];
   for (let r = 0; r < MAP_ROWS; r++) {
     for (let c = 0; c < MAP_COLS; c++) {
