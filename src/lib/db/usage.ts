@@ -10,7 +10,7 @@ const noop = async () => {};
 
 /** Who may run a chat turn, and a way to count it. With accounts off there is nobody to count. */
 export async function chatGate(): Promise<Gate> {
-  if (!accountsOn) return { ok: true, record: noop };
+  if (!accountsOn || env.devNoAuth) return { ok: true, record: noop };
   const sb = await supabaseForUser();
   const ws = await currentWorkspace(sb);
   if (!ws) return { ok: false, status: 401, error: "Log in to ask Swami." };

@@ -16,6 +16,8 @@ const schema = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().default("http://localhost:5192"),
   SWAMI_DAILY_RUNS_PER_WORKSPACE: z.coerce.number().int().positive().default(200),
   // demo only: delay per fake Qloo call, so steps stream visibly
+  // local only: lets chat run without a session; ignored when NODE_ENV is production
+  SWAMI_DEV_NO_AUTH: z.string().optional(),
   SWAMI_FIXTURE_DELAY_MS: z.coerce.number().int().min(0).max(5000).default(0),
 });
 
@@ -26,6 +28,7 @@ const parsed = schema.parse(raw);
 export const env = {
   ...parsed,
   qlooLive: !!parsed.QLOO_API_KEY,
+  devNoAuth: parsed.SWAMI_DEV_NO_AUTH === "1" && process.env.NODE_ENV !== "production",
   agentMode: (parsed.ANTHROPIC_API_KEY ? "anthropic" : parsed.LLM_BASE_URL && parsed.LLM_API_KEY && parsed.LLM_MODEL ? "compat" : "template") as "anthropic" | "compat" | "template",
   dbMode: (parsed.NEXT_PUBLIC_SUPABASE_URL && parsed.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "supabase" : "local") as "supabase" | "local",
 };
