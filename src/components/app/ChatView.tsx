@@ -17,6 +17,8 @@ import { IconArrowRight, IconChart, IconCheck, IconChevron, IconDoc, IconFolder,
 import { MoreMenu } from "./MoreMenu";
 import s from "./ChatView.module.css";
 
+const KIND_OF: Record<Artifact["type"], Exclude<Mode, "auto">> = { opener_ranking: "opener", crowd_map: "map", routing: "routing", venues: "venues", partners: "partners", sponsors: "sponsors", audience: "audience", proposal: "proposal", email: "email" };
+
 // The show and opener of the chat's latest result, so "now find venues" needs no names.
 function lastShow(messages: Message[]) {
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -26,7 +28,7 @@ function lastShow(messages: Message[]) {
     const withOpener = arts.find((a) => a.type === "crowd_map" || a.type === "audience");
     const ranking = arts.find((a) => a.type === "opener_ranking");
     const opener = withOpener && "opener" in withOpener ? withOpener.opener : ranking?.type === "opener_ranking" ? ranking.rows[0]?.name : undefined;
-    return { headliner, city, date, opener };
+    return { headliner, city, date, opener, kind: KIND_OF[arts[0].type] };
   }
   return undefined;
 }

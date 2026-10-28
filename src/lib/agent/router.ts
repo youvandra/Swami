@@ -18,9 +18,11 @@ const INTENTS: [Kind, RegExp][] = [
   ["map", /map|neighbou?rhood|where .*fans|heat|added crowd/],
 ];
 
-export function intent(text: string, mode: Mode): Kind {
+export function intent(text: string, mode: Mode, last?: Kind): Kind {
   if (mode !== "auto") return mode;
   const t = text.toLowerCase();
+  // "what about Austin?", "same for Saint Rook": the same kind of answer as last time
+  if (last && /^\s*(?:and\s+)?(?:what about|how about|same (?:for|in|with)|and (?:for|in)|now (?:for|in)|try)\b/.test(t) && !INTENTS.some(([, re]) => re.test(t))) return last;
   // re-ranking without some acts is still an opener question
   if (/^\s*(?:now\s+)?(?:without|drop|exclude|skip|leave out)\b/.test(t)) return "opener";
   return INTENTS.find(([, re]) => re.test(t))?.[0] ?? "opener";
@@ -38,7 +40,7 @@ export type Plan = {
 
 /** A capitalised name after "for", "with", "of" or "to", up to four words. */
 export function headlinerIn(text: string): string | undefined {
-  const m = text.match(/\b(?:for|of|whose customers love|who love|fans of|fits|suits|should|book|booking)\s+((?:the |The )?[A-Z0-9][\w'&.-]*(?:\s+(?:&|the|of|[A-Z0-9][\w'&.-]*)){0,4})/);
+  const m = text.match(/\b(?:for|of|whose customers love|who love|fans of|fits|suits|should|book|booking|about|with)\s+((?:the |The )?[A-Z0-9][\w'&.-]*(?:\s+(?:&|the|of|[A-Z0-9][\w'&.-]*)){0,4})/);
   const name = m?.[1]?.replace(/[.,!?]+$/, "").replace(/\s+(?:in|on|at|and|for)$/, "").trim();
   if (!name) return undefined;
   // a city or month picked up by the pattern is no artist
@@ -47,7 +49,7 @@ export function headlinerIn(text: string): string | undefined {
 }
 
 export function plan(text: string, mode: Mode, ctx?: ChatContext): Plan {
-  const kind = intent(text, mode);
+  const kind = intent(text, mode, ctx?.last?.kind);
   const named = headlinerIn(text);
   // a follow-up ("now the venues") keeps the show the chat was on; a new name starts a new show
   const last = named && named.toLowerCase() !== ctx?.last?.headliner.toLowerCase() ? undefined : ctx?.last;

@@ -118,7 +118,7 @@ export type ChatContext = {
   roster?: { name: string; acts: string[] };
   project?: { headliner: string; city: string; date: string; venue: string; capacity: number };
   /** The show the chat's latest result was about, so a follow-up can leave it out. */
-  last?: { headliner: string; city: string; date: string; opener?: string };
+  last?: { headliner: string; city: string; date: string; opener?: string; kind?: Exclude<Mode, "auto"> };
   /** Names already resolved in this chat: name -> Qloo id. */
   entities?: Record<string, string>;
 };

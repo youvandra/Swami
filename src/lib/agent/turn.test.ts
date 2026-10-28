@@ -94,6 +94,16 @@ test("drop and without re-rank the last show without those acts", async () => {
   assert.notEqual(out.artifacts[1]?.type === "crowd_map" && out.artifacts[1].opener, "Halcyon Drive");
 });
 
+test("what about / same for repeat the last kind of answer", () => {
+  const last = { headliner: "Marlow Vane", city: "Chicago", date: "Mar 14", kind: "sponsors" as const };
+  const c = { workspace: "W", role: "P", cities: [], last };
+  const a = plan("What about Austin?", "auto", c);
+  assert.deepEqual([a.kind, a.headliner, a.input.city], ["sponsors", "Marlow Vane", "Austin"]);
+  const b = plan("Same for Saint Rook", "auto", c);
+  assert.deepEqual([b.kind, b.headliner], ["sponsors", "Saint Rook"]);
+  assert.equal(plan("What about venues?", "auto", c).kind, "venues");
+});
+
 test("no headliner anywhere asks for one; the project's headliner fills in", async () => {
   assert.match((await run(req("find me an opener"))).out.text, /Which artist/);
   const { out } = await run(req("who should open?", { context: { workspace: "W", role: "Promoter", cities: [], project: { headliner: "Marlow Vane", city: "Chicago", date: "Mar 14", venue: "The Thalia Room", capacity: 1100 } } }));
