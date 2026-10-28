@@ -39,7 +39,7 @@ export function artifactSummary(a: Artifact): string {
     case "routing":
       return `${a.stops.length} stops · strongest ${[...a.stops].sort((x, y) => y.affinity - x.affinity)[0].city}`;
     case "venues":
-      return `Best fit ${a.venues[0].name} · ${a.venues[0].capacity.toLocaleString("en-US")} cap`;
+      return `Best fit ${a.venues[0].name}${a.venues[0].capacity ? ` · ${a.venues[0].capacity.toLocaleString("en-US")} cap` : ""}`;
     case "partners":
       return `${a.partners.length} partners · top ${a.partners[0].name}`;
     case "sponsors":

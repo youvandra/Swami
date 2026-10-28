@@ -9,12 +9,13 @@ type Venues = Extract<Artifact, { type: "venues" }>;
 
 export function VenuesView({ artifact, onAsk }: { artifact: Venues; onAsk: (p: string) => void }) {
   const { venues, show } = artifact;
-  const biggest = Math.max(...venues.map((v) => v.capacity), show.capacity);
+  const biggest = Math.max(...venues.map((v) => v.capacity ?? 0), show.capacity);
   return (
     <div className={k.wrap}>
       <ul className={s.list}>
         {venues.map((v, i) => {
-          const fitsRoom = v.capacity >= show.capacity * 0.9 && v.capacity <= show.capacity * 1.5;
+          const cap = v.capacity;
+          const fitsRoom = !!cap && cap >= show.capacity * 0.9 && cap <= show.capacity * 1.5;
           return (
             <li key={v.name} className={s.item}>
               <span className={s.rank}>{i + 1}</span>
@@ -24,16 +25,18 @@ export function VenuesView({ artifact, onAsk }: { artifact: Venues; onAsk: (p: s
                   {i === 0 && <span className={k.best}>Best fit</span>}
                 </div>
                 <p className={s.meta}>
-                  {v.hood} · {v.capacity.toLocaleString("en-US")} cap · {v.tags.join(", ")}
+                  {[v.hood, cap ? `${cap.toLocaleString("en-US")} cap` : "Capacity unknown", v.tags.join(", ")].filter(Boolean).join(" · ")}
                 </p>
                 <p className={s.note}>{v.note}</p>
-                <div className={s.cap} aria-label={`${v.capacity} capacity against ${show.capacity} needed`}>
-                  <span className={s.capBar}>
-                    <i style={{ width: `${(v.capacity / biggest) * 100}%` }} data-fits={fitsRoom || undefined} />
-                    <em style={{ left: `${(show.capacity / biggest) * 100}%` }} />
-                  </span>
-                  <span className={s.capText}>{fitsRoom ? "Right size" : v.capacity < show.capacity ? "Small" : "Large"}</span>
-                </div>
+                {cap ? (
+                  <div className={s.cap} aria-label={`${cap} capacity against ${show.capacity} needed`}>
+                    <span className={s.capBar}>
+                      <i style={{ width: `${(cap / biggest) * 100}%` }} data-fits={fitsRoom || undefined} />
+                      <em style={{ left: `${(show.capacity / biggest) * 100}%` }} />
+                    </span>
+                    <span className={s.capText}>{fitsRoom ? "Right size" : cap < show.capacity ? "Small" : "Large"}</span>
+                  </div>
+                ) : null}
               </div>
               <div className={s.side}>
                 <b className={k.num}>{Math.round(v.fit * 100)}</b>

@@ -40,7 +40,8 @@ export type RouteStop = {
   note: string;
 };
 
-export type Venue = { name: string; hood: string; capacity: number; fit: number; tags: string[]; note: string };
+// capacity is missing when Qloo has none; the view hides the bar then
+export type Venue = { name: string; hood: string; capacity?: number; fit: number; tags: string[]; note: string };
 
 export type Partner = { name: string; kind: "Bar" | "Restaurant" | "Record shop" | "Café"; hood: string; fit: number; angle: string };
 

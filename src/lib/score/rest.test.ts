@@ -1,0 +1,61 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { buildAudience, shares, under30, womenShare } from "./audience.ts";
+import { rankPartners } from "./partners.ts";
+import { MIN_LIFT, rankSponsors } from "./sponsors.ts";
+import { rankVenues } from "./venues.ts";
+
+test("venues: best fit first, notes follow the size", () => {
+  const v = rankVenues("H", 1000, [
+    { name: "Small", capacity: 500, tags: [], affinity: 0.5, baseline: 0.3 },
+    { name: "Right", capacity: 1100, tags: ["Standing"], affinity: 0.9, baseline: 0.3 },
+    { name: "Huge", capacity: 3000, tags: [], affinity: 0.6, baseline: 0.3 },
+  ]);
+  assert.deepEqual(v.map((x) => x.name), ["Right", "Huge", "Small"]);
+  assert.match(v[0].note, /right size/);
+  assert.match(v[1].note, /Too large/);
+  assert.match(v[2].note, /Smaller room/);
+});
+test("venues: unknown capacity is said, never invented", () => {
+  const [v] = rankVenues("H", 1000, [{ name: "X", tags: [], affinity: 0.5 }]);
+  assert.equal(v.capacity, undefined);
+  assert.match(v.note, /Capacity unknown/);
+  assert.deepEqual(rankVenues("H", 1000, []), []);
+});
+test("partners inside the added-crowd hoods come first, angles vary per kind", () => {
+  const p = rankPartners(
+    [
+      { name: "Out", kind: "Bar", hood: "Rich", affinity: 0.95, baseline: 0.2 },
+      { name: "In1", kind: "Bar", hood: "New", affinity: 0.7, baseline: 0.2 },
+      { name: "In2", kind: "Bar", hood: "New", affinity: 0.6, baseline: 0.2 },
+    ],
+    ["New"],
+  );
+  assert.deepEqual(p.map((x) => x.name), ["In1", "In2", "Out"]);
+  assert.notEqual(p[0].angle, p[1].angle);
+  assert.deepEqual(rankPartners([], ["New"]), []);
+});
+test("sponsors: lift is seeded over baseline, weak lifts are dropped", () => {
+  const s = rankSponsors([
+    { name: "Strong", category: "Beverage", affinity: 0.85, baseline: 0.25 },
+    { name: "Flat", category: "Retail", affinity: 0.6, baseline: 0.55 },
+    { name: "NoBase", category: "Retail", affinity: 0.9 },
+  ]);
+  assert.deepEqual(s.map((x) => [x.brand, x.lift]), [["Strong", 3.4]]);
+  assert.equal(s[0].fit, 1);
+  assert.match(s[0].pitch, /3\.4×/);
+  assert.ok(MIN_LIFT > 1);
+});
+test("audience: shares sum to 1, missing data falls back to the base", () => {
+  for (const d of [null, { age: { "24_and_younger": 0.5, "55_and_older": -0.9 }, gender: { female: 0.2, male: -0.2 } }]) {
+    const sum = shares(d).reduce((a, b) => a + b, 0);
+    assert.ok(Math.abs(sum - 1) < 1e-9, String(sum));
+  }
+  assert.equal(womenShare(null), 0.5);
+  assert.equal(womenShare({ age: {}, gender: { female: 0.2, male: -0.2 } }), 0.6);
+});
+test("audience: a younger act shows more under-30s", () => {
+  const a = buildAudience({ age: { "24_and_younger": -0.4 }, gender: {} }, { age: { "24_and_younger": 0.5 }, gender: {} }, []);
+  assert.ok(under30(a, "opener") > under30(a, "headliner"));
+  assert.equal(a.ages.length, 5);
+});

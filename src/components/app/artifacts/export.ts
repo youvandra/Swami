@@ -21,7 +21,7 @@ export function toMarkdown(a: Artifact): { name: string; body: string; type: str
     type: "text/csv",
   });
   if (a.type === "routing") return csv(["order", "city", "region", "affinity", "miles_from_prev", "room", "note"], a.stops.map((s, i) => [i + 1, s.city, s.region, s.affinity, s.milesFromPrev, s.room, s.note]));
-  if (a.type === "venues") return csv(["venue", "neighbourhood", "capacity", "fit", "note"], a.venues.map((v) => [v.name, v.hood, v.capacity, v.fit, v.note]));
+  if (a.type === "venues") return csv(["venue", "neighbourhood", "capacity", "fit", "note"], a.venues.map((v) => [v.name, v.hood, v.capacity ?? "", v.fit, v.note]));
   if (a.type === "partners") return csv(["partner", "kind", "neighbourhood", "fit", "angle"], a.partners.map((p) => [p.name, p.kind, p.hood, p.fit, p.angle]));
   if (a.type === "sponsors") return csv(["brand", "category", "fit", "lift", "pitch"], a.sponsors.map((s) => [s.brand, s.category, s.fit, s.lift, s.pitch]));
   if (a.type === "audience") {
