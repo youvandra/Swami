@@ -24,6 +24,8 @@ export class HttpQloo implements QlooSource {
   private readonly apiKey: string;
   private readonly base: string;
   private readonly persistent?: PersistentCache;
+  /** Sees every raw response; the probe script records them. */
+  tap?: (url: string, body: unknown, ms: number) => void;
 
   constructor(apiKey: string, base = "https://hackathon.api.qloo.com", persistent?: PersistentCache) {
     this.apiKey = apiKey;
@@ -44,6 +46,7 @@ export class HttpQloo implements QlooSource {
     for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
       try {
         this.calls++;
+        const t0 = Date.now();
         const res = await fetch(url, { headers: { "X-Api-Key": this.apiKey }, signal: AbortSignal.timeout(TIMEOUT_MS) });
         if (res.status === 429 || res.status >= 500) {
           lastError = new Error(`Qloo ${res.status} on ${path}`);
@@ -52,6 +55,7 @@ export class HttpQloo implements QlooSource {
         }
         if (!res.ok) throw new QlooError(res.status, path, await res.text());
         const body = await res.json();
+        this.tap?.(url, body, Date.now() - t0);
         this.memory.set(url, body);
         await this.persistent?.set(url, body, ttlDays).catch(() => undefined);
         return body;
