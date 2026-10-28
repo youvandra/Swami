@@ -15,6 +15,7 @@ import { ArtifactPanel, artifactIcon } from "./ArtifactPanel";
 import { useShell } from "./AppShell";
 import { Composer, type AttachedRoster } from "./Composer";
 import { IconArrowRight, IconChart, IconCheck, IconChevron, IconClose, IconDoc, IconFolder, IconMenu, IconPanel, IconPencil, IconRoute, IconStore, IconTag, IconTrash, IconRetry, IconUsers, IconWarn } from "./icons";
+import { Markdown } from "./Markdown";
 import { MoreMenu } from "./MoreMenu";
 import s from "./ChatView.module.css";
 
@@ -454,7 +455,7 @@ function AssistantMessage({ message, activeId, onOpen, onChoose, onRetry }: { me
                 </details>
               )
             )}
-            {message.text && <p className={s.text}>{message.text}</p>}
+            {message.text && <Markdown text={message.text} className={s.text} />}
             {onRetry && (
               <button className={s.retry} onClick={onRetry}>
                 <IconRetry /> Try again

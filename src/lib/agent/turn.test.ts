@@ -40,7 +40,7 @@ test("a full opener turn streams steps, artifacts and text in order", async () =
   const kinds = events.map((e) => e.type);
   assert.ok(kinds.indexOf("step") < kinds.indexOf("artifact"));
   assert.equal(kinds[kinds.length - 1], "text");
-  assert.match(out.text, /Halcyon Drive leads/);
+  assert.match(out.text, /^\*\*Halcyon Drive\*\* leads the openers/);
   assert.ok(numbersBacked(out.text, out.outcomes));
   assert.equal(out.title, "Openers, Chicago, Mar 14 · Marlow Vane");
 });
@@ -193,7 +193,7 @@ test("venues fall back through tags and say which ones answered", async () => {
   const v = out.artifacts[0];
   if (v?.type !== "venues") return assert.fail(out.text);
   assert.match(v.subtitle, /concert halls ranked by audience fit · for a club-size act/);
-  assert.match(out.text, /^Qloo has no music venues tagged in Chicago, so these are concert halls\./);
+  assert.match(out.text, /\n- Qloo has no music venues tagged in Chicago, so these are concert halls\.\n/);
   // a stated stadium capacity starts from stadiums
   const big = await templateTurn(makeContext(new NoMusicVenueTag(FAKE_GRAPH), { defaults: { city: "Chicago" } }), req("Which venue fits Marlow Vane in Chicago for 40,000 people?"), () => {});
   assert.match(big.artifacts[0]?.subtitle ?? "", /stadiums.*concert halls|stadiums/);

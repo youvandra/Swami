@@ -57,7 +57,7 @@ test("the loop runs the model's tools, feeds results back and keeps backed prose
 
 test("a number the tools never produced sends the turn to template prose", async () => {
   const { out } = await turn([[call("t1", "rank_openers", { headliner: "Marlow Vane" })], [{ type: "text", text: "Halcyon Drive will sell 4,000 tickets." }]]);
-  assert.match(out.text, /^I ranked \d+ acts/);
+  assert.match(out.text, /^\*\*Halcyon Drive\*\* leads the openers/);
 });
 
 test("bad tool input comes back as an error result the model can fix", async () => {
