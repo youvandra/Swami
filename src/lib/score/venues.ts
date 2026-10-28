@@ -1,12 +1,16 @@
 // Venues ranked by how much the headliner's fans already go there, with a size note against the show.
 
 import type { Venue } from "../agent/types.ts";
-import { fits } from "./normalize.ts";
+import { round2, standing } from "./normalize.ts";
 
-export type VenueCandidate = { name: string; hood?: string; capacity?: number; tags: string[]; affinity: number; baseline?: number };
+export type VenueCandidate = { name: string; hood?: string; capacity?: number; tags: string[]; affinity: number };
+
+// Fit is where a place stands in the fans' own list. Live, the only baseline is popularity, and "seeded minus
+// popularity" ranked the least-known rooms first (Big Thief's top Chicago room, Thalia Hall, got 0.48; the 5th 0.98).
 
 export function rankVenues(headliner: string, capacity: number, places: VenueCandidate[], take = 5): Venue[] {
-  const fit = fits(places.map((p) => ({ affinity: p.affinity, baseline: p.baseline })));
+  const field = places.map((p) => p.affinity);
+  const fit = places.map((p) => round2(standing(p.affinity, field)));
   return places
     .map((p, i) => ({ p, fit: fit[i] }))
     .sort((a, b) => b.fit - a.fit)

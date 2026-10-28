@@ -275,11 +275,10 @@ export async function findVenuesTool(ctx: ToolContext, input: { headliner: strin
     places.push(...fresh);
   }
   if (places.length === 0) throw new ToolError(`Qloo has no ${listing(ladder.slice(0, 3).map((t) => t.plural))} tagged in ${show.city}.`);
-  const base = await ctx.q.baseline({ type: "place", seeds: [], city: show.city, tags: used.map((t) => t.id) }, places.map((p) => p.id));
   // said when the first tag tried came back empty, so the list is plainly from the next ones
   const fallback = used[0] !== ladder[0] ? `Qloo has no ${ladder[0].plural} tagged in ${show.city}, so these are ${listing(used.map((t) => t.plural))}.` : undefined;
   const sizing = assumed ? `for a ${SIZE_LABEL[size]} act` : `sized against ${show.capacity.toLocaleString("en-US")} cap`;
-  const venues = await step(ctx, "Scored venues by audience fit", async () => rankVenues(head.name, show.capacity, places.map((p) => ({ name: p.name, hood: p.hood, capacity: p.capacity, tags: displayTags(p), affinity: p.affinity ?? 0, baseline: base.get(p.id) }))), () => `${head.name} fans`);
+  const venues = await step(ctx, "Scored venues by audience fit", async () => rankVenues(head.name, show.capacity, places.map((p) => ({ name: p.name, hood: p.hood, capacity: p.capacity, tags: displayTags(p), affinity: p.affinity ?? 0 }))), () => `${head.name} fans`);
   return {
     artifact: { id: uid(), type: "venues", title: `Rooms for ${head.name} in ${show.city}`, subtitle: `${venues.length} ${listing(used.map((t) => t.plural))} ranked by audience fit · ${sizing}`, show, venues },
     facts: { capacityAssumed: assumed, city: show.city, best: venues[0].name, bestCapacity: venues[0].capacity ?? "unknown", next: venues[1]?.name, capacityWanted: assumed ? "not given" : show.capacity, size: SIZE_LABEL[size], searched: used.map((t) => t.plural), fallback },
@@ -295,8 +294,7 @@ export async function findPartnersTool(ctx: ToolContext, input: RankInput & { op
   const places = await step(ctx, "Found places the crowd already goes", () => ctx.q.insights({ type: "place", seeds: [opener.id], city: r.show.city, tags: kinds.map((k) => k.tag), take: 30 }), () => listing(kinds.map((k) => k.kind.toLowerCase() + "s")));
   const typed = places.map((p) => ({ p, kind: kinds.find((k) => p.tags?.some((t) => t.id === k.tag))?.kind })).filter((x): x is { p: Entity; kind: PartnerKind } => !!x.kind);
   if (typed.length === 0) throw new ToolError(`No bars, shops or cafés for ${r.show.city} in the taste graph.`);
-  const base = await ctx.q.baseline({ type: "place", seeds: [], city: r.show.city }, typed.map((x) => x.p.id));
-  const partners = await step(ctx, "Filtered to the added-crowd neighbourhoods", async () => rankPartners(typed.map(({ p, kind }) => ({ name: p.name, kind, hood: p.hood, affinity: p.affinity ?? 0, baseline: base.get(p.id) })), hoods), () => listing(hoods) || "whole city");
+  const partners = await step(ctx, "Filtered to the added-crowd neighbourhoods", async () => rankPartners(typed.map(({ p, kind }) => ({ name: p.name, kind, hood: p.hood, affinity: p.affinity ?? 0 })), hoods), () => listing(hoods) || "whole city");
   return {
     artifact: { id: uid(), type: "partners", title: `Co-promo partners · ${r.show.city}`, subtitle: `${partners.length} places whose regulars share the crowd`, show: r.show, partners },
     facts: { opener: opener.name, hoods, top: partners.slice(0, 2).map((p) => p.name), count: partners.length },

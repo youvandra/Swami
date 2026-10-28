@@ -2,9 +2,12 @@
 
 import type { Partner } from "../agent/types.ts";
 import type { PartnerKind } from "../qloo/urns.ts";
-import { fits } from "./normalize.ts";
+import { round2, standing } from "./normalize.ts";
 
-export type PartnerCandidate = { name: string; kind: PartnerKind; hood?: string; affinity: number; baseline?: number };
+export type PartnerCandidate = { name: string; kind: PartnerKind; hood?: string; affinity: number };
+
+// Fit is where a place stands in the fans' own list. Live, the only baseline is popularity, and "seeded minus
+// popularity" ranked the least-known rooms first (Big Thief's top Chicago room, Thalia Hall, got 0.48; the 5th 0.98).
 
 const ANGLES: Record<PartnerKind, ((hood: string) => string)[]> = {
   Bar: [() => "Pre-show listening night with the opener's record on rotation; ticket link on table cards.", (h) => `Happy-hour wristband deal for ticket holders, posters across ${h}.`],
@@ -14,7 +17,8 @@ const ANGLES: Record<PartnerKind, ((hood: string) => string)[]> = {
 };
 
 export function rankPartners(places: PartnerCandidate[], hoods: string[], take = 6): Partner[] {
-  const fit = fits(places.map((p) => ({ affinity: p.affinity, baseline: p.baseline })));
+  const field = places.map((p) => p.affinity);
+  const fit = places.map((p) => round2(standing(p.affinity, field)));
   const inside = (p: PartnerCandidate) => !hoods.length || (p.hood !== undefined && hoods.includes(p.hood));
   const seen: Partial<Record<PartnerKind, number>> = {};
   return places

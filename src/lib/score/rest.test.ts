@@ -7,9 +7,9 @@ import { rankVenues } from "./venues.ts";
 
 test("venues: best fit first, notes follow the size", () => {
   const v = rankVenues("H", 1000, [
-    { name: "Small", capacity: 500, tags: [], affinity: 0.5, baseline: 0.3 },
-    { name: "Right", capacity: 1100, tags: ["Standing"], affinity: 0.9, baseline: 0.3 },
-    { name: "Huge", capacity: 3000, tags: [], affinity: 0.6, baseline: 0.3 },
+    { name: "Small", capacity: 500, tags: [], affinity: 0.5 },
+    { name: "Right", capacity: 1100, tags: ["Standing"], affinity: 0.9 },
+    { name: "Huge", capacity: 3000, tags: [], affinity: 0.6 },
   ]);
   assert.deepEqual(v.map((x) => x.name), ["Right", "Huge", "Small"]);
   assert.match(v[0].note, /right size/);
@@ -22,12 +22,23 @@ test("venues: unknown capacity is said, never invented", () => {
   assert.match(v.note, /Capacity unknown/);
   assert.deepEqual(rankVenues("H", 1000, []), []);
 });
+test("venues and partners: the place the fans rank first gets the top fit, however popular it is", () => {
+  // Big Thief in Chicago, 29 Oct: Thalia Hall tops the fans' list and is also one of the city's best-known rooms
+  const v = rankVenues("Big Thief", 1000, [
+    { name: "Thalia Hall", tags: [], affinity: 0.963 },
+    { name: "Lincoln Hall", tags: [], affinity: 0.96 },
+    { name: "Congress Theater", tags: [], affinity: 0.951 },
+  ]);
+  assert.deepEqual(v.map((x) => [x.name, x.fit]), [["Thalia Hall", 1], ["Lincoln Hall", 0.67], ["Congress Theater", 0.33]]);
+  const p = rankPartners([{ name: "Thalia Hall", kind: "Bar", affinity: 0.963 }, { name: "Bunny Hutch", kind: "Bar", affinity: 0.937 }], []);
+  assert.deepEqual(p.map((x) => x.name), ["Thalia Hall", "Bunny Hutch"]);
+});
 test("partners inside the added-crowd hoods come first, angles vary per kind", () => {
   const p = rankPartners(
     [
-      { name: "Out", kind: "Bar", hood: "Rich", affinity: 0.95, baseline: 0.2 },
-      { name: "In1", kind: "Bar", hood: "New", affinity: 0.7, baseline: 0.2 },
-      { name: "In2", kind: "Bar", hood: "New", affinity: 0.6, baseline: 0.2 },
+      { name: "Out", kind: "Bar", hood: "Rich", affinity: 0.95 },
+      { name: "In1", kind: "Bar", hood: "New", affinity: 0.7 },
+      { name: "In2", kind: "Bar", hood: "New", affinity: 0.6 },
     ],
     ["New"],
   );
