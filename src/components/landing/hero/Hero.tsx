@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { accountsOn } from "@/lib/db/config";
 import { nav, site } from "@/lib/site";
 import { Chevron, Logo } from "../Logo";
 import { TAU, clamp01, hash, rng, voice } from "./voice";
@@ -312,6 +313,11 @@ export function Hero() {
           ))}
         </nav>
         <div className={s.navCta}>
+          {accountsOn && (
+            <a className={s.login} href="/login">
+              Log in
+            </a>
+          )}
           <a className={s.open} href={site.appHref}>
             Open app
           </a>
