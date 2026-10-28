@@ -58,7 +58,7 @@ export function ProposalView({ artifact, onChange, readOnly = false }: { artifac
   const redraft = (t: ProposalTemplate) => {
     if (t === (artifact.template ?? "promoter")) return;
     if (!window.confirm(`Redraft as “${templateOf(t).label}”? Section text is replaced; picks, sender and date stay.`)) return;
-    const d = draftProposal(t, show, artifact.picks);
+    const d = draftProposal(t, show, artifact.picks, artifact.facts);
     commit({ template: d.template, headline: d.headline, to: d.to, title: d.title, sections: d.sections });
   };
 

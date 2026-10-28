@@ -43,8 +43,11 @@ export class FixtureQloo implements QlooSource {
         (per.get(id) ?? per.set(id, {}).get(id)!)[seed] = a;
       }
     }
+    // Asked-for ids outside the seeds' links still get a weak seeded affinity, as filter.results.entities does live.
+    for (const id of q.ids ?? []) if (!per.has(id) && this.byId.has(id)) per.set(id, Object.fromEntries(q.seeds.map((s) => [s, round((this.graph.baseline[id] ?? 0.3) * 0.8)])));
     const out: Entity[] = [];
     for (const [id, bySeed] of per) {
+      if (q.ids && !q.ids.includes(id)) continue;
       const e = this.byId.get(id);
       if (!e || e.type !== q.type || q.seeds.includes(id)) continue;
       if (q.type === "place" && q.city && !sameCity(e.city, q.city)) continue;

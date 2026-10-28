@@ -10,7 +10,8 @@ export type Show = {
   capacity: number;
 };
 
-export type Step = { label: string; detail?: string; ms: number };
+// status is set while a reply streams; stored steps are done or failed
+export type Step = { label: string; detail?: string; ms: number; status?: "running" | "done" | "failed" };
 
 export type OpenerRow = {
   name: string;
@@ -30,6 +31,9 @@ export type Hood = { name: string; x: number; y: number; headliner: number; open
 export type ProposalSection = { id?: string; heading: string; body: string };
 
 export type ProposalTemplate = "promoter" | "sponsor" | "memo";
+
+// What a redraft needs beyond the picks: where the new crowd is, who co-promotes, which brand.
+export type ProposalFacts = { hoods: string[]; partners: string[]; sponsor?: string };
 
 export type RouteStop = {
   city: string;
@@ -65,6 +69,7 @@ export type Artifact =
       date: string;
       sections: ProposalSection[];
       picks: Pick<OpenerRow, "name" | "score" | "why">[];
+      facts?: ProposalFacts;
     })
   | (Base & { type: "routing"; show: Show; leg: string; stops: RouteStop[] })
   | (Base & { type: "venues"; show: Show; venues: Venue[] })
@@ -82,7 +87,12 @@ export type Message = {
   createdAt: number;
   steps?: Step[];
   artifacts?: Artifact[];
+  choices?: Choices;
 };
+
+// The agent asks which one was meant instead of guessing; picking a card sends `reply` back.
+export type Choice = { id: string; name: string; image?: string; detail: string; reply: string };
+export type Choices = { prompt: string; options: Choice[] };
 
 export type Conversation = {
   id: string;
@@ -94,7 +104,15 @@ export type Conversation = {
 };
 
 // What the workspace tells the agent on every request: who is asking, and the roster to rank inside, if any.
-export type ChatContext = { workspace: string; role: string; cities: string[]; roster?: { name: string; acts: string[] } };
+export type ChatContext = {
+  workspace: string;
+  role: string;
+  cities: string[];
+  roster?: { name: string; acts: string[] };
+  project?: { headliner: string; city: string; date: string; venue: string; capacity: number };
+  /** Names already resolved in this chat: name -> Qloo id. */
+  entities?: Record<string, string>;
+};
 
 export type ChatRequest = { conversationId: string; messages: Pick<Message, "role" | "text">[]; mode: Mode; context?: ChatContext };
 export type ChatResponse = { message: Message; title: string };

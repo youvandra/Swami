@@ -1,6 +1,6 @@
 // Proposal templates. The agent drafts with one; the editor can redraft with another from the same data.
 
-import type { OpenerRow, ProposalSection, ProposalTemplate, Show } from "./agent/types";
+import type { OpenerRow, ProposalFacts, ProposalSection, ProposalTemplate, Show } from "./agent/types";
 
 type PickRow = Pick<OpenerRow, "name" | "score" | "why">;
 
@@ -14,10 +14,15 @@ export const templateOf = (t?: ProposalTemplate) => TEMPLATES.find((x) => x.id =
 
 const sid = () => Math.random().toString(36).slice(2, 9);
 
-export function draftProposal(template: ProposalTemplate, show: Show, picks: PickRow[], sponsor = "Northwind Cold Brew") {
+const list = (items: string[]) => (items.length <= 1 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`);
+
+export function draftProposal(template: ProposalTemplate, show: Show, picks: PickRow[], facts: ProposalFacts = { hoods: [], partners: [] }) {
   const [top, alt1 = top, alt2 = alt1] = picks;
   const cap = show.capacity.toLocaleString("en-US");
-  const where = `${show.venue}, ${show.city}`;
+  const where = show.venue ? `${show.venue}, ${show.city}` : show.city;
+  const sponsor = facts.sponsor ?? "your brand";
+  const hoods = facts.hoods.length ? list(facts.hoods) : "the neighbourhoods where the new crowd lives";
+  const partners = facts.partners.length ? `co-promotion with ${list(facts.partners)}` : "co-promotion with local bars and record shops";
   let to: string;
   let headline: string;
   let sections: Omit<ProposalSection, "id">[];
@@ -26,7 +31,7 @@ export function draftProposal(template: ProposalTemplate, show: Show, picks: Pic
     to = `${sponsor}, partnerships`;
     headline = `${sponsor} × ${show.headliner}`;
     sections = [
-      { heading: "The show", body: `${show.headliner} with ${top.name} at ${where} on ${show.date}. A ${cap}-capacity room, promoted for two weeks across Logan Square, Pilsen and Avondale.` },
+      { heading: "The show", body: `${show.headliner} with ${top.name} at ${where} on ${show.date}. A ${cap}-capacity room, promoted for two weeks across ${hoods}.` },
       { heading: "Why this audience", body: `Fans of ${show.headliner} pick ${sponsor} far more often than the average concert-goer. ${top.name} adds a younger crowd from the neighbourhoods where your brand is growing.` },
       { heading: "What we propose", body: "A sampling bar next to merch, your logo on the promo links we send to each neighbourhood, and a shout-out from the stage before the headliner's set." },
       { heading: "What you get", body: `Reach to ${cap} fans on the night, a tracked link per neighbourhood so you can see who came through you, and photo rights for your channels.` },
@@ -46,8 +51,8 @@ export function draftProposal(template: ProposalTemplate, show: Show, picks: Pic
     headline = `${top.name} for ${show.headliner}`;
     sections = [
       { heading: "Summary", body: `We propose ${top.name} to open for ${show.headliner} at ${where}, on ${show.date}. Their fans rate ${show.headliner} highly, and they live in the parts of the city where today's presale is thinnest.` },
-      { heading: "Why this pairing sells", body: `${top.why} The added crowd sits mostly in Logan Square and Pilsen, about a 15-minute ride from the venue.` },
-      { heading: "Local push", body: "Two weeks of neighbourhood ads in Logan Square, Pilsen and Avondale, co-promotion with Two Moons Bar and Sola Records, and one promo link per segment so the door count shows what worked." },
+      { heading: "Why this pairing sells", body: `${top.why} The added crowd sits mostly in ${hoods}.` },
+      { heading: "Local push", body: `Two weeks of neighbourhood ads in ${hoods}, ${partners}, and one promo link per segment so the door count shows what worked.` },
       { heading: "Terms to confirm", body: `A 30-minute set, a guarantee within the support budget for a ${cap}-cap room, and shared backline. Alternates: ${alt1.name} and ${alt2.name}.` },
     ];
   }

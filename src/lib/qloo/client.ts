@@ -84,7 +84,7 @@ export class HttpQloo implements QlooSource {
   async baseline(q: InsightQuery, ids: string[]): Promise<Map<string, number>> {
     const out = new Map<string, number>();
     if (ids.length === 0) return out;
-    const body = await this.get("/v2/insights", { ...filterParams({ ...q, trending: false }), "filter.results.entities": ids.join(","), take: String(ids.length) });
+    const body = await this.get("/v2/insights", { ...filterParams({ ...q, seeds: [], trending: false, ids }), take: String(ids.length) });
     for (const r of body.results?.entities ?? []) {
       const a = num(r.query?.affinity);
       if (a !== undefined) out.set(r.entity_id, a);
@@ -131,6 +131,7 @@ function filterParams(q: InsightQuery): Record<string, string> {
   if (q.city) params[q.type === "place" ? "filter.location.query" : "signal.location.query"] = q.city;
   if (q.tags?.length) params["filter.tags"] = q.tags.join(",");
   if (q.trending) params["bias.trends"] = "high";
+  if (q.ids?.length) params["filter.results.entities"] = q.ids.join(",");
   return params;
 }
 

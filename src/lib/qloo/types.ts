@@ -53,6 +53,8 @@ export type InsightQuery = {
   tags?: string[];
   /** bias.trends=high: lean toward what is rising. */
   trending?: boolean;
+  /** Only these ids (filter.results.entities): seeded affinity for acts outside the top list. */
+  ids?: string[];
   take?: number;
 };
 

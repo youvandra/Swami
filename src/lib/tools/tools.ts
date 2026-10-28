@@ -1,0 +1,351 @@
+// The tools the agent calls. Each one fetches from Qloo (or the fixture), scores in src/lib/score, and builds
+// an artifact in code: the model picks tools and writes prose, and never produces a number.
+
+import type { Artifact, Audience, OpenerRow, ProposalTemplate, Show } from "../agent/types.ts";
+import { draftProposal, templateOf } from "../proposal.ts";
+import { genreOf, type Entity, type HeatCell } from "../qloo/types.ts";
+import { PARTNER_KINDS, PLACE_TAG, type PartnerKind } from "../qloo/urns.ts";
+import { buildAudience } from "../score/audience.ts";
+import { CITIES, findCity } from "../score/cities.ts";
+import { strongest, toHoods, topAdded } from "../score/heat.ts";
+import { listing } from "../score/normalize.ts";
+import { rankOpeners, type OpenerCandidate } from "../score/opener.ts";
+import { rankPartners } from "../score/partners.ts";
+import { inRegion, routeTour } from "../score/routing.ts";
+import { rankSponsors } from "../score/sponsors.ts";
+import { rankVenues } from "../score/venues.ts";
+import { once, resolveArtist, showOf, step, ToolError, uid, type ToolContext } from "./context.ts";
+
+/** How many related acts get their own heat pulled; bounds the Qloo calls per ranking. */
+const POOL = 10;
+const ROSTER_MAX = 30;
+
+export type ToolResult = { artifact?: Artifact; facts: Record<string, unknown> };
+
+// ── search ─────────────────────────────────────────────────────────────────────────────────────────────────
+
+export type Candidate = { id: string; name: string; image?: string; popularity?: number; genre?: string; detail?: string };
+
+export async function searchArtist(ctx: ToolContext, input: { name: string; take?: number }): Promise<{ candidates: Candidate[]; ambiguous: boolean }> {
+  const hits = await step(ctx, `Looked up “${input.name}”`, () => once(ctx, `search:${input.name.trim().toLowerCase()}`, () => ctx.q.search(input.name, "artist", input.take ?? 5)), (h) => `${h.length} matches`);
+  for (const h of hits) ctx.seen.set(h.id, h);
+  const candidates = hits.map((h) => ({ id: h.id, name: h.name, image: h.imageUrl, popularity: h.popularity, genre: genreOf(h), detail: h.detail }));
+  return { candidates, ambiguous: isAmbiguous(input.name, hits) };
+}
+
+/**
+ * Two hits close in popularity, or two that both contain the name, mean the name alone does not pick one.
+ * An exact name match that also leads on popularity by a margin is taken as meant.
+ */
+export function isAmbiguous(query: string, hits: Entity[]): boolean {
+  if (hits.length < 2) return false;
+  const [a, b] = hits;
+  const q = query.trim().toLowerCase();
+  const exact = hits.filter((h) => h.name.toLowerCase() === q);
+  if (exact.length === 1 && exact[0] === a && (a.popularity ?? 0) - (b.popularity ?? 0) > 0.15) return false;
+  if (exact.length > 1) return true;
+  return Math.abs((a.popularity ?? 0) - (b.popularity ?? 0)) <= 0.15;
+}
+
+// ── openers ────────────────────────────────────────────────────────────────────────────────────────────────
+
+export type RankInput = { headliner: string; city?: string; date?: string; venue?: string; capacity?: number; roster?: { name: string; acts: string[] }; risingOnly?: boolean; exclude?: string[] };
+
+type Ranking = { show: Show; head: Entity; headHeat: HeatCell[]; rows: (OpenerRow & { id: string })[]; heatByAct: Map<string, HeatCell[]>; related: number };
+
+async function heatOf(ctx: ToolContext, e: Entity, city: string): Promise<{ cells: HeatCell[]; estimated: boolean }> {
+  const own = await once(ctx, `heat:${e.id}:${city}`, () => ctx.q.heatmap({ entity: e.id }, city));
+  if (own.length) return { cells: own, estimated: false };
+  const scene = e.tags?.find((t) => t.id.startsWith("urn:tag:genre:music"));
+  if (!scene) return { cells: [], estimated: true };
+  return { cells: await once(ctx, `heat:${scene.id}:${city}`, () => ctx.q.heatmap({ tag: scene.id }, city)), estimated: true };
+}
+
+function ranking(ctx: ToolContext, input: RankInput): Promise<Ranking> {
+  const show = showOf(ctx, input);
+  const key = `rank:${input.headliner}:${show.city}:${input.roster?.name ?? ""}:${input.risingOnly ?? ""}:${(input.exclude ?? []).join(",")}`;
+  return once(ctx, key, async () => {
+    const head = await step(ctx, "Found the headliner in the taste graph", () => resolveArtist(ctx, input.headliner), (h) => h.name);
+    show.headliner = head.name;
+    const [related, local, rising, headHeat] = await step(
+      ctx,
+      "Searched the taste graph",
+      () =>
+        Promise.all([
+          once(ctx, `related:${head.id}`, () => ctx.q.insights({ type: "artist", seeds: [head.id], take: 50 })),
+          once(ctx, `related:${head.id}:${show.city}`, () => ctx.q.insights({ type: "artist", seeds: [head.id], city: show.city, take: 50 })),
+          once(ctx, `rising:${head.id}`, () => ctx.q.insights({ type: "artist", seeds: [head.id], trending: true, take: 50 })),
+          once(ctx, `heat:${head.id}:${show.city}`, () => ctx.q.heatmap({ entity: head.id }, show.city)),
+        ]),
+      ([r]) => `${head.name} → ${r.length} related acts`,
+    );
+    const risingIds = new Set(rising.map((r) => r.id));
+    const rank = new Map(related.map((r, i) => [r.id, i + 1]));
+    const localBy = new Map(local.map((r) => [r.id, r.affinity ?? 0]));
+
+    // The pool: the roster's acts when one is attached, else the closest related acts.
+    let pool: Entity[];
+    const unknown: string[] = [];
+    if (input.roster) {
+      const acts = input.roster.acts.slice(0, ROSTER_MAX);
+      const found = await step(
+        ctx,
+        `Matched ${input.roster.name}`,
+        () => Promise.all(acts.map((a) => once(ctx, `search:${a.trim().toLowerCase()}`, () => ctx.q.search(a, "artist", 3)).then((h) => h.find((x) => x.name.toLowerCase() === a.trim().toLowerCase()) ?? null))),
+        (f) => `${f.filter(Boolean).length} of ${acts.length} acts known to Qloo`,
+      );
+      acts.forEach((a, i) => (found[i] ? undefined : unknown.push(a)));
+      pool = found.filter((x): x is Entity => !!x && x.id !== head.id);
+      const missing = pool.filter((p) => !rank.has(p.id)).map((p) => p.id);
+      if (missing.length) {
+        const extra = await ctx.q.insights({ type: "artist", seeds: [head.id], ids: missing, take: missing.length });
+        const by = new Map(extra.map((e) => [e.id, e.affinity ?? 0]));
+        pool = pool.map((p) => (rank.has(p.id) ? (related.find((r) => r.id === p.id) ?? p) : { ...p, affinity: by.get(p.id) ?? 0 }));
+      } else pool = pool.map((p) => related.find((r) => r.id === p.id) ?? p);
+    } else {
+      pool = related.filter((r) => !input.risingOnly || risingIds.has(r.id)).slice(0, POOL);
+    }
+    if (pool.length === 0 && unknown.length === 0) throw new ToolError(input.risingOnly ? `No rising acts among ${head.name}'s matches.` : `Qloo has no related acts for ${head.name}.`);
+    for (const p of pool) ctx.seen.set(p.id, p);
+
+    const ids = pool.map((p) => p.id);
+    const [base, cityBase, heats] = await step(
+      ctx,
+      `Pulled neighbourhood heat for ${show.city}`,
+      () => Promise.all([ctx.q.baseline({ type: "artist", seeds: [] }, ids), ctx.q.baseline({ type: "artist", seeds: [], city: show.city }, ids), Promise.all(pool.map((p) => heatOf(ctx, p, show.city)))]),
+      ([, , h]) => (headHeat.length ? `${headHeat.length} neighbourhoods, ${pool.length} acts${h.some((x) => x.estimated) ? `, ${h.filter((x) => x.estimated).length} from their scene` : ""}` : `no neighbourhood heat for ${show.city} yet`),
+    );
+
+    const rosterSet = new Set((input.roster?.acts ?? []).map((a) => a.trim().toLowerCase()));
+    const candidates: OpenerCandidate[] = pool.map((p, i) => ({
+      id: p.id,
+      name: p.name,
+      genre: genreOf(p) ?? "Artist",
+      affinity: p.affinity ?? 0,
+      baseline: base.get(p.id),
+      cityAffinity: localBy.get(p.id),
+      cityBaseline: cityBase.get(p.id),
+      relatedRank: rank.get(p.id),
+      relatedOf: related.length,
+      heat: heats[i].cells,
+      estimated: heats[i].estimated,
+      rising: risingIds.has(p.id),
+      onRoster: rosterSet.has(p.name.toLowerCase()),
+    }));
+    // Roster acts Qloo has never heard of rank at the bottom of the field's fit, with no heat, and say so.
+    const floor = Math.min(...candidates.map((c) => c.affinity), 0.4);
+    for (const name of unknown) candidates.push({ id: `unknown:${name}`, name, genre: "From roster", affinity: floor * 0.9, heat: [], estimated: true, rising: false, onRoster: true });
+
+    const rows = await step(ctx, "Scored every act", async () => rankOpeners({ headliner: head.name, headlinerHeat: headHeat, candidates, exclude: input.exclude }), () => `fit × reach gain${input.roster ? ", roster filter on" : ""}`);
+    for (const r of rows) if (r.id.startsWith("unknown:")) r.why = "Qloo has no profile for this act yet, so it sits below the field on fit with no heat of its own. Add it again once it has releases out.";
+    return { show, head, headHeat, rows, heatByAct: new Map(pool.map((p, i) => [p.id, heats[i].cells])), related: related.length };
+  });
+}
+
+const strip = <T extends { id: string }>(r: T) => {
+  const { id: _, ...rest } = r;
+  return rest;
+};
+
+export async function rankOpenersTool(ctx: ToolContext, input: RankInput): Promise<ToolResult> {
+  const r = await ranking(ctx, input);
+  const rows = r.rows.map(strip);
+  return {
+    artifact: {
+      id: uid(),
+      type: "opener_ranking",
+      title: `Openers for ${r.show.headliner}`,
+      subtitle: input.roster ? `${r.show.city} · ${r.show.date} · ${rows.length} acts on ${input.roster.name}` : `${r.show.city} · ${r.show.date} · ${rows.length} candidates`,
+      show: r.show,
+      rows,
+    },
+    facts: {
+      headliner: r.show.headliner,
+      city: r.show.city,
+      candidates: rows.length,
+      relatedActs: r.related,
+      top: rows.slice(0, 3).map((x) => ({ name: x.name, score: x.score, fit: x.fit, reachGain: x.reachGain, hoods: x.hoods, estimated: x.estimated })),
+      estimated: rows.filter((x) => x.estimated).length,
+      heat: r.headHeat.length > 0,
+    },
+  };
+}
+
+/** The opener a follow-up means: the one named, else the top of this run's ranking. */
+async function openerFor(ctx: ToolContext, input: RankInput & { opener?: string }): Promise<{ r: Ranking; opener: Entity; cells: HeatCell[]; estimated: boolean }> {
+  const r = await ranking(ctx, input);
+  let opener: Entity;
+  if (input.opener) opener = await resolveArtist(ctx, input.opener);
+  else {
+    const top = r.rows.find((x) => !x.id.startsWith("unknown:"));
+    if (!top) throw new ToolError("No ranked act has heat data to map.");
+    opener = ctx.seen.get(top.id)!;
+  }
+  const own = r.heatByAct.get(opener.id);
+  const h = own ? { cells: own, estimated: !!r.rows.find((x) => x.id === opener.id)?.estimated } : await heatOf(ctx, opener, r.show.city);
+  return { r, opener, ...h };
+}
+
+// ── crowd map ──────────────────────────────────────────────────────────────────────────────────────────────
+
+export async function crowdMapTool(ctx: ToolContext, input: RankInput & { opener?: string }): Promise<ToolResult> {
+  const { r, opener, cells, estimated } = await openerFor(ctx, input);
+  const hoods = await step(ctx, "Compared fan maps", async () => toHoods(r.show.city, r.headHeat, cells), (h) => `added crowd across ${h.length} neighbourhoods`);
+  if (hoods.length === 0) throw new ToolError(`No neighbourhood heat for ${r.show.city} yet.`);
+  const added = topAdded(r.headHeat, cells, 3).map((x) => x.name);
+  return {
+    artifact: { id: uid(), type: "crowd_map", title: `${opener.name} + ${r.show.headliner}`, subtitle: `${r.show.city} · added crowd by neighbourhood${estimated ? " · estimated" : ""}`, show: r.show, opener: opener.name, hoods },
+    facts: { opener: opener.name, headliner: r.show.headliner, city: r.show.city, addedIn: added, headlinerStrongIn: strongest(r.headHeat), estimated },
+  };
+}
+
+// ── routing ────────────────────────────────────────────────────────────────────────────────────────────────
+
+export async function routeTourTool(ctx: ToolContext, input: { headliner: string; region?: string; cities?: string[]; anchorCity?: string; stops?: number; date?: string; capacity?: number }): Promise<ToolResult> {
+  const head = await step(ctx, "Found the headliner in the taste graph", () => resolveArtist(ctx, input.headliner), (h) => h.name);
+  const show = showOf(ctx, { ...input, headliner: head.name, city: input.anchorCity });
+  const allowed = input.cities?.length ? input.cities.map(findCity).filter((c) => !!c) : inRegion(CITIES, input.region);
+  const locs = await step(ctx, "Ranked cities by fan affinity", () => once(ctx, `localities:${head.id}`, () => ctx.q.insights({ type: "locality", seeds: [head.id], take: 100 })), (l) => `${head.name} across ${l.length} cities`);
+  const known = locs.map((l) => ({ l, city: findCity(l.name) })).filter((x) => x.city && allowed.includes(x.city));
+  if (known.length === 0) throw new ToolError(`Qloo has no city affinity for ${head.name}${input.region ? ` in the ${input.region}` : ""}.`);
+  const base = await ctx.q.baseline({ type: "locality", seeds: [] }, known.map((k) => k.l.id));
+  const anchor = input.anchorCity ? findCity(input.anchorCity)?.name : ctx.defaults.city && known.some((k) => k.city!.name === findCity(ctx.defaults.city!)?.name) ? findCity(ctx.defaults.city)!.name : undefined;
+  const stops = await step(ctx, "Ordered the leg by distance", async () => routeTour({ cities: known.map((k) => ({ city: k.city!, affinity: k.l.affinity ?? 0, baseline: base.get(k.l.id) })), anchor, stops: input.stops ?? 8, capacity: show.capacity }), (s) => `${s.length} stops, ${s.reduce((n, x) => n + x.milesFromPrev, 0).toLocaleString("en-US")} miles`);
+  const region = input.region ? input.region[0].toUpperCase() + input.region.slice(1) : "Tour";
+  const leg = input.date ? `${region}, ${input.date}` : region;
+  const ranked = [...stops].sort((a, b) => b.affinity - a.affinity);
+  return {
+    artifact: { id: uid(), type: "routing", title: `${region === "Tour" ? "Tour" : `${region} leg`} · ${head.name}`, subtitle: `${stops.length} cities ranked by fan affinity · suggested order`, show, leg, stops },
+    facts: { headliner: head.name, region, strongest: ranked.slice(0, 3).map((s) => s.city), weakest: ranked.slice(-2).map((s) => s.city), miles: stops.reduce((n, x) => n + x.milesFromPrev, 0) },
+  };
+}
+
+// ── venues ─────────────────────────────────────────────────────────────────────────────────────────────────
+
+const displayTags = (e: Entity) => (e.tags ?? []).filter((t) => !t.type?.startsWith("urn:tag:category")).map((t) => t.name);
+
+export async function findVenuesTool(ctx: ToolContext, input: { headliner: string; city?: string; capacity?: number; date?: string }): Promise<ToolResult> {
+  const head = await step(ctx, "Found the headliner in the taste graph", () => resolveArtist(ctx, input.headliner), (h) => h.name);
+  const show = showOf(ctx, { ...input, headliner: head.name });
+  const places = await step(ctx, `Searched music venues in ${show.city}`, () => ctx.q.insights({ type: "place", seeds: [head.id], city: show.city, tags: [PLACE_TAG.venue], take: 20 }), (p) => `${p.length} venues`);
+  if (places.length === 0) throw new ToolError(`No music venues for ${show.city} in the taste graph.`);
+  const base = await ctx.q.baseline({ type: "place", seeds: [], city: show.city, tags: [PLACE_TAG.venue] }, places.map((p) => p.id));
+  const venues = await step(ctx, "Scored venues by audience fit", async () => rankVenues(head.name, show.capacity, places.map((p) => ({ name: p.name, hood: p.hood, capacity: p.capacity, tags: displayTags(p), affinity: p.affinity ?? 0, baseline: base.get(p.id) }))), () => `${head.name} fans`);
+  return {
+    artifact: { id: uid(), type: "venues", title: `Rooms for ${head.name} in ${show.city}`, subtitle: `${venues.length} venues ranked by audience fit`, show, venues },
+    facts: { city: show.city, best: venues[0].name, bestCapacity: venues[0].capacity ?? "unknown", next: venues[1]?.name, capacityWanted: show.capacity },
+  };
+}
+
+// ── partners ───────────────────────────────────────────────────────────────────────────────────────────────
+
+export async function findPartnersTool(ctx: ToolContext, input: RankInput & { opener?: string; kinds?: PartnerKind[] }): Promise<ToolResult> {
+  const { r, opener, cells } = await openerFor(ctx, input);
+  const hoods = topAdded(r.headHeat, cells, 3).map((x) => x.name);
+  const kinds = PARTNER_KINDS.filter((k) => !input.kinds?.length || input.kinds.includes(k.kind));
+  const places = await step(ctx, "Found places the crowd already goes", () => ctx.q.insights({ type: "place", seeds: [opener.id], city: r.show.city, tags: kinds.map((k) => k.tag), take: 30 }), () => listing(kinds.map((k) => k.kind.toLowerCase() + "s")));
+  const typed = places.map((p) => ({ p, kind: kinds.find((k) => p.tags?.some((t) => t.id === k.tag))?.kind })).filter((x): x is { p: Entity; kind: PartnerKind } => !!x.kind);
+  if (typed.length === 0) throw new ToolError(`No bars, shops or cafés for ${r.show.city} in the taste graph.`);
+  const base = await ctx.q.baseline({ type: "place", seeds: [], city: r.show.city }, typed.map((x) => x.p.id));
+  const partners = await step(ctx, "Filtered to the added-crowd neighbourhoods", async () => rankPartners(typed.map(({ p, kind }) => ({ name: p.name, kind, hood: p.hood, affinity: p.affinity ?? 0, baseline: base.get(p.id) })), hoods), () => listing(hoods) || "whole city");
+  return {
+    artifact: { id: uid(), type: "partners", title: `Co-promo partners · ${r.show.city}`, subtitle: `${partners.length} places whose regulars share the crowd`, show: r.show, partners },
+    facts: { opener: opener.name, hoods, top: partners.slice(0, 2).map((p) => p.name), count: partners.length },
+  };
+}
+
+// ── sponsors ───────────────────────────────────────────────────────────────────────────────────────────────
+
+export async function matchSponsorsTool(ctx: ToolContext, input: { headliner: string; city?: string; date?: string; categories?: string[] }): Promise<ToolResult> {
+  const head = await step(ctx, "Found the headliner in the taste graph", () => resolveArtist(ctx, input.headliner), (h) => h.name);
+  const show = showOf(ctx, { ...input, headliner: head.name });
+  const brands = await step(ctx, "Searched brand affinity", () => once(ctx, `brands:${head.id}`, () => ctx.q.insights({ type: "brand", seeds: [head.id], take: 30 })), () => `${head.name} fans vs the national baseline`);
+  const categoryOf = (b: Entity) => b.tags?.find((t) => t.type?.includes("brand"))?.name ?? "Brand";
+  const wanted = brands.filter((b) => !input.categories?.length || input.categories.some((c) => categoryOf(b).toLowerCase().includes(c.toLowerCase())));
+  const base = await ctx.q.baseline({ type: "brand", seeds: [] }, wanted.map((b) => b.id));
+  const sponsors = await step(ctx, "Ranked brands by lift", async () => rankSponsors(wanted.map((b) => ({ name: b.name, category: categoryOf(b), affinity: b.affinity ?? 0, baseline: base.get(b.id) }))), (s) => `${s.length} brands above 1.3×`);
+  if (sponsors.length === 0) throw new ToolError(`No brand stands out for ${head.name}'s fans yet.`);
+  return {
+    artifact: { id: uid(), type: "sponsors", title: `Sponsors for ${head.name}`, subtitle: `${sponsors.length} brands whose customers love this music`, show, sponsors },
+    facts: { headliner: head.name, top: sponsors[0].brand, topLift: sponsors[0].lift, count: sponsors.length },
+  };
+}
+
+// ── audience ───────────────────────────────────────────────────────────────────────────────────────────────
+
+async function tasteOf(ctx: ToolContext, e: Entity, cells: HeatCell[], city: string) {
+  const [acts, food] = await Promise.all([
+    once(ctx, `related:${e.id}`, () => ctx.q.insights({ type: "artist", seeds: [e.id], take: 50 })),
+    ctx.q.insights({ type: "place", seeds: [e.id], city, tags: [PLACE_TAG.restaurant, PLACE_TAG.bar], take: 10 }),
+  ]);
+  const genres = [...new Set(acts.slice(0, 8).map(genreOf).filter((g): g is string => !!g))].slice(0, 2);
+  const eats = [...new Set(food.flatMap((p) => displayTags(p)))].slice(0, 2);
+  return { genres, hoods: strongest(cells, 2), eats };
+}
+
+export async function audienceTool(ctx: ToolContext, input: RankInput & { opener?: string }): Promise<ToolResult> {
+  const { r, opener, cells } = await openerFor(ctx, input);
+  const [dh, dopen] = await step(ctx, "Pulled demographics", () => Promise.all([ctx.q.demographics(r.head.id), ctx.q.demographics(opener.id)]), () => `${r.show.headliner} and ${opener.name}`);
+  const [th, to] = await step(ctx, "Compared taste across domains", () => Promise.all([tasteOf(ctx, r.head, r.headHeat, r.show.city), tasteOf(ctx, opener, cells, r.show.city)]), () => "music, places, food");
+  const dash = (xs: string[]) => (xs.length ? xs.join(", ") : "—");
+  const traits: Audience["traits"] = [
+    { label: "Also listens to", headliner: dash(th.genres), opener: dash(to.genres) },
+    { label: "Goes out in", headliner: dash(th.hoods), opener: dash(to.hoods) },
+    { label: "Eats at", headliner: dash(th.eats), opener: dash(to.eats) },
+  ].filter((t) => t.headliner !== "—" || t.opener !== "—");
+  const audience = buildAudience(dh, dopen, traits);
+  const u30 = (side: "headliner" | "opener") => Math.round((audience.ages[0][side] + audience.ages[1][side]) * 100);
+  return {
+    artifact: { id: uid(), type: "audience", title: `Who comes: ${r.show.headliner} + ${opener.name}`, subtitle: "Age, gender and taste, side by side", show: r.show, opener: opener.name, audience },
+    facts: { opener: opener.name, headliner: r.show.headliner, under30Pct: { headliner: u30("headliner"), opener: u30("opener") }, womenPct: { headliner: Math.round(audience.women.headliner * 100), opener: Math.round(audience.women.opener * 100) }, demographics: !!dh && !!dopen },
+  };
+}
+
+// ── proposal and email ─────────────────────────────────────────────────────────────────────────────────────
+
+async function factsFor(ctx: ToolContext, input: RankInput) {
+  const { r, opener, cells } = await openerFor(ctx, input);
+  const hoods = topAdded(r.headHeat, cells, 3).map((x) => x.name);
+  return { r, opener, hoods };
+}
+
+export async function draftProposalTool(ctx: ToolContext, input: RankInput & { template?: ProposalTemplate; sponsor?: string }): Promise<ToolResult> {
+  const { r, hoods } = await factsFor(ctx, input);
+  const picks = r.rows.slice(0, 3).map(({ name, score, why }) => ({ name, score, why }));
+  const template = input.template ?? "promoter";
+  const facts = { hoods, partners: [] as string[], sponsor: input.sponsor };
+  const d = await step(ctx, "Drafted the proposal", async () => draftProposal(template, r.show, picks, facts), (x) => `${x.sections.length} sections, ${picks.length} picks`);
+  return {
+    artifact: { id: uid(), type: "proposal", title: d.title, subtitle: `Draft · ${d.sections.length} sections`, show: r.show, template: d.template, headline: d.headline, to: d.to, from: ctx.workspace, date: today(), picks, sections: d.sections, facts },
+    facts: { template: templateOf(template).label, headliner: r.show.headliner, top: picks[0]?.name, alternates: picks.slice(1).map((p) => p.name) },
+  };
+}
+
+export type EmailKind = "opener" | "venue" | "partner" | "sponsor";
+
+export async function draftEmailTool(ctx: ToolContext, input: RankInput & { kind: EmailKind; to?: string }): Promise<ToolResult> {
+  const { r, opener, hoods } = await step(ctx, "Read the ranking and the map", () => factsFor(ctx, input), (f) => `top pick: ${f.opener.name}`);
+  const show = r.show;
+  const cap = show.capacity.toLocaleString("en-US");
+  const at = show.venue || "the venue";
+  const where = hoods.length ? listing(hoods.slice(0, 2)) : `the parts of ${show.city} where our presale is thinnest`;
+  const sign = `Best,\n${ctx.workspace}`;
+  let d: { who: string; to: string; subject: string; body: string };
+  if (input.kind === "sponsor") {
+    const who = input.to ?? "Partnerships";
+    d = { who, to: "partnerships@brand.example", subject: `${show.headliner} in ${show.city}, ${show.date}: sampling partnership`, body: `Hi ${who} team,\n\nWe're presenting ${show.headliner} at ${at} in ${show.city} on ${show.date}, a ${cap}-cap room.\n\nTheir fans pick your brand far more often than the average concert-goer, so we'd love to set up a sampling bar next to merch, plus your logo on the promo links we send to ${where}.\n\nCould we talk this week?\n\n${sign}` };
+  } else if (input.kind === "venue") {
+    const who = input.to ?? show.venue ?? "Booking";
+    d = { who, to: "booking@venue.example", subject: `Hold request: ${show.headliner}, ${show.date}`, body: `Hi ${who} team,\n\nWe'd like to place a first hold on ${show.date} for ${show.headliner} with support from ${opener.name}.\n\nWe expect a full ${cap}-cap room: the pairing adds a crowd from ${where} on top of the headliner's regulars.\n\nCan you confirm the date is open and send your current deal sheet?\n\n${sign}` };
+  } else if (input.kind === "partner") {
+    const who = input.to ?? "there";
+    d = { who, to: "hello@partner.example", subject: `Co-promo idea: ${show.headliner} + ${opener.name}, ${show.date}`, body: `Hi ${who},\n\nWe're putting on ${show.headliner} with ${opener.name} at ${at} on ${show.date}. A lot of your regulars are fans of both acts.\n\nWould you host a pre-show night or put our flyer on the counter? You'd get your own ticket link, a pair of guest-list spots and a shout-out in our posts.\n\n${sign}` };
+  } else {
+    const who = input.to ?? opener.name;
+    d = { who, to: "booking@artist.example", subject: `Support slot: ${show.headliner} at ${at}, ${show.date}`, body: `Hi ${who} team,\n\nWe're booking support for ${show.headliner} at ${at}, ${show.city}, on ${show.date}.\n\nYour fans rank ${show.headliner} among the acts they love most, and they live in ${where}, where our presale needs a lift. We'd like to offer you the 30-minute support slot.\n\nAre you holding that date? Happy to send terms today.\n\n${sign}` };
+  }
+  await step(ctx, "Drafted the email", async () => d, () => "subject, body, recipients");
+  return { artifact: { id: uid(), type: "email", title: `Email · ${d.who}`, subtitle: "Draft", show, to: d.to, cc: "", subject: d.subject, body: d.body }, facts: { kind: input.kind, to: d.who, opener: opener.name } };
+}
+
+const today = () => new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
