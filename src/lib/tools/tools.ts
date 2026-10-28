@@ -16,6 +16,8 @@ import { rankSponsors } from "../score/sponsors.ts";
 import { rankVenues } from "../score/venues.ts";
 import { capacityAssumed, once, resolveArtist, showOf, step, ToolError, uid, type ToolContext } from "./context.ts";
 
+/** Cities weighed for a leg with no region or city list: the largest markets, first in CITIES. */
+const NATIONAL_CITIES = 20;
 /** How many related acts get their own heat pulled; bounds the Qloo calls per ranking. */
 const POOL = 10;
 const ROSTER_MAX = 30;
@@ -226,13 +228,18 @@ export async function crowdMapTool(ctx: ToolContext, input: RankInput & { opener
 export async function routeTourTool(ctx: ToolContext, input: { headliner: string; region?: string; cities?: string[]; anchorCity?: string; stops?: number; date?: string; capacity?: number }): Promise<ToolResult> {
   const head = await findHeadliner(ctx, input.headliner);
   const show = showOf(ctx, { ...input, headliner: head.name, city: input.anchorCity });
-  const allowed = input.cities?.length ? input.cities.map(findCity).filter((c) => !!c) : inRegion(CITIES, input.region);
-  const locs = await step(ctx, "Ranked cities by fan affinity", () => once(ctx, `localities:${head.id}`, () => ctx.q.insights({ type: "locality", seeds: [head.id], city: "United States", take: 100 })), (l) => `${head.name} across ${l.length} cities`);
-  const known = locs.map((l) => ({ l, city: findCity(l.name) })).filter((x) => x.city && allowed.includes(x.city));
+  // One heat call per city, so a leg with no region weighs the largest markets only.
+  const allowed = input.cities?.length ? input.cities.map(findCity).filter((c) => !!c) : input.region ? inRegion(CITIES, input.region) : CITIES.slice(0, NATIONAL_CITIES);
+  const leans = await step(
+    ctx,
+    "Ranked cities by fan affinity",
+    () => Promise.all(allowed.map((city) => ctx.q.cityLean(head.id, city.name).then((lean) => ({ city, lean })))),
+    (l) => `${head.name} across ${l.filter((x) => x.lean).length} cities`,
+  );
+  const known = leans.filter((x) => x.lean);
   if (known.length === 0) throw new ToolError(`Qloo has no city affinity for ${head.name}${input.region ? ` in the ${input.region}` : ""}.`);
-  const base = await ctx.q.baseline({ type: "locality", seeds: [] }, known.map((k) => k.l.id));
-  const anchor = input.anchorCity ? findCity(input.anchorCity)?.name : ctx.defaults.city && known.some((k) => k.city!.name === findCity(ctx.defaults.city!)?.name) ? findCity(ctx.defaults.city)!.name : undefined;
-  const stops = await step(ctx, "Ordered the leg by distance", async () => routeTour({ cities: known.map((k) => ({ city: k.city!, affinity: k.l.affinity ?? 0, baseline: base.get(k.l.id) })), anchor, stops: input.stops ?? 8, capacity: show.capacity }), (s) => `${s.length} stops, ${s.reduce((n, x) => n + x.milesFromPrev, 0).toLocaleString("en-US")} miles`);
+  const anchor = input.anchorCity ? findCity(input.anchorCity)?.name : ctx.defaults.city && known.some((k) => k.city.name === findCity(ctx.defaults.city!)?.name) ? findCity(ctx.defaults.city)!.name : undefined;
+  const stops = await step(ctx, "Ordered the leg by distance", async () => routeTour({ cities: known.map((k) => ({ city: k.city, affinity: k.lean!.affinity, baseline: k.lean!.baseline })), anchor, stops: input.stops ?? 8, capacity: show.capacity }), (s) => `${s.length} stops, ${s.reduce((n, x) => n + x.milesFromPrev, 0).toLocaleString("en-US")} miles`);
   const region = input.region ? input.region[0].toUpperCase() + input.region.slice(1) : "Tour";
   const leg = input.date ? `${region}, ${input.date}` : region;
   const ranked = [...stops].sort((a, b) => b.affinity - a.affinity);

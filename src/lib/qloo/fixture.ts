@@ -92,6 +92,14 @@ export class FixtureQloo implements QlooSource {
     }));
   }
 
+  async cityLean(entity: string, city: string): Promise<{ affinity: number; baseline?: number } | undefined> {
+    this.calls++;
+    const loc = [...this.byId.values()].find((e) => e.type === "locality" && sameCity(e.name, city));
+    const affinity = loc ? this.graph.links[entity]?.[loc.id] : undefined;
+    if (!loc || affinity === undefined) return undefined;
+    return { affinity, baseline: this.graph.baseline[loc.id] ?? round((loc.popularity ?? 0.3) * 0.7) };
+  }
+
   async demographics(entityId: string): Promise<Demographics | null> {
     this.calls++;
     const known = this.graph.demographics[entityId];

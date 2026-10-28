@@ -2,7 +2,7 @@ import "server-only";
 import { FAKE_GRAPH } from "../../../fixtures/fake/graph.ts";
 import { qlooCache } from "../db/admin.ts";
 import { env } from "../env.ts";
-import { HttpQloo } from "./client.ts";
+import { HttpQloo, memoryCache } from "./client.ts";
 import { budgeted, slowed } from "./budget.ts";
 import { FixtureQloo } from "./fixture.ts";
 import type { QlooSource } from "./types.ts";
@@ -11,8 +11,11 @@ import type { QlooSource } from "./types.ts";
 /** Network calls one chat turn may make; a 30-act roster ranking needs about 70. */
 const RUN_BUDGET = 90;
 
+/** Without Supabase, runs share this instead; a city's heatmap is ~0.2 MB, so 200 bodies stay small. */
+const fallbackCache = memoryCache(200);
+
 export function qlooForRun(): QlooSource & { calls: number } {
-  return budgeted(env.qlooLive ? new HttpQloo(env.QLOO_API_KEY!, env.QLOO_BASE_URL, qlooCache()) : slowed(new FixtureQloo(FAKE_GRAPH), env.SWAMI_FIXTURE_DELAY_MS), RUN_BUDGET);
+  return budgeted(env.qlooLive ? new HttpQloo(env.QLOO_API_KEY!, env.QLOO_BASE_URL, qlooCache() ?? fallbackCache) : slowed(new FixtureQloo(FAKE_GRAPH), env.SWAMI_FIXTURE_DELAY_MS), RUN_BUDGET);
 }
 
 export type * from "./types.ts";

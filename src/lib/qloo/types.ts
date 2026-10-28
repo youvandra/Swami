@@ -67,6 +67,8 @@ export interface QlooSource {
   /** Seedless affinity for the given ids under the same filters as `q`; the gap to seeded affinity is the lift. */
   baseline(q: InsightQuery, ids: string[]): Promise<Map<string, number>>;
   heatmap(signal: HeatSignal, city: string): Promise<HeatCell[]>;
+  /** How far a city as a whole leans toward the entity, comparable across cities; undefined when Qloo has no heat there. */
+  cityLean(entity: string, city: string): Promise<{ affinity: number; baseline?: number } | undefined>;
   demographics(entityId: string): Promise<Demographics | null>;
   tags(query: string): Promise<Tag[]>;
 }
