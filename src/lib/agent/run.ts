@@ -4,11 +4,18 @@ import { env } from "../env.ts";
 import { qlooForRun } from "../qloo/index.ts";
 import { makeContext, uid } from "../tools/context.ts";
 import type { Emit } from "./events.ts";
-import { agentTurn, type Usage } from "./llm.ts";
+import { ChatCompletionsClient } from "./chat-completions.ts";
+import { agentTurn, type MessagesClient, type Usage } from "./llm.ts";
 import { templateTurn, type TurnResult } from "./turn.ts";
 import type { ChatRequest, Message } from "./types.ts";
 
-let client: Anthropic | undefined;
+let client: MessagesClient | undefined;
+
+function agentClient(): { client: MessagesClient; model: string } | null {
+  if (env.agentMode === "anthropic") return { client: (client ??= new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 45_000 })), model: env.SWAMI_MODEL };
+  if (env.agentMode === "compat") return { client: (client ??= new ChatCompletionsClient(env.LLM_BASE_URL!, env.LLM_API_KEY!)), model: env.LLM_MODEL! };
+  return null;
+}
 
 export type RunSummary = { message: Message; title: string; entities: Record<string, string>; mode: "agent" | "template"; qlooCalls: number; usage: Usage; ms: number };
 
@@ -27,10 +34,10 @@ export async function runChat(req: ChatRequest, emit: Emit, signal?: AbortSignal
   const usage: Usage = { input: 0, output: 0 };
   let turn: TurnResult | undefined;
   let mode: RunSummary["mode"] = "template";
-  if (env.agentMode === "anthropic") {
+  const agent = agentClient();
+  if (agent) {
     try {
-      client ??= new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 45_000 });
-      turn = await agentTurn(client, env.SWAMI_MODEL, ctx, req, emit, usage, signal);
+      turn = await agentTurn(agent.client, agent.model, ctx, req, emit, usage, signal);
       mode = "agent";
     } catch (e) {
       if (signal?.aborted) throw e;

@@ -17,9 +17,14 @@ const HISTORY = 12;
 
 export class AgentUnavailable extends Error {}
 
+/** The slice of the SDK client the loop uses; the compat adapter implements it for other endpoints. */
+export type MessagesClient = {
+  beta: { messages: { create(params: Anthropic.Beta.MessageCreateParamsNonStreaming, opts?: { signal?: AbortSignal }): Promise<Anthropic.Beta.BetaMessage> } };
+};
+
 export type Usage = { input: number; output: number };
 
-export async function agentTurn(client: Anthropic, model: string, ctx: ToolContext, req: ChatRequest, emit: Emit, usage: Usage, signal?: AbortSignal): Promise<TurnResult> {
+export async function agentTurn(client: MessagesClient, model: string, ctx: ToolContext, req: ChatRequest, emit: Emit, usage: Usage, signal?: AbortSignal): Promise<TurnResult> {
   const started = Date.now();
   const history = req.messages.slice(-HISTORY);
   const last = lastUserText(req);
@@ -48,8 +53,8 @@ export async function agentTurn(client: Anthropic, model: string, ctx: ToolConte
       },
       { signal },
     );
-    usage.input += res.usage.input_tokens;
-    usage.output += res.usage.output_tokens;
+    usage.input += res.usage?.input_tokens ?? 0;
+    usage.output += res.usage?.output_tokens ?? 0;
     if (res.stop_reason === "refusal") throw new AgentUnavailable("refused");
     messages.push({ role: "assistant", content: res.content });
     text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("").trim();
