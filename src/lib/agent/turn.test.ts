@@ -41,7 +41,7 @@ test("a full opener turn streams steps, artifacts and text in order", async () =
   assert.equal(kinds[kinds.length - 1], "text");
   assert.match(out.text, /Halcyon Drive leads/);
   assert.ok(numbersBacked(out.text, out.outcomes));
-  assert.equal(out.title, "Chicago, Mar 14 · openers");
+  assert.equal(out.title, "Openers · Marlow Vane · Chicago, Mar 14");
 });
 
 test("an ambiguous name asks with choices and runs no tools", async () => {

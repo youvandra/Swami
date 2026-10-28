@@ -59,19 +59,12 @@ export function numbersBacked(text: string, sources: unknown[]): boolean {
   });
 }
 
+/** Sidebar titles: what the answer is, for whom, and where, short enough to tell chats apart. */
 export function titleFor(kind: string, show: { headliner?: string; city?: string; date?: string }): string {
-  const h = show.headliner ?? "New chat";
-  const c = show.city ?? "";
-  const map: Record<string, string> = {
-    opener: `${c}${show.date ? `, ${show.date}` : ""} · openers`,
-    map: `${c} · added crowd`,
-    routing: `Tour leg · ${h}`,
-    venues: `${c} · venues`,
-    partners: `${c} · co-promo`,
-    sponsors: `Sponsors · ${h}`,
-    audience: `Audience · ${h}`,
-    proposal: `Proposal · ${h}`,
-    email: `Email · ${h}`,
-  };
-  return (map[kind] ?? h).replace(/^ · /, `${h} · `);
+  const h = show.headliner;
+  if (!h) return "New chat";
+  const where = [show.city, show.date].filter(Boolean).join(", ");
+  const label: Record<string, string> = { opener: "Openers", map: "Crowd map", routing: "Tour leg", venues: "Venues", partners: "Co-promo", sponsors: "Sponsors", audience: "Audience", proposal: "Proposal", email: "Email" };
+  const at = kind === "routing" || kind === "sponsors" || !where ? "" : ` · ${where}`;
+  return `${label[kind] ?? "Chat"} · ${h}${at}`;
 }
