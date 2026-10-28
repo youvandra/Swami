@@ -148,6 +148,13 @@
   line-height: 1.55;
   white-space: pre-wrap;
 }
+.userActions { display: flex; justify-content: flex-end; gap: 2px; margin-top: 4px; opacity: 0; transition: opacity 0.15s; }
+.user:hover .userActions,
+.user:focus-within .userActions { opacity: 1; }
+@media (hover: none) { .userActions { opacity: 1; } }
+.userActions button { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; color: var(--muted); }
+.userActions button:hover { background: var(--mist); color: var(--ink); }
+.userActions svg { width: 16px; height: 16px; }
 .assistant { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 14px; }
 .avatar { width: 28px; height: 28px; }
 .body { display: grid; gap: 12px; min-width: 0; padding-top: 2px; }

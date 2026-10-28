@@ -102,6 +102,12 @@ export async function apply(sb: SupabaseClient, ws: string, op: Op): Promise<voi
       const { data: auth } = await sb.auth.getUser();
       const rows = conversationToRows(op.conversation, ws, auth.user?.id ?? null);
       must(await sb.from("conversations").upsert(rows.conversation));
+      // messages the chat no longer has (undone, or on another branch) leave with their artifacts
+      // (ids are plain word characters from newId/uid; any other id skips the clean-up rather than risk the filter)
+      if (rows.messages.every((m) => /^[\w-]+$/.test(m.id))) {
+        const gone = sb.from("messages").delete().eq("conversation_id", rows.conversation.id);
+        must(await (rows.messages.length ? gone.not("id", "in", `(${rows.messages.map((m) => m.id).join(",")})`) : gone));
+      }
       if (rows.messages.length) must(await sb.from("messages").upsert(rows.messages));
       if (rows.artifacts.length) must(await sb.from("artifacts").upsert(rows.artifacts));
       return;

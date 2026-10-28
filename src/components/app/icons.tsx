@@ -3,6 +3,7 @@
 // One icon family for the whole app (Phosphor). Regular weight for controls,
 // duotone where an icon stands for a kind of result or task.
 import {
+  ArrowCounterClockwise,
   ArrowRight,
   ArrowUp,
   BeerStein,
@@ -93,3 +94,4 @@ export const IconPencil = make(PencilSimple);
 export const IconStop = make(Stop, "fill");
 export const IconWarn = make(WarningCircle);
 export const IconRetry = make(ArrowClockwise);
+export const IconUndo = make(ArrowCounterClockwise);

@@ -14,7 +14,7 @@ import { Logo } from "../landing/Logo";
 import { ArtifactPanel, artifactIcon } from "./ArtifactPanel";
 import { useShell } from "./AppShell";
 import { Composer, type AttachedRoster } from "./Composer";
-import { IconArrowRight, IconChart, IconCheck, IconChevron, IconClose, IconDoc, IconFolder, IconMenu, IconPanel, IconPencil, IconRoute, IconStore, IconTag, IconTrash, IconRetry, IconUsers, IconWarn } from "./icons";
+import { IconArrowRight, IconChart, IconCheck, IconChevron, IconClose, IconCopy, IconDoc, IconFolder, IconMenu, IconPanel, IconPencil, IconRoute, IconStore, IconTag, IconTrash, IconRetry, IconUndo, IconUsers, IconWarn } from "./icons";
 import { Markdown } from "./Markdown";
 import { MoreMenu } from "./MoreMenu";
 import s from "./ChatView.module.css";
@@ -104,6 +104,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   }, [routeId]);
 
   const messages = useMemo(() => [...(stored?.messages ?? []), ...(pending ? [pending] : [])], [stored, pending]);
+  const lastUser = [...messages].reverse().find((m) => m.role === "user");
   const artifacts = useMemo(() => messages.flatMap((m) => m.artifacts ?? []), [messages]);
 
   // open the newest artifact when a conversation is first shown on a wide screen
@@ -228,6 +229,24 @@ export function ChatView({ id: routeId }: { id: string | null }) {
     const name = q.text.match(/\n\nRoster: (.*) \(\d+ acts\)$/)?.[1];
     const r = name ? rosters.find((x) => x.name === name) : undefined;
     void send(q.text.replace(/\n\nRoster: .*$/s, ""), projectId, r && { name: r.name, acts: r.acts.map((a) => a.name) });
+  }
+
+  async function copyText(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("Copied to clipboard");
+    } catch {
+      toast("Clipboard is blocked in this browser");
+    }
+  }
+
+  // Takes back the last question and everything that answered it; the toast brings it back.
+  function undoLast() {
+    if (!stored || !lastUser) return;
+    const before = stored;
+    const cut = stored.messages.indexOf(lastUser);
+    saveConversation({ ...stored, messages: stored.messages.slice(0, cut), updatedAt: Date.now() });
+    toast("Question removed", { label: "Undo", run: () => saveConversation({ ...before, updatedAt: Date.now() }) });
   }
 
   function choose(c: Choice, key: string) {
@@ -362,6 +381,16 @@ export function ChatView({ id: routeId }: { id: string | null }) {
                   m.role === "user" ? (
                     <div key={m.id} className={s.user}>
                       <p>{m.text}</p>
+                      <div className={s.userActions}>
+                        <button onClick={() => void copyText(m.text)} aria-label="Copy message" data-tip="Copy">
+                          <IconCopy />
+                        </button>
+                        {canEdit && !busy && m === lastUser && (
+                          <button onClick={undoLast} aria-label="Undo this question" data-tip="Undo">
+                            <IconUndo />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <AssistantMessage
