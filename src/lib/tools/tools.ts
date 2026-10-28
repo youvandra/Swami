@@ -319,7 +319,15 @@ export async function draftProposalTool(ctx: ToolContext, input: RankInput & { t
   const { r, hoods } = await factsFor(ctx, input);
   const picks = r.rows.slice(0, 3).map(({ name, score, why }) => ({ name, score, why }));
   const template = input.template ?? "promoter";
-  const facts = { hoods, partners: [] as string[], sponsor: input.sponsor };
+  // A proposal names real partners and, for a sponsor pitch, the brand that fits best. Either lookup may come
+  // back empty; the draft then speaks in general terms instead of inventing names.
+  const [partners, sponsor] = await Promise.all([
+    template === "sponsor" ? Promise.resolve(null) : findPartnersTool(ctx, input).catch(() => null),
+    template === "sponsor" && !input.sponsor ? matchSponsorsTool(ctx, input).catch(() => null) : Promise.resolve(null),
+  ]);
+  const partnerNames = partners?.artifact?.type === "partners" ? partners.artifact.partners.slice(0, 2).map((p) => p.name) : [];
+  const brand = input.sponsor ?? (sponsor?.artifact?.type === "sponsors" ? sponsor.artifact.sponsors[0]?.brand : undefined);
+  const facts = { hoods, partners: partnerNames, sponsor: brand };
   const d = await step(ctx, "Drafted the proposal", async () => draftProposal(template, r.show, picks, facts), (x) => `${x.sections.length} sections, ${picks.length} picks`);
   return {
     artifact: { id: uid(), type: "proposal", title: d.title, subtitle: `Draft · ${d.sections.length} sections`, show: r.show, template: d.template, headline: d.headline, to: d.to, from: ctx.workspace, date: today(), picks, sections: d.sections, facts },

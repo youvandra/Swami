@@ -79,6 +79,8 @@ test("proposal and every email kind", async () => {
     const p = valid(await T.draftProposalTool(ctx(), { ...H, template }));
     if (p.type !== "proposal") return assert.fail();
     assert.equal(p.picks[0].name, "Halcyon Drive");
+    if (template === "promoter") assert.deepEqual(p.facts?.partners, ["Two Moons Bar", "Sola Records"]);
+    if (template === "sponsor") assert.equal(p.facts?.sponsor, "Northwind Cold Brew");
     assert.ok(!/Logan Square, Pilsen and Avondale/.test(JSON.stringify(p.sections)) || p.facts!.hoods.length > 0);
   }
   for (const kind of ["opener", "venue", "partner", "sponsor"] as const) {

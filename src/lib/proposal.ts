@@ -29,8 +29,8 @@ export function draftProposal(template: ProposalTemplate, show: Show, picks: Pic
   let sections: Omit<ProposalSection, "id">[];
 
   if (template === "sponsor") {
-    to = `${sponsor}, partnerships`;
-    headline = `${sponsor} × ${show.headliner}`;
+    to = facts.sponsor ? `${facts.sponsor}, partnerships` : "Brand partnerships team";
+    headline = `${facts.sponsor ?? "Your brand"} × ${show.headliner}`;
     sections = [
       { heading: "The show", body: `${show.headliner} with ${top.name} ${at} on ${show.date}. A ${cap}-capacity room, promoted for two weeks across ${hoods}.` },
       { heading: "Why this audience", body: `Fans of ${show.headliner} pick ${sponsor} far more often than the average concert-goer. ${top.name} adds a younger crowd from the neighbourhoods where your brand is growing.` },
