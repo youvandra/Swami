@@ -1,9 +1,7 @@
 .desk {
   min-height: 100%;
   padding: 22px;
-  background-color: var(--mist);
-  background-image: radial-gradient(rgba(10, 15, 21, 0.08) 1px, transparent 1.3px);
-  background-size: 9px 9px;
+  background-color: #f4f6f7;
   display: grid;
   align-content: start;
   gap: 12px;
@@ -56,7 +54,7 @@
   font-size: 13.5px;
   font-weight: 500;
 }
-.send svg { width: 16px; height: 16px; color: var(--cyan); }
+.send svg { width: 16px; height: 16px; color: #fff; }
 .send:hover { background: #12253a; }
 .note { max-width: 640px; width: 100%; margin: 0 auto; font-size: 12px; color: var(--muted); }
 

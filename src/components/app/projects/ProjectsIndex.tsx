@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createProject, useConversations, useHydrated, useProjects, useSaved } from "@/lib/store";
 import { useShell } from "../AppShell";
 import { artifactIcon, timeAgo } from "../artifacts/meta";
@@ -21,6 +21,14 @@ export function ProjectsIndex() {
   const conversations = useConversations();
   const [filter, setFilter] = useState<Filter>("all");
   const [creating, setCreating] = useState(false);
+
+  // the sidebar's + button lands here with ?new=1
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("new") === "1") {
+      setCreating(true);
+      window.history.replaceState(null, "", "/app/projects");
+    }
+  }, []);
 
   const rows = useMemo(
     () =>

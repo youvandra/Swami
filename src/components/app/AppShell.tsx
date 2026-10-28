@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { site } from "@/lib/site";
-import { useConversations, useHydrated, useProjects, useTeam, useWorkspace } from "@/lib/store";
+import { deleteConversation, saveConversation, useConversations, useHydrated, useProjects, useTeam, useWorkspace } from "@/lib/store";
 import { Logo } from "../landing/Logo";
-import { IconChat, IconClose, IconFolder, IconPlus, IconSearch, IconSettings, IconSidebar } from "./icons";
+import { IconChat, IconClose, IconFolder, IconPlus, IconSearch, IconSettings, IconSidebar, IconTrash } from "./icons";
 import { Onboarding } from "./onboarding/Onboarding";
+import { Toaster } from "./Toaster";
+import { toast } from "@/lib/toast";
 import s from "./AppShell.module.css";
 
 type Shell = { openNav: () => void };
@@ -16,6 +18,7 @@ export const useShell = () => useContext(ShellContext);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const conversations = useConversations();
   const projects = useProjects();
   const workspace = useWorkspace();
@@ -51,7 +54,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Logo className={s.logo} />
               {site.name}
             </Link>
-            <button className={s.iconBtn} onClick={() => (navOpen ? setNavOpen(false) : setCollapsed(true))} aria-label="Hide sidebar">
+            <button className={s.iconBtn} onClick={() => (navOpen ? setNavOpen(false) : setCollapsed(true))} aria-label="Hide sidebar" data-tip={navOpen ? "Close" : "Hide sidebar"} data-tip-pos="end">
               {navOpen ? <IconClose /> : <IconSidebar />}
             </button>
           </div>
@@ -69,8 +72,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <nav className={s.scroll}>
             <div className={s.groupRow}>
               <p className={s.group}>Projects</p>
-              <Link href="/app/projects" className={s.groupLink}>
-                View all
+              <Link href="/app/projects?new=1" className={s.groupAdd} aria-label="New project" data-tip="New project" data-tip-pos="end">
+                <IconPlus />
               </Link>
             </div>
             <ul className={s.list}>
@@ -100,11 +103,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {recent.map((c) => {
                 const href = `/app/c/${c.id}`;
                 return (
-                  <li key={c.id}>
+                  <li key={c.id} className={s.row}>
                     <Link href={href} className={s.item} aria-current={pathname === href ? "page" : undefined}>
                       <IconChat className={s.itemIcon} />
                       <span className={s.label}>{c.title}</span>
                     </Link>
+                    <button
+                      className={s.rowAction}
+                      aria-label={`Delete ${c.title}`}
+                      data-tip="Delete chat"
+                      data-tip-pos="end"
+                      onClick={() => {
+                        deleteConversation(c.id);
+                        if (pathname === href) router.push("/app");
+                        toast(`Deleted “${c.title}”`, { label: "Undo", run: () => saveConversation(c) });
+                      }}
+                    >
+                      <IconTrash />
+                    </button>
                   </li>
                 );
               })}
@@ -128,6 +144,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className={s.main}>{children}</div>
         {hydrated && !workspace.onboarded && <Onboarding />}
+        <Toaster />
       </div>
     </ShellContext.Provider>
   );

@@ -18,37 +18,41 @@ export function SponsorsView({ artifact, onAsk }: { artifact: Sponsors; onAsk: (
   const { sponsors, show } = artifact;
   return (
     <div className={k.wrap}>
-      <div className={s.grid}>
+      <ul className={s.list}>
         {sponsors.map((sp, i) => (
-          <article key={sp.brand} className={s.card} data-top={i === 0 || undefined}>
-            <div className={s.head}>
-              <span className={s.mono} aria-hidden="true">
-                {initials(sp.brand)}
-              </span>
-              <div className={s.name}>
+          <li key={sp.brand} className={s.item}>
+            <span className={s.mono} aria-hidden="true">
+              {initials(sp.brand)}
+            </span>
+            <div className={s.main}>
+              <div className={s.top}>
                 <h3>{sp.brand}</h3>
-                <span>{sp.category}</span>
+                {i === 0 && <span className={k.best}>Best match</span>}
               </div>
+              <p className={s.meta}>
+                {sp.category} · {Math.round(sp.fit * 100)} fit
+              </p>
+              <p className={s.pitch}>{sp.pitch}</p>
             </div>
-            <div className={s.lift}>
-              <b className={k.num}>{sp.lift.toFixed(1)}×</b>
-              <span>likelier to buy than the average fan</span>
-            </div>
-            <div className={s.fit}>
-              <span className={`${k.bar} ${i === 0 ? k.barHot : ""}`}>
-                <i style={{ width: `${Math.round(sp.fit * 100)}%` }} />
+            <div className={s.side}>
+              <span className={s.lift}>
+                <b className={k.num}>{sp.lift.toFixed(1)}×</b>
+                <span>likelier to buy</span>
               </span>
-              <span>{Math.round(sp.fit * 100)} fit</span>
+              <button
+                className={k.iconAct}
+                onClick={() => onAsk(`Draft a sponsor pitch email to ${sp.brand} for ${show.headliner} in ${show.city} on ${show.date}.`)}
+                aria-label={`Draft a pitch to ${sp.brand}`}
+                data-tip="Draft pitch email"
+                data-tip-pos="end"
+              >
+                <IconMail />
+              </button>
             </div>
-            <p className={s.pitch}>{sp.pitch}</p>
-            <button className={k.act} onClick={() => onAsk(`Draft a sponsor pitch email to ${sp.brand} for ${show.headliner} in ${show.city} on ${show.date}.`)}>
-              <IconMail />
-              Draft pitch
-            </button>
-          </article>
+          </li>
         ))}
-      </div>
-      <p className={k.note}>Lift compares how often {show.headliner} fans pick each brand with the national baseline, from Qloo brand affinity. Brand names here are examples.</p>
+      </ul>
+      <p className={k.note}>Lift compares how often {show.headliner} fans buy each brand with the average fan, from Qloo brand affinity. Brand names here are examples.</p>
     </div>
   );
 }

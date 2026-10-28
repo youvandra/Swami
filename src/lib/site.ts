@@ -4,12 +4,12 @@ export const site = {
   tagline: "Pick openers who bring a crowd of their own.",
   description:
     "Swami ranks support acts by the fans they add in your city, then plans the local push that sells the room.",
-  demoHref: "#pricing",
-  tryHref: "/app",
+  appHref: "/app",
+  tourHref: "#how",
 };
 
 export const nav = [
-  { label: "Product", href: "#problem", caret: true },
+  { label: "Product", href: "#problem" },
   { label: "How it works", href: "#how" },
   { label: "Pricing", href: "#pricing" },
   { label: "FAQ", href: "#faq" },

@@ -1,28 +1,32 @@
 "use client";
 
+import { toast } from "@/lib/toast";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Artifact, ChatResponse, Conversation, Message, Mode } from "@/lib/agent/types";
 import { ROLES } from "@/lib/model";
-import { newId, saveConversation, setConversationProject, useConversation, useProjects, useWorkspace } from "@/lib/store";
+import { deleteConversation, newId, saveConversation, setConversationProject, useConversation, useProjects, useWorkspace } from "@/lib/store";
 import { Logo } from "../landing/Logo";
 import { ArtifactPanel, artifactIcon } from "./ArtifactPanel";
 import { useShell } from "./AppShell";
 import { Composer, type AttachedRoster } from "./Composer";
-import { IconCheck, IconChevron, IconDoc, IconMenu, IconPanel, IconRoute, IconShare, IconStore, IconTag, IconUsers } from "./icons";
+import { IconArrowRight, IconChart, IconCheck, IconChevron, IconDoc, IconFolder, IconMenu, IconPanel, IconPencil, IconRoute, IconStore, IconTag, IconTrash, IconUsers } from "./icons";
+import { MoreMenu } from "./MoreMenu";
 import s from "./ChatView.module.css";
 
 // Quick tasks start from the workspace's own artists and cities.
 const tasksFor = (artist: string, city: string) => [
-  { icon: IconUsers, title: "Find an opener", prompt: `Find an opener for ${artist} in ${city}, Mar 14. Roster only.` },
-  { icon: IconRoute, title: "Route a tour leg", prompt: `Which cities should ${artist} play on a Midwest leg in March?` },
-  { icon: IconTag, title: "Match sponsors", prompt: `Find sponsors whose customers love ${artist}, for the ${city} show.` },
-  { icon: IconStore, title: "Plan the local push", prompt: `Find co-promo partners in ${city} for ${artist} with Halcyon Drive.` },
-  { icon: IconUsers, title: "Know the audience", prompt: `Who is the audience for ${artist} and Halcyon Drive in ${city}? Age and gender.` },
-  { icon: IconDoc, title: "Write a proposal", prompt: `Write a proposal for ${artist} in ${city}, Mar 14, addressed to their management.` },
+  { icon: IconUsers, title: "Find an opener", hint: "Ranked by the crowd each act adds", prompt: `Find an opener for ${artist} in ${city}, Mar 14. Roster only.` },
+  { icon: IconRoute, title: "Route a tour", hint: "Cities ranked by fan demand", prompt: `Which cities should ${artist} play on a Midwest leg in March?` },
+  { icon: IconTag, title: "Match sponsors", hint: "Brands your fans already buy", prompt: `Find sponsors whose customers love ${artist}, for the ${city} show.` },
+  { icon: IconStore, title: "Plan the local push", hint: "Bars and shops that share your crowd", prompt: `Find co-promo partners in ${city} for ${artist} with Halcyon Drive.` },
+  { icon: IconChart, title: "Know the audience", hint: "Age, gender and taste, side by side", prompt: `Who is the audience for ${artist} and Halcyon Drive in ${city}? Age and gender.` },
+  { icon: IconDoc, title: "Write a proposal", hint: "A draft you can edit and export", prompt: `Write a proposal for ${artist} in ${city}, Mar 14, addressed to their management.` },
 ];
 
 export function ChatView({ id: routeId }: { id: string | null }) {
   const { openNav } = useShell();
+  const router = useRouter();
   const [id, setId] = useState(routeId);
   const stored = useConversation(id);
   const [mode, setMode] = useState<Mode>("auto");
@@ -30,8 +34,9 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   const [pending, setPending] = useState<Message | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const setToast = (m: string | null) => m && toast(m);
   const [hydrated, setHydrated] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   const projects = useProjects();
   const workspace = useWorkspace();
@@ -71,11 +76,6 @@ export function ChatView({ id: routeId }: { id: string | null }) {
     end.current?.scrollIntoView({ block: "end" });
   }, [messages.length, busy]);
 
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2400);
-    return () => clearTimeout(t);
-  }, [toast]);
 
   async function send(text: string, startProject = projectId, roster?: AttachedRoster) {
     if (busy) return;
@@ -135,14 +135,35 @@ export function ChatView({ id: routeId }: { id: string | null }) {
     <div className={s.view} data-panel={panelOpen && artifacts.length > 0 ? "" : undefined}>
       <section className={s.chat}>
         <header className={s.header}>
-          <button className={s.iconBtn} onClick={openNav} aria-label="Open sidebar">
+          <button className={s.iconBtn} onClick={openNav} aria-label="Open sidebar" data-tip="Menu">
             <IconMenu />
           </button>
           <div className={s.titleWrap}>
-            <h1 className={s.title}>{empty ? "New chat" : (stored?.title ?? "New chat")}</h1>
+            {renaming && stored ? (
+              <input
+                className={s.rename}
+                autoFocus
+                defaultValue={stored.title}
+                aria-label="Chat name"
+                onFocus={(e) => e.currentTarget.select()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.currentTarget.blur();
+                  if (e.key === "Escape") setRenaming(false);
+                }}
+                onBlur={(e) => {
+                  const title = e.currentTarget.value.trim();
+                  if (title && title !== stored.title) saveConversation({ ...stored, title });
+                  setRenaming(false);
+                }}
+              />
+            ) : (
+              <h1 className={s.title} onDoubleClick={() => stored && setRenaming(true)}>
+                {empty ? "New chat" : (stored?.title ?? "New chat")}
+              </h1>
+            )}
             {hydrated && projects.length > 0 && (
               <label className={s.project} data-set={project ? "" : undefined}>
-                {project && <i style={{ background: project.tone }} />}
+                {project ? <i style={{ background: project.tone }} /> : <IconFolder />}
                 <span>{project?.name ?? "Add to project"}</span>
                 <IconChevron />
                 <select
@@ -165,16 +186,36 @@ export function ChatView({ id: routeId }: { id: string | null }) {
             )}
           </div>
           <div className={s.actions}>
-            {!empty && (
-              <button className={s.ghost} onClick={() => setToast("Share links arrive with team workspaces")}>
-                <IconShare />
-                <span>Share</span>
-              </button>
-            )}
             {artifacts.length > 0 && (
-              <button className={s.iconBtn} onClick={() => setPanelOpen((o) => !o)} aria-label={panelOpen ? "Hide results" : "Show results"} aria-pressed={panelOpen}>
+              <button
+                className={s.iconBtn}
+                onClick={() => setPanelOpen((o) => !o)}
+                aria-label={panelOpen ? "Hide results" : "Show results"}
+                aria-pressed={panelOpen}
+                data-tip={panelOpen ? "Hide results" : "Show results"}
+              >
                 <IconPanel />
               </button>
+            )}
+            {stored && (
+              <MoreMenu
+                label="Chat options"
+                className={s.iconBtn}
+                items={[
+                  { label: "Rename", icon: IconPencil, onSelect: () => setRenaming(true) },
+                  {
+                    label: "Delete chat",
+                    icon: IconTrash,
+                    danger: true,
+                    onSelect: () => {
+                      const gone = stored;
+                      deleteConversation(gone.id);
+                      router.push("/app");
+                      toast(`Deleted “${gone.title}”`, { label: "Undo", run: () => saveConversation(gone) });
+                    },
+                  },
+                ]}
+              />
             )}
           </div>
         </header>
@@ -191,7 +232,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
             <div className={s.hello}>
               <Logo className={s.helloLogo} />
               <h2 className={s.greet}>{project ? `What's next for ${project.name}?` : "What are we booking today?"}</h2>
-              <p className={s.sub}>Openers, routing, venues, sponsors, proposals. Every answer comes with data you can check, edit and send.</p>
+              <p className={s.sub}>Ask about any show or tour. Swami answers with rankings, maps and drafts you can edit and send.</p>
             </div>
             <div className={s.composerWrap}>
               <Composer onSend={(q, r) => send(q, projectId, r)} mode={mode} onMode={setMode} busy={busy} autoFocus />
@@ -199,9 +240,9 @@ export function ChatView({ id: routeId }: { id: string | null }) {
             <div className={s.tasks}>
               {tasks.map((t) => (
                 <button key={t.title} className={s.task} onClick={() => send(t.prompt)}>
-                  <t.icon className={s.taskIcon} />
+                  <t.icon className={s.taskIcon} weight="duotone" />
                   <span className={s.taskTitle}>{t.title}</span>
-                  <span className={s.taskPrompt}>{t.prompt}</span>
+                  <span className={s.taskPrompt}>{t.hint}</span>
                 </button>
               ))}
             </div>
@@ -231,8 +272,8 @@ export function ChatView({ id: routeId }: { id: string | null }) {
               </div>
             </div>
             <div className={s.dock}>
-              <Composer onSend={(q, r) => send(q, projectId, r)} mode={mode} onMode={setMode} busy={busy} placeholder="Ask a follow-up…" />
-              <p className={s.disclaimer}>Scores show audience affinity. Check names and terms before you send anything.</p>
+              <Composer onSend={(q, r) => send(q, projectId, r)} mode={mode} onMode={setMode} busy={busy} placeholder="Reply to Swami…" />
+              <p className={s.disclaimer}>Demo data · Review drafts before you send them</p>
             </div>
           </>
         )}
@@ -249,13 +290,6 @@ export function ChatView({ id: routeId }: { id: string | null }) {
           conversationId={id ?? undefined}
           defaultProjectId={projectId}
         />
-      )}
-
-      {toast && (
-        <div className={s.toast} role="status">
-          <IconCheck />
-          {toast}
-        </div>
       )}
     </div>
   );
@@ -275,7 +309,7 @@ function AssistantMessage({ message, activeId, onOpen }: { message: Message; act
               <i />
               <i />
             </span>
-            Searching the taste graph…
+            Reading the taste graph…
           </p>
         ) : (
           <>
@@ -283,7 +317,7 @@ function AssistantMessage({ message, activeId, onOpen }: { message: Message; act
               <details className={s.steps}>
                 <summary>
                   <IconCheck className={s.stepsIcon} />
-                  {message.steps.length} steps · {(total / 1000).toFixed(1)}s
+                  Worked for {(total / 1000).toFixed(1)}s<span className={s.stepsCount}>{message.steps.length} steps</span>
                   <IconChevron className={s.stepsChevron} />
                 </summary>
                 <ol>
@@ -304,13 +338,15 @@ function AssistantMessage({ message, activeId, onOpen }: { message: Message; act
                   return (
                     <button key={a.id} className={s.chip} data-active={activeId === a.id || undefined} onClick={() => onOpen(a)}>
                       <span className={s.chipIcon}>
-                        <Icon />
+                        <Icon weight="duotone" />
                       </span>
                       <span className={s.chipText}>
                         <b>{a.title}</b>
                         <span>{a.subtitle}</span>
                       </span>
-                      <span className={s.chipOpen}>Open</span>
+                      <span className={s.chipOpen} aria-hidden="true">
+                        <IconArrowRight />
+                      </span>
                     </button>
                   );
                 })}

@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "@/lib/toast";
 import { useEffect, useState } from "react";
 import { ROLES, type Member, type Workspace } from "@/lib/model";
 import {
@@ -42,18 +43,13 @@ export function SettingsView() {
   const { openNav } = useShell();
   const hydrated = useHydrated();
   const [tab, setTab] = useState<Tab>("workspace");
-  const [toast, setToast] = useState<string | null>(null);
+  const setToast = (m: string | null) => m && toast(m);
 
   // the tab lives in the URL so links like /app/settings?tab=rosters land on it
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab") as Tab | null;
     if (t && TABS.some((x) => x.id === t)) setTab(t);
   }, []);
-  useEffect(() => {
-    if (!toast) return;
-    const id = setTimeout(() => setToast(null), 2400);
-    return () => clearTimeout(id);
-  }, [toast]);
 
   const pick = (t: Tab) => {
     setTab(t);
@@ -88,12 +84,6 @@ export function SettingsView() {
           </div>
         </div>
       </div>
-      {toast && (
-        <div className={p.toast} role="status">
-          <IconCheck />
-          {toast}
-        </div>
-      )}
     </div>
   );
 }

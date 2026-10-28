@@ -5,14 +5,14 @@ import type { Mode } from "@/lib/agent/types";
 import Link from "next/link";
 import { parseRoster } from "@/lib/roster";
 import { useRosters } from "@/lib/store";
-import { IconArrowUp, IconCheck, IconChevron, IconClip, IconPlus } from "./icons";
+import { IconArrowUp, IconCheck, IconChevron, IconClip, IconPlus, IconSpark } from "./icons";
 import s from "./Composer.module.css";
 import m from "./SaveMenu.module.css";
 
 export type AttachedRoster = { name: string; acts: string[] };
 
 export const MODES: { id: Mode; label: string }[] = [
-  { id: "auto", label: "Auto" },
+  { id: "auto", label: "Any tool" },
   { id: "opener", label: "Find openers" },
   { id: "map", label: "Crowd map" },
   { id: "routing", label: "Tour routing" },
@@ -33,7 +33,7 @@ type Props = {
   autoFocus?: boolean;
 };
 
-export function Composer({ onSend, mode, onMode, busy, placeholder = "Ask Swami about a show, a tour leg or a pitch…", autoFocus }: Props) {
+export function Composer({ onSend, mode, onMode, busy, placeholder = "Ask about a show, a tour or a pitch…", autoFocus }: Props) {
   const [text, setText] = useState("");
   const [roster, setRoster] = useState<AttachedRoster | null>(null);
   const [menu, setMenu] = useState(false);
@@ -160,6 +160,7 @@ export function Composer({ onSend, mode, onMode, busy, placeholder = "Ask Swami 
           }}
         />
         <label className={s.mode}>
+          <IconSpark className={s.modeIcon} weight="duotone" />
           <select value={mode} onChange={(e) => onMode(e.target.value as Mode)} aria-label="Mode">
             {MODES.map((m) => (
               <option key={m.id} value={m.id}>
@@ -169,8 +170,7 @@ export function Composer({ onSend, mode, onMode, busy, placeholder = "Ask Swami 
           </select>
           <IconChevron />
         </label>
-        <span className={s.hint}>Shift + Enter for a new line</span>
-        <button type="submit" className={s.send} disabled={!canSend} aria-label="Send">
+        <button type="submit" className={s.send} disabled={!canSend} aria-label="Send" data-tip="Send · Enter" data-tip-pos="end">
           <IconArrowUp />
         </button>
       </div>

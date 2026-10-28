@@ -1,0 +1,25 @@
+.toast {
+  position: fixed;
+  z-index: 95;
+  left: 50%;
+  bottom: 24px;
+  translate: -50% 0;
+  max-width: calc(100% - 32px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 14px;
+  border-radius: 12px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 13.5px;
+  box-shadow: 0 16px 40px -16px rgba(9, 19, 31, 0.6);
+  animation: rise 0.2s var(--ease);
+}
+.icon { width: 16px; height: 16px; flex: none; color: var(--cyan); }
+.toast span { padding: 2px 0; }
+.action { height: 28px; padding: 0 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.12); color: #fff; font-size: 13px; font-weight: 600; }
+.action:hover { background: rgba(255, 255, 255, 0.2); }
+.toast:not(:has(.action)) { padding-right: 16px; }
+@keyframes rise { from { opacity: 0; translate: -50% 8px; } to { opacity: 1; translate: -50% 0; } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }

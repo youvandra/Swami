@@ -38,8 +38,6 @@
   font-weight: 500;
   color: var(--text);
   background-color: var(--mist);
-  background-image: radial-gradient(rgba(10, 15, 21, 0.1) 1px, transparent 1.3px);
-  background-size: 9px 9px;
 }
 .dots {
   flex: none;

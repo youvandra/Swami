@@ -9,7 +9,7 @@ import { ChipInput } from "../ChipInput";
 import { IconCheck, IconRoute, IconStore, IconTag, IconUsers } from "../icons";
 import s from "./Onboarding.module.css";
 
-const ROLE_ICON: Record<Role, (p: { className?: string }) => React.ReactNode> = { promoter: IconStore, buyer: IconUsers, agent: IconRoute, manager: IconTag };
+const ROLE_ICON: Record<Role, (p: { className?: string; weight?: "regular" | "duotone" }) => React.ReactNode> = { promoter: IconStore, buyer: IconUsers, agent: IconRoute, manager: IconTag };
 const CITY_IDEAS = ["Chicago", "Austin", "Brooklyn", "Los Angeles", "Seattle", "Denver", "Atlanta", "London"];
 
 // Three short steps the first time someone opens the app. Everything can be changed later in Settings.
@@ -47,7 +47,7 @@ export function Onboarding() {
             ))}
           </ol>
           <button className={s.skip} onClick={() => updateWorkspace({ onboarded: true })}>
-            Skip
+            Skip for now
           </button>
         </header>
 
@@ -63,7 +63,7 @@ export function Onboarding() {
                 return (
                   <button key={r.id} role="radio" aria-checked={role === r.id} className={s.role} onClick={() => setRole(r.id)}>
                     <span className={s.roleIcon}>
-                      <Icon />
+                      <Icon weight="duotone" />
                     </span>
                     <b>{r.label}</b>
                     <span>{r.blurb}</span>

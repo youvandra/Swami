@@ -57,20 +57,19 @@ export function ArtifactPanel({ artifacts, activeId, onSelect, onClose, onAsk, o
             );
           })}
         </div>
-        <button className={s.iconBtn} onClick={onClose} aria-label="Close results">
+        <button className={s.iconBtn} onClick={onClose} aria-label="Close results" data-tip="Close" data-tip-pos="end">
           <IconClose />
         </button>
       </div>
 
       <div className={s.titleRow}>
         <div className={s.titleText}>
-          <span className={s.kind}>{ARTIFACT_LABEL[active.type]}</span>
           <h2>{active.title}</h2>
           <p>{active.subtitle}</p>
         </div>
         <div className={s.actions}>
           <SaveMenu artifact={active} conversationId={conversationId} defaultProjectId={defaultProjectId} onToast={onToast} />
-          <button className={s.action} onClick={copy} aria-label="Copy">
+          <button className={s.action} onClick={copy} aria-label="Copy as text" data-tip="Copy as text">
             <IconCopy />
           </button>
           <ExportMenu artifact={active} onToast={onToast} className={`${s.action} ${s.primary}`} />

@@ -1,14 +1,16 @@
 "use client";
 
+import { toast } from "@/lib/toast";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { ArtifactType } from "@/lib/agent/types";
-import { deleteProject, unsaveArtifact, updateProject, useConversations, useHydrated, useProject, useSaved } from "@/lib/store";
+import { deleteProject, saveArtifact, unsaveArtifact, updateProject, useConversations, useHydrated, useProject, useSaved } from "@/lib/store";
 import { useShell } from "../AppShell";
 import { ArtifactPanel } from "../ArtifactPanel";
 import { ARTIFACT_LABEL, artifactIcon, artifactSummary, timeAgo } from "../artifacts/meta";
-import { IconCheck, IconChat, IconClose, IconDoc, IconMenu, IconPlus, IconRoute, IconTag, IconUsers } from "../icons";
+import { IconCheck, IconChat, IconClose, IconDoc, IconMenu, IconPencil, IconPlus, IconRoute, IconTag, IconTrash, IconUsers } from "../icons";
+import { MoreMenu } from "../MoreMenu";
 import { ProjectDialog } from "./ProjectDialog";
 import s from "./Projects.module.css";
 
@@ -25,13 +27,8 @@ export function ProjectDetail({ id }: { id: string }) {
   const [type, setType] = useState<ArtifactType | "all">("all");
   const [openId, setOpenId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const setToast = (m: string | null) => m && toast(m);
 
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2400);
-    return () => clearTimeout(t);
-  }, [toast]);
 
   const items = useMemo(() => saved.filter((x) => x.projectId === id).sort((a, b) => b.savedAt - a.savedAt), [saved, id]);
   const chats = useMemo(() => conversations.filter((c) => c.projectId === id), [conversations, id]);
@@ -74,13 +71,28 @@ export function ProjectDetail({ id }: { id: string }) {
             <span>/</span>
             <b>{project.name}</b>
           </nav>
-          <button className={s.ghost} onClick={() => setEditing(true)}>
-            Edit
-          </button>
           <button className={s.primary} onClick={() => router.push(`/app?project=${project.id}`)}>
             <IconPlus />
             <span>New chat</span>
           </button>
+          <MoreMenu
+            label="Project options"
+            className={s.iconBtnShow}
+            items={[
+              { label: "Edit details", icon: IconPencil, onSelect: () => setEditing(true) },
+              {
+                label: "Delete project",
+                icon: IconTrash,
+                danger: true,
+                onSelect: () => {
+                  if (window.confirm(`Delete “${project.name}”? Its chats stay in Recent; saved results are removed from the project.`)) {
+                    deleteProject(project.id);
+                    router.push("/app/projects");
+                  }
+                },
+              },
+            ]}
+          />
         </header>
 
         <div className={s.scroll}>
@@ -162,7 +174,7 @@ export function ProjectDetail({ id }: { id: string }) {
                         <article key={x.artifact.id} className={s.savedCard} data-open={openId === x.artifact.id || undefined}>
                           <button className={s.savedOpen} onClick={() => setOpenId(x.artifact.id)}>
                             <span className={s.savedIcon}>
-                              <Icon />
+                              <Icon weight="duotone" />
                             </span>
                             <span className={s.savedType}>{ARTIFACT_LABEL[x.artifact.type]}</span>
                             <b className={s.savedTitle}>{x.artifact.title}</b>
@@ -172,10 +184,12 @@ export function ProjectDetail({ id }: { id: string }) {
                           <button
                             className={s.savedRemove}
                             aria-label={`Remove ${x.artifact.title}`}
+                            data-tip="Remove from project"
+                            data-tip-pos="end"
                             onClick={() => {
                               unsaveArtifact(project.id, x.artifact.id);
                               if (openId === x.artifact.id) setOpenId(null);
-                              setToast("Removed from project");
+                              toast("Removed from project", { label: "Undo", run: () => saveArtifact(project.id, x.artifact, x.conversationId) });
                             }}
                           >
                             <IconClose />
@@ -218,17 +232,6 @@ export function ProjectDetail({ id }: { id: string }) {
               </ul>
             )}
 
-            <button
-              className={s.danger}
-              onClick={() => {
-                if (window.confirm(`Delete “${project.name}”? Its chats stay in Recent; saved results are removed from the project.`)) {
-                  deleteProject(project.id);
-                  router.push("/app/projects");
-                }
-              }}
-            >
-              Delete project
-            </button>
           </div>
         </div>
       </div>
@@ -258,13 +261,6 @@ export function ProjectDetail({ id }: { id: string }) {
             setToast("Project updated");
           }}
         />
-      )}
-
-      {toast && (
-        <div className={s.toast} role="status">
-          <IconCheck />
-          {toast}
-        </div>
       )}
     </div>
   );

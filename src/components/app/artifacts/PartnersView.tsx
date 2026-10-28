@@ -1,60 +1,55 @@
 "use client";
 
 import type { Artifact, Partner } from "@/lib/agent/types";
-import { IconMail } from "../icons";
+import { IconBar, IconCoffee, IconFood, IconMail, IconVinyl } from "../icons";
 import k from "./kit.module.css";
 import s from "./PartnersView.module.css";
 
 type Partners = Extract<Artifact, { type: "partners" }>;
 
-const KIND_MARK: Record<Partner["kind"], string> = { Bar: "B", Restaurant: "R", "Record shop": "V", Café: "C" };
+const KIND_ICON: Record<Partner["kind"], (p: { className?: string; weight?: "duotone" }) => React.ReactNode> = {
+  Bar: IconBar,
+  Restaurant: IconFood,
+  "Record shop": IconVinyl,
+  Café: IconCoffee,
+};
 
 export function PartnersView({ artifact, onAsk }: { artifact: Partners; onAsk: (p: string) => void }) {
   const { partners, show } = artifact;
-  const hoods = [...new Set(partners.map((p) => p.hood))];
-
   return (
     <div className={k.wrap}>
-      <div className={s.summary}>
-        {hoods.map((h) => (
-          <div key={h}>
-            <b className={k.num}>{partners.filter((p) => p.hood === h).length}</b>
-            <span>{h}</span>
-          </div>
-        ))}
-      </div>
-
       <ul className={s.list}>
-        {partners.map((p) => (
-          <li key={p.name} className={s.item}>
-            <span className={s.mark} aria-hidden="true">
-              {KIND_MARK[p.kind]}
-            </span>
-            <div className={s.main}>
-              <div className={s.top}>
-                <h3>{p.name}</h3>
-                <span className={s.meta}>
-                  {p.kind} · {p.hood}
-                </span>
+        {partners.map((p, i) => {
+          const Icon = KIND_ICON[p.kind];
+          return (
+            <li key={p.name} className={s.item}>
+              <span className={s.icon}>
+                <Icon weight="duotone" />
+              </span>
+              <div className={s.main}>
+                <div className={s.top}>
+                  <h3>{p.name}</h3>
+                  {i === 0 && <span className={k.best}>Best fit</span>}
+                </div>
+                <p className={s.meta}>
+                  {p.kind} · {p.hood} · {Math.round(p.fit * 100)} fit
+                </p>
+                <p className={s.angle}>{p.angle}</p>
               </div>
-              <p className={s.angle}>{p.angle}</p>
-              <div className={s.bottom}>
-                <span className={s.fit}>
-                  <span className={k.bar}>
-                    <i style={{ width: `${Math.round(p.fit * 100)}%` }} />
-                  </span>
-                  <span>{Math.round(p.fit * 100)} fit</span>
-                </span>
-                <button className={k.act} onClick={() => onAsk(`Draft an email to ${p.name} about co-promoting ${show.headliner} in ${show.city} on ${show.date}.`)}>
-                  <IconMail />
-                  Draft outreach
-                </button>
-              </div>
-            </div>
-          </li>
-        ))}
+              <button
+                className={k.iconAct}
+                onClick={() => onAsk(`Draft an email to ${p.name} about co-promoting ${show.headliner} in ${show.city} on ${show.date}.`)}
+                aria-label={`Draft an email to ${p.name}`}
+                data-tip="Draft outreach email"
+                data-tip-pos="end"
+              >
+                <IconMail />
+              </button>
+            </li>
+          );
+        })}
       </ul>
-      <p className={k.note}>Fit is how much each place&apos;s regulars overlap with the added crowd. Give every partner its own promo link so the door count shows which one sold.</p>
+      <p className={k.note}>Fit is how much each place&apos;s regulars overlap with the added crowd. Give each partner its own promo link to see which one sold.</p>
     </div>
   );
 }

@@ -13,7 +13,7 @@ export const ARTIFACT_LABEL: Record<ArtifactType, string> = {
   email: "Email",
 };
 
-const ICON: Record<ArtifactType, (p: { className?: string }) => React.ReactNode> = {
+const ICON: Record<ArtifactType, (p: { className?: string; weight?: "regular" | "duotone" | "fill" }) => React.ReactNode> = {
   opener_ranking: IconList,
   crowd_map: IconMap,
   proposal: IconDoc,

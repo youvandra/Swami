@@ -301,21 +301,21 @@ export function Hero() {
 
       <header className={s.nav}>
         <a className={s.brand} href="#" aria-label={`${site.name} home`}>
-          <Logo className={s.logo} />
+          <Logo className={s.logo} variant="mark" />
           {site.name}
         </a>
         <nav className={s.links} aria-label="Primary">
           {nav.map((item) => (
             <a key={item.label} href={item.href}>
               {item.label}
-              {item.caret && <Chevron />}
             </a>
           ))}
         </nav>
-        <button className={s.burger} aria-label="Open menu">
-          <span />
-          <span />
-        </button>
+        <div className={s.navCta}>
+          <a className={s.open} href={site.appHref}>
+            Open app
+          </a>
+        </div>
       </header>
 
       <div className={s.copy} ref={copyRef}>
@@ -325,11 +325,11 @@ export function Hero() {
         </h1>
         <p className={s.sub}>{site.description}</p>
         <div className={s.ctas} ref={ctasRef}>
-          <a className={`${s.btn} ${s.btnCream}`} href={site.demoHref}>
-            Book a Demo
+          <a className={`${s.btn} ${s.btnCream}`} href={site.appHref}>
+            Open Swami
           </a>
-          <a className={`${s.btn} ${s.btnGlass}`} href={site.tryHref}>
-            Try a Show
+          <a className={`${s.btn} ${s.btnGlass}`} href={site.tourHref}>
+            See how it works
           </a>
         </div>
       </div>

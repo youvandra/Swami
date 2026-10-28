@@ -1,4 +1,5 @@
 import { nav, site } from "@/lib/site";
+import { IconArrowRight } from "../app/icons";
 import { Logo } from "./Logo";
 import s from "./Closing.module.css";
 
@@ -17,11 +18,12 @@ export function Closing() {
       <div className={`wrap ${s.cta}`}>
         <h2 className={`display ${s.title}`}>Your next show has an opening slot. Fill it with a crowd.</h2>
         <div className={s.actions}>
-          <a className="button button-cream" href={site.demoHref}>
-            Book a Demo
+          <a className="button button-cream" href={site.appHref}>
+            Open Swami
+            <IconArrowRight />
           </a>
-          <a className="button button-glass" href={site.tryHref}>
-            Try a Show
+          <a className="button button-glass" href="#pricing">
+            See pricing
           </a>
         </div>
       </div>

@@ -70,9 +70,10 @@
   color: inherit;
   cursor: pointer;
 }
-.mode svg { position: absolute; right: 10px; width: 13px; height: 13px; pointer-events: none; color: var(--muted); }
+.mode > svg:last-child { position: absolute; right: 10px; width: 13px; height: 13px; pointer-events: none; color: var(--muted); }
 .mode:focus-within { border-color: rgba(14, 58, 69, 0.45); }
-.hint { margin-left: auto; font-size: 12px; color: #8b98a3; }
+.send { margin-left: auto; }
+.modeIcon { width: 15px; height: 15px; flex: none; color: var(--teal); }
 .send {
   width: 36px;
   height: 36px;
@@ -89,7 +90,6 @@
 .send:disabled { opacity: 0.32; cursor: default; }
 
 @media (max-width: 640px) {
-  .hint { display: none; }
   .send { margin-left: auto; }
   .composer { border-radius: 18px; padding: 10px 10px 8px 14px; }
 }

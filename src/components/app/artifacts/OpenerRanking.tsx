@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Artifact } from "@/lib/agent/types";
-import { IconChevron, IconDoc, IconMap } from "../icons";
+import { IconChevron, IconDoc, IconInfo, IconMap } from "../icons";
 import s from "./OpenerRanking.module.css";
 
 type Ranking = Extract<Artifact, { type: "opener_ranking" }>;
@@ -61,8 +61,8 @@ export function OpenerRanking({ artifact, onAsk, onShowMap }: { artifact: Rankin
             </button>
           ))}
         </div>
-        <span className={s.formula}>
-          score = fit<sup>0.6</sup> × reach<sup>0.4</sup>
+        <span className={s.formula} tabIndex={0} aria-label="How scores work" data-tip="Score = fit × reach gain" data-tip-pos="end">
+          <IconInfo />
         </span>
       </div>
 

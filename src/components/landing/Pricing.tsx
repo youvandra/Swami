@@ -8,7 +8,7 @@ const plans = [
     blurb: "For a one-off date or a first try.",
     items: ["Opener ranking for one show", "Neighbourhood push plan", "Booking memo export", "Promo links and ticket report"],
     cta: "Rank a show",
-    href: "#",
+    href: "/app",
   },
   {
     name: "Season",
@@ -17,7 +17,7 @@ const plans = [
     blurb: "For promoters and venues running a calendar.",
     items: ["Up to 20 shows a month", "Roster mode per tour leg", "Co-promo partner lists", "Rankings that learn from your door"],
     cta: "Start a season",
-    href: "#",
+    href: "/app",
     featured: true,
   },
   {
@@ -27,7 +27,7 @@ const plans = [
     blurb: "For groups with many rooms and their own ticketing.",
     items: ["Unlimited shows", "Ticketing data joined to promo links", "Shared rosters across rooms", "Priority support"],
     cta: "Talk to us",
-    href: "#",
+    href: "/app",
   },
 ];
 

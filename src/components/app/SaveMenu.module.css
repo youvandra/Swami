@@ -90,3 +90,10 @@
 .option svg { width: 15px; height: 15px; flex: none; margin-top: 2px; color: var(--teal); }
 .option .name { white-space: normal; font-weight: 500; }
 .menu .hint { display: block; margin-top: 1px; font-size: 12px; font-weight: 400; color: var(--muted); }
+
+/* the ⋯ menu */
+.compact { width: 200px; padding: 6px; }
+.itemIcon { width: 16px; height: 16px; flex: none; color: var(--muted); }
+.menu li button.danger { color: #a33b2f; }
+.menu li button.danger .itemIcon { color: #a33b2f; }
+.menu li button.danger:hover { background: #fdf3f1; }

@@ -1,9 +1,7 @@
 .desk {
   min-height: 100%;
   padding: 0 24px 48px;
-  background-color: var(--mist);
-  background-image: radial-gradient(rgba(10, 15, 21, 0.08) 1px, transparent 1.3px);
-  background-size: 9px 9px;
+  background-color: #f4f6f7;
 }
 .print { background: #fff; }
 

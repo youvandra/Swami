@@ -10,7 +10,7 @@
   color: var(--muted);
 }
 .nav button:hover { background: var(--mist); color: var(--text); }
-.nav button[aria-selected="true"] { background: var(--navy); color: #fff; }
+.nav button[aria-selected="true"] { background: var(--mist); color: var(--text); font-weight: 600; }
 .panel { display: grid; gap: 0; min-width: 0; }
 
 .section { display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr); gap: 28px; padding: 26px 0; border-bottom: 1px solid var(--line); }
@@ -63,7 +63,7 @@
 .members { list-style: none; display: grid; }
 .members li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .members li:first-child { padding-top: 0; }
-.avatar { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 10px; background: var(--teal); color: var(--cyan); font-size: 12.5px; font-weight: 600; }
+.avatar { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 10px; background: var(--tint); color: var(--tint-ink); font-size: 12.5px; font-weight: 600; }
 .who { flex: 1; min-width: 0; display: grid; gap: 1px; }
 .who b { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
 .who b em { font-style: normal; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 6px; background: #fbf3e2; color: #8a5a12; }
@@ -111,7 +111,7 @@
 .usage { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; border-radius: 14px; overflow: hidden; background: var(--line); border: 1px solid var(--line); }
 .usage div { padding: 14px 16px; background: #fff; }
 .usage dt { font-size: 12px; color: var(--muted); }
-.usage dd { margin-top: 2px; font-family: var(--font-serif); font-stretch: 76%; font-weight: 360; font-size: 30px; font-variant-numeric: tabular-nums; }
+.usage dd { margin-top: 2px; font-size: 24px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 
 @media (max-width: 900px) {
   .layout.layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
