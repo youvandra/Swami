@@ -40,7 +40,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const recent = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return q ? conversations.filter((c) => c.title.toLowerCase().includes(q)) : conversations;
+    if (!q) return conversations;
+    // titles first, then chats that mention it in a question, a reply or a result's title
+    const inTitle = conversations.filter((c) => c.title.toLowerCase().includes(q));
+    const inBody = conversations.filter(
+      (c) => !inTitle.includes(c) && c.messages.some((m) => m.text.toLowerCase().includes(q) || m.artifacts?.some((a) => a.title.toLowerCase().includes(q))),
+    );
+    return [...inTitle, ...inBody];
   }, [conversations, query]);
 
   const shell = useMemo(() => ({ openNav: () => (collapsed ? setCollapsed(false) : setNavOpen(true)) }), [collapsed]);
