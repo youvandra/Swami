@@ -31,6 +31,7 @@ export async function runChat(asked: ChatRequest, emit: Emit, signal?: AbortSign
     defaults: project ? { ...project } : { city: ctx0?.cities?.[0] },
     entities: { ...(ctx0?.entities ?? {}) },
     workspace: ctx0?.workspace ?? "Your team",
+    live: env.qlooLive,
     onStep: (step) => emit({ type: "step", step }),
   });
   const usage: Usage = { input: 0, output: 0 };

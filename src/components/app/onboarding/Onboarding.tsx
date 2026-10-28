@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { ROLES, type Role } from "@/lib/model";
+import { examplesFor } from "@/lib/examples";
 import { parseRoster } from "@/lib/roster";
+import { useServerStatus } from "@/lib/status";
 import { saveRoster, updateWorkspace, useWorkspace } from "@/lib/store";
 import { Logo } from "../../landing/Logo";
 import { ChipInput } from "../ChipInput";
@@ -16,6 +18,7 @@ const CITY_IDEAS = ["Chicago", "Austin", "Brooklyn", "Los Angeles", "Seattle", "
 export function Onboarding() {
   const ws = useWorkspace();
   const [step, setStep] = useState(0);
+  const example = examplesFor(useServerStatus().data === "live").mid;
   const [role, setRole] = useState<Role | null>(null);
   const [name, setName] = useState("");
   const [cities, setCities] = useState<string[]>([]);
@@ -99,7 +102,7 @@ export function Onboarding() {
             <p className={s.lede}>Swami suggests tasks for these artists first. Add a roster to rank openers inside it.</p>
             <div className={s.field}>
               <span>{artistLabel}</span>
-              <ChipInput label={artistLabel} values={artists} onChange={setArtists} placeholder="Marlow Vane" />
+              <ChipInput label={artistLabel} values={artists} onChange={setArtists} placeholder={example} />
             </div>
             <label className={s.field}>
               <span>

@@ -1,6 +1,7 @@
 // One chat turn in template mode: the router picks tools, the tools run on Qloo or the fixture, prose.ts writes
 // the text. The agent loop reuses the same pieces, so this is also its fallback.
 
+import { examplesFor } from "../examples.ts";
 import { searchArtist } from "../tools/tools.ts";
 import { runTool, type ToolOutcome } from "../tools/index.ts";
 import type { ToolContext } from "../tools/context.ts";
@@ -32,7 +33,7 @@ export async function templateTurn(ctx: ToolContext, req: ChatRequest, emit: Emi
   const p = plan(text, req.mode, req.context);
   const show = { headliner: p.headliner, city: (p.input.city as string) ?? ctx.defaults.city, date: (p.input.date as string) ?? ctx.defaults.date };
   if (!p.headliner) {
-    const t = "Which artist is this for? Name the headliner, for example “Find an opener for Marlow Vane in Chicago, Mar 14.”";
+    const t = `Which artist is this for? Name the headliner, for example “Find an opener for ${examplesFor(ctx.live ?? false).mid} in Chicago, Mar 14.”`;
     emit({ type: "text", delta: t });
     return { text: t, artifacts: [], title: "New chat", outcomes: [] };
   }

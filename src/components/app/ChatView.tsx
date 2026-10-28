@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { AgentEvent } from "@/lib/agent/events";
 import { NONE_ID, type Artifact, type Choice, type Conversation, type Message, type Mode, type Step } from "@/lib/agent/types";
 import { readEvents } from "@/lib/sse";
+import { examplesFor, ownArtists, type Examples } from "@/lib/examples";
 import { useServerStatus } from "@/lib/status";
 import { ROLES } from "@/lib/model";
 import { deleteConversation, newId, saveConversation, setConversationProject, useCanEdit, useConversation, useProjects, useRosters, useWorkspace } from "@/lib/store";
@@ -38,15 +39,20 @@ function lastShow(messages: Message[], focused?: Artifact) {
 // An error whose message is written for the person reading the chat.
 class ShownError extends Error {}
 
-// Quick tasks start from the workspace's own artists and cities.
-const tasksFor = (artist: string, city: string) => [
-  { icon: IconUsers, title: "Find an opener", hint: "Ranked by the crowd each act adds", prompt: `Find an opener for ${artist} in ${city}, Mar 14. Roster only.` },
-  { icon: IconRoute, title: "Route a tour", hint: "Cities ranked by fan demand", prompt: `Which cities should ${artist} play on a Midwest leg in March?` },
-  { icon: IconTag, title: "Match sponsors", hint: "Brands your fans already buy", prompt: `Find sponsors whose customers love ${artist}, for the ${city} show.` },
-  { icon: IconStore, title: "Plan the local push", hint: "Bars and shops that share your crowd", prompt: `Find co-promo partners in ${city} for ${artist} and the top opener.` },
-  { icon: IconChart, title: "Know the audience", hint: "Age, gender and taste, side by side", prompt: `Who is the audience for ${artist} in ${city}, next to the top opener? Age and gender.` },
-  { icon: IconDoc, title: "Write a proposal", hint: "A draft you can edit and export", prompt: `Write a proposal for ${artist} in ${city}, Mar 14, addressed to their management.` },
-];
+// Quick tasks start from the workspace's own artists and cities; without them, from real example acts on live data.
+const tasksFor = (own: string | undefined, city: string | undefined, ex: Examples) => {
+  const mid = own ?? ex.mid;
+  const famous = own ?? ex.famous;
+  const here = city ?? ex.city;
+  return [
+    { icon: IconUsers, title: "Find an opener", hint: "Ranked by the crowd each act adds", prompt: `Find an opener for ${mid} in ${here}, Mar 14.${own ? " Roster only." : ""}` },
+    { icon: IconRoute, title: "Route a tour", hint: "Cities ranked by fan demand", prompt: `Which cities should ${famous} play on a Midwest leg in March?` },
+    { icon: IconStore, title: "Pick the room", hint: "Venues sized to the act", prompt: `Which venue fits ${famous} in ${city ?? ex.abroad}?` },
+    { icon: IconTag, title: "Match sponsors", hint: "Brands your fans already buy", prompt: `Find sponsors whose customers love ${famous}, for the ${here} show.` },
+    { icon: IconChart, title: "Know the audience", hint: "Age, gender and taste, side by side", prompt: `Who is the audience for ${mid} in ${here}, next to the top opener? Age and gender.` },
+    { icon: IconDoc, title: "Write a proposal", hint: "A draft you can edit and export", prompt: `Write a proposal for ${mid} in ${here}, Mar 14, addressed to their management.` },
+  ];
+};
 
 export function ChatView({ id: routeId }: { id: string | null }) {
   const { openNav } = useShell();
@@ -68,7 +74,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   const projects = useProjects();
   const workspace = useWorkspace();
   const rosters = useRosters();
-  const tasks = tasksFor(workspace.artists[0] ?? "Marlow Vane", workspace.cities[0] ?? "Chicago");
+  const tasks = tasksFor(ownArtists(workspace.artists, dataMode === "live")[0], workspace.cities[0], examplesFor(dataMode === "live"));
   // a new chat can start inside a project (/app?project=…) and with a first question (&q=…)
   const [draftProject, setDraftProject] = useState<string | undefined>(undefined);
   const projectId = stored?.projectId ?? draftProject;

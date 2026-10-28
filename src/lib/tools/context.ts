@@ -18,6 +18,8 @@ export type ToolContext = {
   /** Entities seen in this run, by id. */
   seen: Map<string, Entity>;
   workspace: string;
+  /** On real Qloo data, so examples name real acts. */
+  live?: boolean;
   /** Memo for results several tools share in one run (e.g. the ranking behind a map and a proposal). */
   memo: Map<string, Promise<unknown>>;
 };

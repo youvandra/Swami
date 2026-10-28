@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { examplesFor } from "@/lib/examples";
 import type { Project } from "@/lib/model";
+import { useServerStatus } from "@/lib/status";
 import { IconClose } from "../icons";
 import s from "./ProjectDialog.module.css";
 
@@ -13,6 +15,7 @@ const BLANK: ProjectInput = { name: "", kind: "show", headliner: "", city: "", d
 export function ProjectDialog({ initial, title, submitLabel, onSubmit, onClose }: { initial?: ProjectInput; title: string; submitLabel: string; onSubmit: (p: ProjectInput) => void; onClose: () => void }) {
   const [form, setForm] = useState<ProjectInput>(initial ?? BLANK);
   const ref = useRef<HTMLDialogElement>(null);
+  const example = examplesFor(useServerStatus().data === "live").mid;
 
   useEffect(() => {
     const d = ref.current;
@@ -50,7 +53,7 @@ export function ProjectDialog({ initial, title, submitLabel, onSubmit, onClose }
 
         <label className={s.field}>
           <span>Headliner</span>
-          <input autoFocus value={form.headliner} onChange={(e) => set("headliner", e.target.value)} placeholder="Marlow Vane" />
+          <input autoFocus value={form.headliner} onChange={(e) => set("headliner", e.target.value)} placeholder={example} />
         </label>
         <div className={s.row}>
           <label className={s.field}>
