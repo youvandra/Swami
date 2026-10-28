@@ -28,7 +28,7 @@ export async function agentTurn(client: MessagesClient, model: string, ctx: Tool
   const started = Date.now();
   const history = req.messages.slice(-HISTORY);
   const last = lastUserText(req);
-  const context = { workspace: req.context?.workspace, role: req.context?.role, cities: req.context?.cities, project: req.context?.project, roster: req.context?.roster ? { name: req.context.roster.name, acts: req.context.roster.acts.length } : undefined, resolved: Object.keys(ctx.entities) };
+  const context = { workspace: req.context?.workspace, role: req.context?.role, cities: req.context?.cities, project: req.context?.project, last: req.context?.last, roster: req.context?.roster ? { name: req.context.roster.name, acts: req.context.roster.acts.length } : undefined, resolved: Object.keys(ctx.entities) };
   const messages: Anthropic.Beta.BetaMessageParam[] = history.map((m, i) => ({ role: m.role, content: i === history.length - 1 && m.role === "user" ? userBlock(m.text, context) : m.text }));
   while (messages.length && messages[0].role !== "user") messages.shift();
 

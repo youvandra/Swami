@@ -24,6 +24,7 @@ const body = z.object({
       artists: z.array(z.string().max(120)).max(50).optional(),
       roster: z.object({ name: z.string().max(120), acts: z.array(z.string().max(120)).max(500) }).optional(),
       project: z.object({ headliner: z.string().max(120), city: z.string().max(60), date: z.string().max(60), venue: z.string().max(120), capacity: z.number().int().positive().max(200_000) }).optional(),
+      last: z.object({ headliner: z.string().max(120), city: z.string().max(60), date: z.string().max(60), opener: z.string().max(120).optional() }).optional(),
       entities: z.record(z.string().max(120), z.string().max(120)).optional(),
     })
     .optional(),

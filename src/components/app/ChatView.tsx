@@ -17,6 +17,20 @@ import { IconArrowRight, IconChart, IconCheck, IconChevron, IconDoc, IconFolder,
 import { MoreMenu } from "./MoreMenu";
 import s from "./ChatView.module.css";
 
+// The show and opener of the chat's latest result, so "now find venues" needs no names.
+function lastShow(messages: Message[]) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const arts = messages[i].artifacts ?? [];
+    if (!arts.length) continue;
+    const { headliner, city, date } = arts[0].show;
+    const withOpener = arts.find((a) => a.type === "crowd_map" || a.type === "audience");
+    const ranking = arts.find((a) => a.type === "opener_ranking");
+    const opener = withOpener && "opener" in withOpener ? withOpener.opener : ranking?.type === "opener_ranking" ? ranking.rows[0]?.name : undefined;
+    return { headliner, city, date, opener };
+  }
+  return undefined;
+}
+
 // An error whose message is written for the person reading the chat.
 class ShownError extends Error {}
 
@@ -25,8 +39,8 @@ const tasksFor = (artist: string, city: string) => [
   { icon: IconUsers, title: "Find an opener", hint: "Ranked by the crowd each act adds", prompt: `Find an opener for ${artist} in ${city}, Mar 14. Roster only.` },
   { icon: IconRoute, title: "Route a tour", hint: "Cities ranked by fan demand", prompt: `Which cities should ${artist} play on a Midwest leg in March?` },
   { icon: IconTag, title: "Match sponsors", hint: "Brands your fans already buy", prompt: `Find sponsors whose customers love ${artist}, for the ${city} show.` },
-  { icon: IconStore, title: "Plan the local push", hint: "Bars and shops that share your crowd", prompt: `Find co-promo partners in ${city} for ${artist} with Halcyon Drive.` },
-  { icon: IconChart, title: "Know the audience", hint: "Age, gender and taste, side by side", prompt: `Who is the audience for ${artist} and Halcyon Drive in ${city}? Age and gender.` },
+  { icon: IconStore, title: "Plan the local push", hint: "Bars and shops that share your crowd", prompt: `Find co-promo partners in ${city} for ${artist} and the top opener.` },
+  { icon: IconChart, title: "Know the audience", hint: "Age, gender and taste, side by side", prompt: `Who is the audience for ${artist} in ${city}, next to the top opener? Age and gender.` },
   { icon: IconDoc, title: "Write a proposal", hint: "A draft you can edit and export", prompt: `Write a proposal for ${artist} in ${city}, Mar 14, addressed to their management.` },
 ];
 
@@ -127,6 +141,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
             roster: roster && { name: roster.name, acts: roster.acts },
             project: chatProject && { headliner: chatProject.headliner, city: chatProject.city, date: chatProject.date, venue: chatProject.venue, capacity: chatProject.capacity },
             entities,
+            last: lastShow(withUser.messages),
           },
         }),
       });

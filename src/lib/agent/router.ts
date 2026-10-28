@@ -14,7 +14,7 @@ const INTENTS: [Kind, RegExp][] = [
   ["partners", /partner|co-?promo|flyer|bars? |shops?|local push/],
   ["venues", /venue|room|hall|hold/],
   ["routing", /route|routing|tour leg|\bleg\b|cities/],
-  ["audience", /audience|demographic|who (are|is) (the|their) fans|\bage\b|gender/],
+  ["audience", /audience|demographic|who comes|who (are|is) (the|their) (fans|crowd)|\bage\b|gender/],
   ["map", /map|neighbou?rhood|where .*fans|heat|added crowd/],
 ];
 
@@ -47,16 +47,18 @@ export function headlinerIn(text: string): string | undefined {
 export function plan(text: string, mode: Mode, ctx?: ChatContext): Plan {
   const kind = intent(text, mode);
   const named = headlinerIn(text);
-  const headliner = named ?? ctx?.project?.headliner ?? ctx?.artists?.[0];
-  const city = cityIn(text)?.name;
-  const date = text.match(MONTH)?.[0];
+  // a follow-up ("now the venues") keeps the show the chat was on; a new name starts a new show
+  const last = named && named.toLowerCase() !== ctx?.last?.headliner.toLowerCase() ? undefined : ctx?.last;
+  const headliner = named ?? last?.headliner ?? ctx?.project?.headliner ?? ctx?.artists?.[0];
+  const city = cityIn(text)?.name ?? last?.city;
+  const date = text.match(MONTH)?.[0] ?? last?.date;
   const t = text.toLowerCase();
   const input: Record<string, unknown> = { headliner, city, date };
   if (/rising|up-and-coming|breaking/.test(t)) input.risingOnly = true;
   if (ctx?.roster && (kind === "opener" || /roster/.test(t))) input.roster = ctx.roster;
   // "Marlow Vane with Halcyon Drive", "Marlow Vane and Halcyon Drive": the second name is the opener
   const second = named ? text.slice(text.indexOf(named) + named.length).match(/^\s*(?:with|and|\+|&)\s+([A-Z][\w'.-]*(?:\s+(?:the|of|[A-Z][\w'.-]*)){0,3})/)?.[1] : undefined;
-  if (second && ["map", "partners", "audience", "email", "proposal"].includes(kind)) input.opener = second.replace(/[.,!?]+$/, "");
+  if (["map", "partners", "audience", "email", "proposal"].includes(kind)) input.opener = second?.replace(/[.,!?]+$/, "") ?? last?.opener;
   const tools: Record<Kind, ToolName[]> = {
     opener: ["rank_openers", "crowd_map"],
     map: ["crowd_map"],

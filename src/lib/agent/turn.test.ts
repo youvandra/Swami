@@ -63,6 +63,15 @@ test("an attached roster limits the ranking to its acts", async () => {
   assert.deepEqual(a.rows.map((r) => r.name), ["Halcyon Drive", "Fieldwork"]);
 });
 
+test("a follow-up keeps the chat's show and opener; a new name starts over", async () => {
+  const last = { headliner: "Marlow Vane", city: "Chicago", date: "Mar 14", opener: "Pia Marsh" };
+  const ctx = { workspace: "W", role: "Promoter", cities: ["Austin"], last };
+  const p = plan("now who comes to see them?", "auto", ctx);
+  assert.deepEqual([p.kind, p.headliner, p.input.city, p.input.date, p.input.opener], ["audience", "Marlow Vane", "Chicago", "Mar 14", "Pia Marsh"]);
+  const fresh = plan("Find an opener for Saint Rook", "auto", ctx);
+  assert.deepEqual([fresh.headliner, fresh.input.city], ["Saint Rook", undefined]);
+});
+
 test("no headliner anywhere asks for one; the project's headliner fills in", async () => {
   assert.match((await run(req("find me an opener"))).out.text, /Which artist/);
   const { out } = await run(req("who should open?", { context: { workspace: "W", role: "Promoter", cities: [], project: { headliner: "Marlow Vane", city: "Chicago", date: "Mar 14", venue: "The Thalia Room", capacity: 1100 } } }));
