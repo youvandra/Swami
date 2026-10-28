@@ -8,6 +8,8 @@ export type Show = {
   date: string;
   venue: string;
   capacity: number;
+  /** True when nobody gave a capacity and the default room size stands in. */
+  capacityAssumed?: boolean;
 };
 
 // status is set while a reply streams; stored steps are done or failed

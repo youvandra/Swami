@@ -89,6 +89,7 @@ export function showOf(ctx: ToolContext, input: { headliner: string; city?: stri
     date: input.date ?? d.date ?? "Date TBC",
     venue: input.venue ?? d.venue ?? "",
     capacity: input.capacity ?? d.capacity ?? ASSUMED_CAPACITY,
+    ...(input.capacity === undefined && d.capacity === undefined ? { capacityAssumed: true } : {}),
   };
 }
 

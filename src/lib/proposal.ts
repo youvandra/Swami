@@ -19,6 +19,9 @@ const list = (items: string[]) => (items.length <= 1 ? (items[0] ?? "") : `${ite
 export function draftProposal(template: ProposalTemplate, show: Show, picks: PickRow[], facts: ProposalFacts = { hoods: [], partners: [] }) {
   const [top, alt1 = top, alt2 = alt1] = picks;
   const cap = show.capacity.toLocaleString("en-US");
+  // an assumed room size stays out of the prose; the reader would take it as a fact
+  const known = !show.capacityAssumed;
+  const room = known ? `a ${cap}-cap room` : "the room";
   const where = show.venue ? `${show.venue}, ${show.city}` : show.city;
   const at = show.venue ? `at ${where}` : `in ${where}`;
   const sponsor = facts.sponsor ?? "your brand";
@@ -32,10 +35,10 @@ export function draftProposal(template: ProposalTemplate, show: Show, picks: Pic
     to = facts.sponsor ? `${facts.sponsor}, partnerships` : "Brand partnerships team";
     headline = `${facts.sponsor ?? "Your brand"} × ${show.headliner}`;
     sections = [
-      { heading: "The show", body: `${show.headliner} with ${top.name} ${at} on ${show.date}. A ${cap}-capacity room, promoted for two weeks across ${hoods}.` },
+      { heading: "The show", body: `${show.headliner} with ${top.name} ${at} on ${show.date}${known ? `, a ${cap}-capacity room` : ""}, promoted for two weeks across ${hoods}.` },
       { heading: "Why this audience", body: `Fans of ${show.headliner} pick ${sponsor} far more often than the average concert-goer. ${top.name} adds a crowd of its own from ${hoods}.` },
       { heading: "What we propose", body: "A sampling bar next to merch, your logo on the promo links we send to each neighbourhood, and a shout-out from the stage before the headliner's set." },
-      { heading: "What you get", body: `Reach to ${cap} fans on the night, a tracked link per neighbourhood so you can see who came through you, and photo rights for your channels.` },
+      { heading: "What you get", body: `Reach to ${known ? `${cap} fans` : "a full room"} on the night, a tracked link per neighbourhood so you can see who came through you, and photo rights for your channels.` },
       { heading: "Next step", body: "A 20-minute call this week to agree on the activation and the fee." },
     ];
   } else if (template === "memo") {
@@ -45,7 +48,7 @@ export function draftProposal(template: ProposalTemplate, show: Show, picks: Pic
       { heading: "Recommendation", body: `Offer ${top.name} the support slot for ${show.headliner} ${at}, ${show.date}. Hold ${alt1.name} as first alternate and ${alt2.name} as second.` },
       { heading: "Evidence", body: `${top.why} Score ${top.score.toFixed(2)} against ${alt1.score.toFixed(2)} for ${alt1.name}.` },
       { heading: "Risks", body: `${top.name}'s heat is strongest away from the venue's usual crowd, so the local push has to land. If the presale stays flat at two weeks out, move spend to the headliner's own neighbourhoods.` },
-      { heading: "Ask", body: `Approve a guarantee within the support budget for a ${cap}-cap room and two weeks of neighbourhood ads.` },
+      { heading: "Ask", body: `Approve a guarantee within the support budget for ${room} and two weeks of neighbourhood ads.` },
     ];
   } else {
     to = `${show.headliner} management`;
@@ -54,7 +57,7 @@ export function draftProposal(template: ProposalTemplate, show: Show, picks: Pic
       { heading: "Summary", body: `We propose ${top.name} to open for ${show.headliner} ${at}, on ${show.date}. Their fans rate ${show.headliner} highly, and they live in the parts of the city where today's presale is thinnest.` },
       { heading: "Why this pairing sells", body: `${top.why} The added crowd sits mostly in ${hoods}.` },
       { heading: "Local push", body: `Two weeks of neighbourhood ads in ${hoods}, ${partners}, and one promo link per segment so the door count shows what worked.` },
-      { heading: "Terms to confirm", body: `A 30-minute set, a guarantee within the support budget for a ${cap}-cap room, and shared backline. Alternates: ${alt1.name} and ${alt2.name}.` },
+      { heading: "Terms to confirm", body: `A 30-minute set, a guarantee within the support budget for ${room}, and shared backline. Alternates: ${alt1.name} and ${alt2.name}.` },
     ];
   }
 
