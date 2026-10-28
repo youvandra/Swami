@@ -48,7 +48,7 @@ Ask in a chat. The answer streams back as a short message plus **artifacts**: do
 | 🎤 **Opener ranking** | *Find an opener for Big Thief in Chicago, Mar 14.* | Acts ranked by fan fit × reach gain, a reason per act, rising acts flagged, bigger-than-headliner acts demoted |
 | 🗺️ **Crowd map** | *Where would Lucy Dacus add crowd for Big Thief?* | Neighbourhoods where the headliner sells and where the opener adds people |
 | 🚐 **Tour routing** | *Which cities should Big Thief play on a Midwest leg?* | Cities ranked by fan strength, ordered into a drivable leg, room-size band per stop |
-| 🏛️ **Venues** | *Which venue fits Big Thief in Chicago for 1,100 people?* | Rooms the crowd already goes to, sized to the act |
+| 🏛️ **Venues** | *Which venue fits Big Thief in Chicago for 1,100 people?* | Rooms the crowd already goes to, sized to the act: clubs to stadiums, in the US and beyond (Jakarta works) |
 | 🤝 **Co-promo partners** | *Find co-promo partners in Chicago.* | Bars, restaurants, record shops and cafés in the neighbourhoods the opener adds |
 | 💸 **Sponsors** | *Find sponsors whose customers love Big Thief.* | Brands the fans over-index on, with an activation idea each |
 | 👥 **Audience** | *Who is the audience for Big Thief? Age and gender.* | Age and gender profile against the general population |
@@ -60,6 +60,7 @@ Ask in a chat. The answer streams back as a short message plus **artifacts**: do
 - 💬 **Follow-ups that remember.** *"What about Austin?"*, *"drop Phoebe Bridgers"*, *"now the venues"* reuse the show and the opener.
 - 🃏 **Picture cards for ambiguous names**, with *None of these* when Qloo found someone else.
 - ⏱️ **Live steps** while it works, plus Stop, Try again, copy, undo, and editing a question with the old answer kept as a version.
+- 🗂️ **A results panel** with scrollable, closable tabs grouped by question.
 - 📁 **Projects, rosters and workspaces** on Supabase, with invites and Viewer roles.
 - 🔢 **Numbers you can trust.** The AI writes the words; every figure comes from code and is checked before you see it.
 
@@ -189,6 +190,8 @@ With an empty `.env.local` the whole app runs on the fake taste graph, writes re
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Accounts, shared workspaces, daily limits |
 | `SUPABASE_SERVICE_ROLE_KEY` | The persistent Qloo cache, invite emails, the smoke test account |
 | `SWAMI_DAILY_RUNS_PER_WORKSPACE` | Daily run limit per workspace (default 200) |
+| `SMOKE_EMAIL`, `SMOKE_PASSWORD` | A test-only account `npm run smoke` signs in with when accounts are on |
+| `SWAMI_DEV_NO_AUTH` | Local development only: chat without a session (ignored in production) |
 
 <details>
 <summary><b>Supabase setup</b></summary>
@@ -208,7 +211,7 @@ With an empty `.env.local` the whole app runs on the fake taste graph, writes re
 | `npm run dev` | Dev server on :5192 |
 | `npm run check` | Typecheck, unit tests, production build |
 | `npm test` | Unit tests: scorers, tools, router, agent loop, parsers, markdown |
-| `npm run smoke` | Asks a running server one question per artifact type and validates every stream |
+| `npm run smoke` | Asks a running server one question per artifact type and validates every stream (signs in with `SMOKE_EMAIL` when accounts are on) |
 | `npm run test:rls` | Row-level security checks on a local Postgres |
 | `npm run probe` | Live Qloo probe; raw responses go to `fixtures/real/` (gitignored) |
 | `node scripts/build-demo-seed.ts` | Rebuilds the demo chats from the fake graph |
