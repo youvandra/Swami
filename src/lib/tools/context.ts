@@ -56,7 +56,7 @@ export function once<T>(ctx: ToolContext, key: string, work: () => Promise<T>): 
 export class ToolError extends Error {}
 
 export function plainError(e: unknown): string {
-  if (e instanceof ToolError) return e.message;
+  if (e instanceof ToolError || (e instanceof Error && e.name === "BudgetExceeded")) return e.message;
   const m = e instanceof Error ? e.message : String(e);
   if (/Qloo (429|5\d\d)|timeout|aborted|fetch failed/i.test(m)) return "Qloo is not answering; try again in a minute.";
   return m.slice(0, 160);

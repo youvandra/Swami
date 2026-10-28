@@ -1,6 +1,7 @@
 import { encodeEvent, type AgentEvent } from "@/lib/agent/events";
 import { runChat } from "@/lib/agent/run";
 import { uid } from "@/lib/tools/context";
+import { chatGate } from "@/lib/db/usage";
 import { env } from "@/lib/env";
 import { limiter } from "@/lib/ratelimit";
 import { z } from "zod";
@@ -38,10 +39,14 @@ export async function POST(req: Request) {
   const parsed = body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Invalid request", issues: parsed.error.issues.slice(0, 5) }, { status: 400 });
   const chat = parsed.data;
+  const gate = await chatGate();
+  if (!gate.ok) return Response.json({ error: gate.error }, { status: gate.status });
   const requestId = uid();
   const dataMode = env.qlooLive ? "live" : "fixture";
-  const log = (r: Awaited<ReturnType<typeof runChat>>) =>
+  const log = (r: Awaited<ReturnType<typeof runChat>>) => {
+    void gate.record({ qlooCalls: r.qlooCalls, tokensIn: r.usage.input, tokensOut: r.usage.output, ms: r.ms }).catch(() => {});
     console.log(JSON.stringify({ at: "chat", requestId, mode: r.mode, qlooCalls: r.qlooCalls, ms: r.ms, steps: r.message.steps?.length, failed: r.message.steps?.filter((s) => s.status === "failed").length, tokensIn: r.usage.input, tokensOut: r.usage.output }));
+  };
 
   if (req.headers.get("accept")?.includes("application/json")) {
     const r = await runChat(chat, () => {}, req.signal);
