@@ -8,7 +8,7 @@ import type { Artifact, Choice, Conversation, Message, Mode, Step } from "@/lib/
 import { readEvents } from "@/lib/sse";
 import { useServerStatus } from "@/lib/status";
 import { ROLES } from "@/lib/model";
-import { deleteConversation, newId, saveConversation, setConversationProject, useCanEdit, useConversation, useProjects, useWorkspace } from "@/lib/store";
+import { deleteConversation, newId, saveConversation, setConversationProject, useCanEdit, useConversation, useProjects, useRosters, useWorkspace } from "@/lib/store";
 import { Logo } from "../landing/Logo";
 import { ArtifactPanel, artifactIcon } from "./ArtifactPanel";
 import { useShell } from "./AppShell";
@@ -63,6 +63,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   const canEdit = useCanEdit();
   const projects = useProjects();
   const workspace = useWorkspace();
+  const rosters = useRosters();
   const tasks = tasksFor(workspace.artists[0] ?? "Marlow Vane", workspace.cities[0] ?? "Chicago");
   // a new chat can start inside a project (/app?project=…) and with a first question (&q=…)
   const [draftProject, setDraftProject] = useState<string | undefined>(undefined);
@@ -100,9 +101,12 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   }, [messages.length, busy]);
 
 
-  async function send(text: string, startProject = projectId, roster?: AttachedRoster, extraEntities: Record<string, string> = {}) {
+  async function send(text: string, startProject = projectId, attached?: AttachedRoster, extraEntities: Record<string, string> = {}) {
     const chatProject = projects.find((p) => p.id === startProject);
     if (busy) return;
+    // "roster only" with nothing attached means the workspace's newest roster
+    const saved = !attached && /\broster\b/i.test(text) ? rosters[0] : undefined;
+    const roster = attached ?? (saved && { name: saved.name, acts: saved.acts.map((a) => a.name) });
     const convId = id ?? newId();
     const shown = roster ? `${text}\n\nRoster: ${roster.name} (${roster.acts.length} acts)` : text;
     const user: Message = { id: newId(), role: "user", text: shown, createdAt: Date.now() };
