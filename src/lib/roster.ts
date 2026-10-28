@@ -3,6 +3,10 @@
 
 import type { Roster } from "./model";
 
+/** Bigger files are cut here; a roster is a list of acts, and 500 is more than any agency books in a season. */
+export const ROSTER_MAX_ACTS = 500;
+export const ROSTER_MAX_BYTES = 200_000;
+
 const HEAD_NAME = /^(act|artist|name|band)s?$/i;
 const HEAD_GENRE = /^(genre|style)$/i;
 
@@ -28,6 +32,7 @@ function splitCsv(line: string): string[] {
 
 export function parseRoster(text: string): Roster["acts"] {
   const lines = text
+    .slice(0, ROSTER_MAX_BYTES)
     .split(/\r?\n/)
     .map((l) => l.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim())
     .filter(Boolean);
@@ -48,6 +53,7 @@ export function parseRoster(text: string): Roster["acts"] {
     const cells = splitCsv(line);
     const name = cells[nameCol]?.trim();
     if (!name || seen.has(name.toLowerCase())) continue;
+    if (acts.length >= ROSTER_MAX_ACTS) break;
     seen.add(name.toLowerCase());
     const genre = genreCol >= 0 ? cells[genreCol]?.trim() : undefined;
     acts.push(genre ? { name, genre } : { name });

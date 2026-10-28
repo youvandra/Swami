@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { parseRoster } from "@/lib/roster";
+import { toast } from "@/lib/toast";
+import { ROSTER_MAX_BYTES, parseRoster } from "@/lib/roster";
 import { saveRoster } from "@/lib/store";
 import type { Roster } from "@/lib/model";
 import { IconClip, IconClose } from "../icons";
@@ -60,6 +61,7 @@ export function RosterDialog({ onClose, onSaved }: { onClose: () => void; onSave
             onChange={async (e) => {
               const f = e.target.files?.[0];
               if (!f) return;
+              if (f.size > ROSTER_MAX_BYTES) toast(`${f.name} is over 200 KB; Swami reads the first 500 acts`);
               setFile(f.name);
               setText(await f.text());
               e.target.value = "";

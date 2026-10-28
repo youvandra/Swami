@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseRoster } from "./roster.ts";
+import { ROSTER_MAX_ACTS, parseRoster } from "./roster.ts";
 
 test("one act per line, with bullets and numbering", () => {
   assert.deepEqual(parseRoster("- Halcyon Drive\n2. Pia Marsh\n\n• Fieldwork"), [{ name: "Halcyon Drive" }, { name: "Pia Marsh" }, { name: "Fieldwork" }]);
@@ -23,4 +23,9 @@ test("CSV with a header picks the named columns", () => {
 
 test("duplicates are dropped, case-insensitively", () => {
   assert.deepEqual(parseRoster("Fieldwork\nfieldwork\nFIELDWORK"), [{ name: "Fieldwork" }]);
+});
+
+test("long lists stop at the act limit", () => {
+  const text = Array.from({ length: 900 }, (_, i) => `Act ${i}`).join("\n");
+  assert.equal(parseRoster(text).length, ROSTER_MAX_ACTS);
 });
