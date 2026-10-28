@@ -4,9 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { site } from "@/lib/site";
-import { useConversations, useProjects } from "@/lib/store";
+import { useConversations, useHydrated, useProjects, useTeam, useWorkspace } from "@/lib/store";
 import { Logo } from "../landing/Logo";
 import { IconChat, IconClose, IconFolder, IconPlus, IconSearch, IconSettings, IconSidebar } from "./icons";
+import { Onboarding } from "./onboarding/Onboarding";
 import s from "./AppShell.module.css";
 
 type Shell = { openNav: () => void };
@@ -17,6 +18,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const conversations = useConversations();
   const projects = useProjects();
+  const workspace = useWorkspace();
+  const team = useTeam();
+  const hydrated = useHydrated();
+  const initials = workspace.name
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  const planLabel = { single: "Single show", season: "Season plan", group: "Venue group" }[workspace.plan];
   const [navOpen, setNavOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState("");
@@ -101,21 +112,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </ul>
           </nav>
 
-          <div className={s.workspace}>
-            <span className={s.avatar}>NL</span>
+          <Link href="/app/settings" className={s.workspace} aria-current={pathname.startsWith("/app/settings") ? "page" : undefined}>
+            <span className={s.avatar}>{hydrated ? initials : ""}</span>
             <span className={s.wsText}>
-              <b>Northside Live</b>
-              <span>Season plan · 4 seats</span>
+              <b>{hydrated ? workspace.name : "\u00a0"}</b>
+              <span>{hydrated ? `${planLabel} · ${team.length} seat${team.length === 1 ? "" : "s"}` : "\u00a0"}</span>
             </span>
-            <button className={s.iconBtn} aria-label="Settings">
+            <span className={s.iconBtn} aria-hidden="true">
               <IconSettings />
-            </button>
-          </div>
+            </span>
+          </Link>
         </aside>
 
         {navOpen && <button className={s.scrim} aria-label="Close menu" onClick={() => setNavOpen(false)} />}
 
         <div className={s.main}>{children}</div>
+        {hydrated && !workspace.onboarded && <Onboarding />}
       </div>
     </ShellContext.Provider>
   );

@@ -93,3 +93,7 @@
   .send { margin-left: auto; }
   .composer { border-radius: 18px; padding: 10px 10px 8px 14px; }
 }
+
+/* the roster menu opens upwards from the composer */
+.menuUp.menuUp { top: auto; bottom: calc(100% + 8px); left: 0; right: auto; }
+.tool[data-on] { border-color: var(--teal); color: var(--teal); background: #eefafc; }

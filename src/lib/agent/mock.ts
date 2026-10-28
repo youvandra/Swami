@@ -3,7 +3,7 @@
 
 import { CHICAGO_HOODS } from "../crowdmap";
 import { draftProposal, templateOf } from "../proposal";
-import type { Artifact, ChatRequest, ChatResponse, Mode, OpenerRow, Show, Step } from "./types";
+import type { Artifact, ChatContext, ChatRequest, ChatResponse, Mode, OpenerRow, Show, Step } from "./types";
 
 type Kind = Exclude<Mode, "auto">;
 
@@ -12,7 +12,7 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const CITIES = ["Chicago", "Austin", "Seattle", "Denver", "Atlanta", "Brooklyn", "Los Angeles", "Milwaukee", "Detroit", "Minneapolis", "Jakarta", "London"];
 
 const OPENERS: Omit<OpenerRow, "score">[] = [
-  { name: "Halcyon Drive", genre: "Indie rock", fit: 0.91, reachGain: 0.86, why: "Ranks 4th of 50 among acts Marlow Vane fans love, and owns Logan Square and Pilsen, where the headliner runs cold.", hoods: ["Logan Square", "Pilsen"], onRoster: true, rising: true, estimated: false },
+  { name: "Halcyon Drive", genre: "Indie rock", fit: 0.91, reachGain: 0.86, why: "Ranks 4th of 50 among acts the headliner's fans love, and owns Logan Square and Pilsen, where the headliner runs cold.", hoods: ["Logan Square", "Pilsen"], onRoster: true, rising: true, estimated: false },
   { name: "The Low Orchard", genre: "Folk pop", fit: 0.88, reachGain: 0.7, why: "Close taste match with a strong pull in Avondale. Overlaps with the headliner in Wicker Park.", hoods: ["Avondale", "Wicker Park"], onRoster: true, rising: false, estimated: false },
   { name: "Pia Marsh", genre: "Alt R&B", fit: 0.74, reachGain: 0.81, why: "A younger crowd on the South Side. Brings people who rarely show up for the headliner.", hoods: ["Hyde Park", "Pilsen"], onRoster: false, rising: true, estimated: false },
   { name: "Copper Hours", genre: "Garage", fit: 0.69, reachGain: 0.64, why: "Steady local draw in Logan Square. Smaller footprint, so the heat is estimated from its scene.", hoods: ["Logan Square"], onRoster: true, rising: false, estimated: true },
@@ -50,16 +50,46 @@ function intent(text: string, mode: Mode): Kind {
   return INTENTS.find(([, re]) => re.test(t))?.[0] ?? "opener";
 }
 
-const rankedOpeners = () => OPENERS.map((o) => ({ ...o, score: scoreOf(o.fit, o.reachGain) })).sort((a, b) => b.score - a.score);
+// stable 0..1 from a name, so an act we have no fixture for always gets the same estimate
+const unit = (s: string, salt: number) => {
+  let h = 2166136261 ^ salt;
+  for (const c of s.toLowerCase()) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  return ((h >>> 0) % 1000) / 1000;
+};
 
-const ranking = (show: Show): Artifact => ({
-  id: uid(),
-  type: "opener_ranking",
-  title: `Openers for ${show.headliner}`,
-  subtitle: `${show.city} · ${show.date} · ${OPENERS.length} candidates`,
-  show,
-  rows: rankedOpeners(),
-});
+// With a roster attached, only its acts are ranked; acts without their own data get a scene estimate.
+function rankedOpeners(roster?: ChatContext["roster"]) {
+  const pool: Omit<OpenerRow, "score">[] = roster
+    ? roster.acts.map((name) => {
+        const known = OPENERS.find((o) => o.name.toLowerCase() === name.toLowerCase());
+        if (known) return { ...known, onRoster: true };
+        return {
+          name,
+          genre: "From roster",
+          fit: Math.round((0.5 + unit(name, 1) * 0.4) * 100) / 100,
+          reachGain: Math.round((0.4 + unit(name, 2) * 0.45) * 100) / 100,
+          why: "Too new to have its own taste profile, so the fit is estimated from fans of its genre and scene in this city.",
+          hoods: ["Logan Square"],
+          onRoster: true,
+          rising: unit(name, 3) > 0.6,
+          estimated: true,
+        };
+      })
+    : OPENERS;
+  return pool.map((o) => ({ ...o, score: scoreOf(o.fit, o.reachGain) })).sort((a, b) => b.score - a.score);
+}
+
+const ranking = (show: Show, roster?: ChatContext["roster"]): Artifact => {
+  const rows = rankedOpeners(roster);
+  return {
+    id: uid(),
+    type: "opener_ranking",
+    title: `Openers for ${show.headliner}`,
+    subtitle: roster ? `${show.city} · ${show.date} · ${rows.length} acts on ${roster.name}` : `${show.city} · ${show.date} · ${rows.length} candidates`,
+    show,
+    rows,
+  };
+};
 
 const map = (show: Show, opener: string): Artifact => ({
   id: uid(),
@@ -71,8 +101,8 @@ const map = (show: Show, opener: string): Artifact => ({
   hoods: CHICAGO_HOODS,
 });
 
-function proposal(show: Show, text: string): Artifact {
-  const picks = rankedOpeners()
+function proposal(show: Show, text: string, ctx?: ChatContext): Artifact {
+  const picks = rankedOpeners(ctx?.roster)
     .slice(0, 3)
     .map(({ name, score, why }) => ({ name, score, why }));
   const template = /sponsor|brand/i.test(text) ? "sponsor" : /memo|internal/i.test(text) ? "memo" : "promoter";
@@ -86,7 +116,7 @@ function proposal(show: Show, text: string): Artifact {
     template: d.template,
     headline: d.headline,
     to: d.to,
-    from: "Northside Live, talent buying",
+    from: ctx ? `${ctx.workspace}, ${ctx.role.toLowerCase()}` : "Northside Live, talent buying",
     date: "28 Oct 2026",
     picks,
     sections: d.sections,
@@ -183,9 +213,9 @@ const audience = (show: Show, opener: string): Artifact => ({
 });
 
 // The draft follows whoever the request names: a sponsor, a venue, a co-promo partner, or (by default) the opener.
-function email(show: Show, text: string): Artifact {
+function email(show: Show, text: string, workspace = "Northside Live"): Artifact {
   const cap = show.capacity.toLocaleString("en-US");
-  const sign = "Best,\nNorthside Live";
+  const sign = `Best,\n${workspace}`;
   const named = (re: RegExp, fallback: string) => text.match(re)?.[1]?.trim() ?? fallback;
   let d: { who: string; to: string; subject: string; body: string };
   if (/sponsor|brand/i.test(text)) {
@@ -269,12 +299,17 @@ export function mockReply(req: ChatRequest): ChatResponse {
   const last = [...req.messages].reverse().find((m) => m.role === "user")?.text ?? "";
   const kind = intent(last, req.mode);
   const show = readShow(last);
-  const opener = "Halcyon Drive";
+  const ctx = req.context;
+  const roster = ctx?.roster;
+  const top = rankedOpeners(roster)[0];
+  const opener = top.name;
 
   const replies: Record<Kind, () => { text: string; artifacts: Artifact[]; title: string }> = {
     opener: () => ({
-      text: `I ranked 6 acts for ${show.headliner} in ${show.city} on ${show.date}. ${opener} leads: a strong taste match, and its fans live where the headliner runs cold. Two picks are estimated from their scene because their own data is thin.`,
-      artifacts: [ranking(show), map(show, opener)],
+      text: roster
+        ? `I ranked the ${roster.acts.length} acts on ${roster.name} for ${show.headliner} in ${show.city} on ${show.date}. ${opener} leads with a score of ${top.score.toFixed(2)}. Acts without their own taste data are estimated from their scene and marked that way.`
+        : `I ranked 6 acts for ${show.headliner} in ${show.city} on ${show.date}. ${opener} leads: a strong taste match, and its fans live where the headliner runs cold. Two picks are estimated from their scene because their own data is thin.`,
+      artifacts: [ranking(show, roster), map(show, opener)],
       title: `${show.city}, ${show.date} · openers`,
     }),
     map: () => ({
@@ -308,7 +343,7 @@ export function mockReply(req: ChatRequest): ChatResponse {
       title: `Audience · ${show.headliner} + ${opener}`,
     }),
     proposal: () => {
-      const a = proposal(show, last);
+      const a = proposal(show, last, ctx);
       const label = a.type === "proposal" ? templateOf(a.template).label : "Proposal";
       return {
         text: `Here is a draft ${label.toLowerCase()} for ${show.headliner} in ${show.city}, built on ${opener} and two alternates. Edit any line on the page, switch the template, or export it to PDF or Word.`,
@@ -318,7 +353,7 @@ export function mockReply(req: ChatRequest): ChatResponse {
     },
     email: () => ({
       text: "Here is a draft. Edit the subject or body, then copy it or open it in your mail app.",
-      artifacts: [email(show, last)],
+      artifacts: [email(show, last, ctx?.workspace)],
       title: `Email · ${show.headliner}`,
     }),
   };

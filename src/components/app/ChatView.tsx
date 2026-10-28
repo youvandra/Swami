@@ -2,21 +2,23 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Artifact, ChatResponse, Conversation, Message, Mode } from "@/lib/agent/types";
-import { newId, saveConversation, setConversationProject, useConversation, useProjects } from "@/lib/store";
+import { ROLES } from "@/lib/model";
+import { newId, saveConversation, setConversationProject, useConversation, useProjects, useWorkspace } from "@/lib/store";
 import { Logo } from "../landing/Logo";
 import { ArtifactPanel, artifactIcon } from "./ArtifactPanel";
 import { useShell } from "./AppShell";
-import { Composer } from "./Composer";
+import { Composer, type AttachedRoster } from "./Composer";
 import { IconCheck, IconChevron, IconDoc, IconMenu, IconPanel, IconRoute, IconShare, IconStore, IconTag, IconUsers } from "./icons";
 import s from "./ChatView.module.css";
 
-const TASKS = [
-  { icon: IconUsers, title: "Find an opener", prompt: "Find an opener for Marlow Vane in Chicago, Mar 14. Roster only." },
-  { icon: IconRoute, title: "Route a tour leg", prompt: "Which cities should Marlow Vane play on a Midwest leg in March?" },
-  { icon: IconTag, title: "Match sponsors", prompt: "Find sponsors whose customers love Marlow Vane, for the Chicago show." },
-  { icon: IconStore, title: "Plan the local push", prompt: "Find co-promo partners in Chicago for Marlow Vane with Halcyon Drive." },
-  { icon: IconUsers, title: "Know the audience", prompt: "Who is the audience for Marlow Vane and Halcyon Drive in Chicago? Age and gender." },
-  { icon: IconDoc, title: "Write a proposal", prompt: "Write a proposal to Marlow Vane management for the Chicago opener." },
+// Quick tasks start from the workspace's own artists and cities.
+const tasksFor = (artist: string, city: string) => [
+  { icon: IconUsers, title: "Find an opener", prompt: `Find an opener for ${artist} in ${city}, Mar 14. Roster only.` },
+  { icon: IconRoute, title: "Route a tour leg", prompt: `Which cities should ${artist} play on a Midwest leg in March?` },
+  { icon: IconTag, title: "Match sponsors", prompt: `Find sponsors whose customers love ${artist}, for the ${city} show.` },
+  { icon: IconStore, title: "Plan the local push", prompt: `Find co-promo partners in ${city} for ${artist} with Halcyon Drive.` },
+  { icon: IconUsers, title: "Know the audience", prompt: `Who is the audience for ${artist} and Halcyon Drive in ${city}? Age and gender.` },
+  { icon: IconDoc, title: "Write a proposal", prompt: `Write a proposal for ${artist} in ${city}, Mar 14, addressed to their management.` },
 ];
 
 export function ChatView({ id: routeId }: { id: string | null }) {
@@ -32,6 +34,8 @@ export function ChatView({ id: routeId }: { id: string | null }) {
   const [hydrated, setHydrated] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   const projects = useProjects();
+  const workspace = useWorkspace();
+  const tasks = tasksFor(workspace.artists[0] ?? "Marlow Vane", workspace.cities[0] ?? "Chicago");
   // a new chat can start inside a project (/app?project=…) and with a first question (&q=…)
   const [draftProject, setDraftProject] = useState<string | undefined>(undefined);
   const projectId = stored?.projectId ?? draftProject;
@@ -73,10 +77,11 @@ export function ChatView({ id: routeId }: { id: string | null }) {
     return () => clearTimeout(t);
   }, [toast]);
 
-  async function send(text: string, startProject = projectId) {
+  async function send(text: string, startProject = projectId, roster?: AttachedRoster) {
     if (busy) return;
     const convId = id ?? newId();
-    const user: Message = { id: newId(), role: "user", text, createdAt: Date.now() };
+    const shown = roster ? `${text}\n\nRoster: ${roster.name} (${roster.acts.length} acts)` : text;
+    const user: Message = { id: newId(), role: "user", text: shown, createdAt: Date.now() };
     const base: Conversation = stored ?? { id: convId, title: text.slice(0, 48), mode, projectId: startProject, updatedAt: Date.now(), messages: [] };
     const withUser = { ...base, mode, updatedAt: Date.now(), messages: [...base.messages, user] };
     opened.current = true; // the reply opens its own artifact below
@@ -92,7 +97,12 @@ export function ChatView({ id: routeId }: { id: string | null }) {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ conversationId: convId, mode, messages: withUser.messages.map(({ role, text }) => ({ role, text })) }),
+        body: JSON.stringify({
+          conversationId: convId,
+          mode,
+          messages: withUser.messages.map(({ role, text }) => ({ role, text })),
+          context: { workspace: workspace.name, role: ROLES.find((r) => r.id === workspace.role)?.label ?? workspace.role, cities: workspace.cities, roster },
+        }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as ChatResponse;
@@ -184,10 +194,10 @@ export function ChatView({ id: routeId }: { id: string | null }) {
               <p className={s.sub}>Openers, routing, venues, sponsors, proposals. Every answer comes with data you can check, edit and send.</p>
             </div>
             <div className={s.composerWrap}>
-              <Composer onSend={(q) => send(q)} mode={mode} onMode={setMode} busy={busy} autoFocus />
+              <Composer onSend={(q, r) => send(q, projectId, r)} mode={mode} onMode={setMode} busy={busy} autoFocus />
             </div>
             <div className={s.tasks}>
-              {TASKS.map((t) => (
+              {tasks.map((t) => (
                 <button key={t.title} className={s.task} onClick={() => send(t.prompt)}>
                   <t.icon className={s.taskIcon} />
                   <span className={s.taskTitle}>{t.title}</span>
@@ -221,7 +231,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
               </div>
             </div>
             <div className={s.dock}>
-              <Composer onSend={(q) => send(q)} mode={mode} onMode={setMode} busy={busy} placeholder="Ask a follow-up…" />
+              <Composer onSend={(q, r) => send(q, projectId, r)} mode={mode} onMode={setMode} busy={busy} placeholder="Ask a follow-up…" />
               <p className={s.disclaimer}>Scores show audience affinity. Check names and terms before you send anything.</p>
             </div>
           </>

@@ -103,6 +103,9 @@
   background: #fff;
   border: 1px solid var(--line);
 }
+.workspace { transition: border-color 0.15s, box-shadow 0.15s; }
+.workspace:hover,
+.workspace[aria-current="page"] { border-color: rgba(14, 58, 69, 0.35); box-shadow: 0 1px 3px rgba(10, 15, 21, 0.06); }
 .avatar {
   width: 32px;
   height: 32px;

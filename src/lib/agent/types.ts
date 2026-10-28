@@ -92,5 +92,8 @@ export type Conversation = {
   messages: Message[];
 };
 
-export type ChatRequest = { conversationId: string; messages: Pick<Message, "role" | "text">[]; mode: Mode };
+// What the workspace tells the agent on every request: who is asking, and the roster to rank inside, if any.
+export type ChatContext = { workspace: string; role: string; cities: string[]; roster?: { name: string; acts: string[] } };
+
+export type ChatRequest = { conversationId: string; messages: Pick<Message, "role" | "text">[]; mode: Mode; context?: ChatContext };
 export type ChatResponse = { message: Message; title: string };

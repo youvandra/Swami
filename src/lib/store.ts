@@ -6,13 +6,41 @@
 import { useSyncExternalStore } from "react";
 import { mockReply } from "./agent/mock";
 import type { Artifact, Conversation } from "./agent/types";
-import { TONES, type Project, type SavedArtifact } from "./model";
+import { TONES, type Member, type Project, type Roster, type SavedArtifact, type Workspace } from "./model";
 
-type State = { conversations: Conversation[]; projects: Project[]; saved: SavedArtifact[] };
+type State = {
+  conversations: Conversation[];
+  projects: Project[];
+  saved: SavedArtifact[];
+  workspace: Workspace;
+  team: Member[];
+  rosters: Roster[];
+};
 
 const KEY = "swami.state.v2";
 const LEGACY_KEY = "swami.conversations.v1";
-const EMPTY: State = { conversations: [], projects: [], saved: [] };
+const DEFAULT_WORKSPACE: Workspace = { name: "Northside Live", role: "promoter", cities: ["Chicago"], artists: ["Marlow Vane"], plan: "season", onboarded: false };
+const DEFAULT_TEAM: Member[] = [
+  { id: "m-you", name: "You", email: "you@northsidelive.example", role: "Owner", status: "active" },
+  { id: "m-ana", name: "Ana Ruiz", email: "ana@northsidelive.example", role: "Editor", status: "active" },
+  { id: "m-dev", name: "Dev Patel", email: "dev@northsidelive.example", role: "Editor", status: "active" },
+  { id: "m-kim", name: "Kim Osei", email: "kim@northsidelive.example", role: "Viewer", status: "invited" },
+];
+const DEFAULT_ROSTERS: Roster[] = [
+  {
+    id: "r-northlight",
+    name: "Northlight Agency · spring",
+    createdAt: Date.UTC(2026, 9, 20),
+    acts: [
+      { name: "Halcyon Drive", genre: "Indie rock" },
+      { name: "The Low Orchard", genre: "Folk pop" },
+      { name: "Copper Hours", genre: "Garage" },
+      { name: "Fieldwork", genre: "Post-punk" },
+      { name: "Glass Meridian", genre: "Synth pop" },
+    ],
+  },
+];
+const EMPTY: State = { conversations: [], projects: [], saved: [], workspace: DEFAULT_WORKSPACE, team: [], rosters: [] };
 let cache: State | null = null;
 const listeners = new Set<() => void>();
 
@@ -41,15 +69,24 @@ function seed(): State {
     { projectId: "p-spring", conversationId: "demo-route", artifact: conversations[1].messages[1].artifacts![0], savedAt: now - 170 * min },
     { projectId: "p-chicago", conversationId: "demo-sponsors", artifact: conversations[2].messages[1].artifacts![0], savedAt: now - 290 * min },
   ];
-  return { conversations, projects, saved };
+  return { conversations, projects, saved, workspace: DEFAULT_WORKSPACE, team: DEFAULT_TEAM, rosters: DEFAULT_ROSTERS };
 }
+
+// state saved before settings existed gets the defaults
+const complete = (s: Partial<State>): State => ({
+  ...EMPTY,
+  ...s,
+  workspace: { ...DEFAULT_WORKSPACE, ...s.workspace },
+  team: s.team ?? DEFAULT_TEAM,
+  rosters: s.rosters ?? DEFAULT_ROSTERS,
+} as State);
 
 function read(): State {
   if (cache) return cache;
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
-      cache = JSON.parse(raw) as State;
+      cache = complete(JSON.parse(raw) as Partial<State>);
     } else {
       cache = seed();
       // keep chats made before projects existed
@@ -87,6 +124,9 @@ const byRecent = <T extends { updatedAt: number }>(xs: T[]) => [...xs].sort((a, 
 export const useConversations = () => useSyncExternalStore(subscribe, () => read().conversations, () => EMPTY.conversations);
 export const useProjects = () => useSyncExternalStore(subscribe, () => read().projects, () => EMPTY.projects);
 export const useSaved = () => useSyncExternalStore(subscribe, () => read().saved, () => EMPTY.saved);
+export const useWorkspace = () => useSyncExternalStore(subscribe, () => read().workspace, () => EMPTY.workspace);
+export const useTeam = () => useSyncExternalStore(subscribe, () => read().team, () => EMPTY.team);
+export const useRosters = () => useSyncExternalStore(subscribe, () => read().rosters, () => EMPTY.rosters);
 export const useHydrated = () => useSyncExternalStore(subscribe, () => true, () => false);
 
 export function useConversation(id: string | null) {
@@ -134,6 +174,7 @@ export function updateProject(id: string, patch: Partial<Omit<Project, "id">>) {
 export function deleteProject(id: string) {
   const s = read();
   write({
+    ...s,
     conversations: s.conversations.map((c) => (c.projectId === id ? { ...c, projectId: undefined } : c)),
     projects: s.projects.filter((p) => p.id !== id),
     saved: s.saved.filter((x) => x.projectId !== id),
@@ -169,4 +210,51 @@ export function updateArtifact(artifact: Artifact) {
     ),
     saved: s.saved.map((x) => (x.artifact.id === artifact.id ? { ...x, artifact } : x)),
   });
+}
+
+// ---------- workspace ----------
+
+export function updateWorkspace(patch: Partial<Workspace>) {
+  const s = read();
+  write({ ...s, workspace: { ...s.workspace, ...patch } });
+}
+
+export function inviteMember(email: string, role: Member["role"]) {
+  const s = read();
+  const name = email.split("@")[0].replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  write({ ...s, team: [...s.team, { id: `m-${newId()}`, name, email, role, status: "invited" }] });
+}
+
+export function updateMember(id: string, patch: Partial<Member>) {
+  const s = read();
+  write({ ...s, team: s.team.map((m) => (m.id === id ? { ...m, ...patch } : m)) });
+}
+
+export function removeMember(id: string) {
+  const s = read();
+  write({ ...s, team: s.team.filter((m) => m.id !== id) });
+}
+
+export function saveRoster(name: string, acts: Roster["acts"]): Roster {
+  const s = read();
+  const roster: Roster = { id: `r-${newId()}`, name, acts, createdAt: Date.now() };
+  write({ ...s, rosters: [roster, ...s.rosters] });
+  return roster;
+}
+
+export function deleteRoster(id: string) {
+  const s = read();
+  write({ ...s, rosters: s.rosters.filter((r) => r.id !== id) });
+}
+
+// Clears everything in this browser and starts again from the demo workspace.
+export function resetWorkspace() {
+  try {
+    localStorage.removeItem(KEY);
+    localStorage.removeItem(LEGACY_KEY);
+  } catch {
+    // storage blocked: the in-memory reset below still applies
+  }
+  cache = null;
+  write(read());
 }
