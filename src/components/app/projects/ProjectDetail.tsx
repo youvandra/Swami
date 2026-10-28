@@ -86,10 +86,15 @@ export function ProjectDetail({ id }: { id: string }) {
                 icon: IconTrash,
                 danger: true,
                 onSelect: () => {
-                  if (window.confirm(`Delete “${project.name}”? Its chats stay in Recent; saved results are removed from the project.`)) {
-                    deleteProject(project.id);
-                    router.push("/app/projects");
-                  }
+                  const restore = deleteProject(project.id);
+                  router.push("/app/projects");
+                  toast(`Deleted “${project.name}”. Its chats stay in Recent.`, {
+                    label: "Undo",
+                    run: () => {
+                      restore();
+                      router.push(`/app/projects/${project.id}`);
+                    },
+                  });
                 },
               },
             ]}

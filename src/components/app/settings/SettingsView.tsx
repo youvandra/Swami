@@ -23,7 +23,9 @@ import {
 import { useShell } from "../AppShell";
 import { timeAgo } from "../artifacts/meta";
 import { ChipInput } from "../ChipInput";
-import { IconCheck, IconClose, IconMenu, IconPlus } from "../icons";
+import { IconCheck, IconChevron, IconClose, IconMenu, IconPlus } from "../icons";
+import { Dialog } from "../ui/Dialog";
+import { Dropdown, type Option } from "../ui/Dropdown";
 import { RosterDialog } from "./RosterDialog";
 import p from "../projects/Projects.module.css";
 import s from "./Settings.module.css";
@@ -110,6 +112,7 @@ function WorkspaceTab({ onToast }: { onToast: (m: string) => void }) {
   const memberships = useMemberships();
   const current = useCurrentWorkspaceId();
   const [name, setName] = useState(ws.name);
+  const [resetting, setResetting] = useState(false);
   return (
     <>
       <Section title="Workspace" hint="Your company name signs every proposal and email draft.">
@@ -190,18 +193,35 @@ function WorkspaceTab({ onToast }: { onToast: (m: string) => void }) {
       ) : (
         <Section title="Start over" hint="Clears every chat, project and setting in this browser and reloads the demo workspace.">
           <div>
-            <button
-              className={s.danger}
-              onClick={() => {
-                if (window.confirm("Reset this workspace? Chats, projects, rosters and settings in this browser are deleted.")) resetWorkspace();
-              }}
-            >
+            <button className={s.danger} onClick={() => setResetting(true)}>
               Reset workspace
             </button>
+            {resetting && <ResetDialog name={ws.name} onClose={() => setResetting(false)} />}
           </div>
         </Section>
       )}
     </>
+  );
+}
+
+const ROLE_OPTIONS: Option<"Editor" | "Viewer">[] = [
+  { value: "Editor", label: "Editor", hint: "Chats and edits projects" },
+  { value: "Viewer", label: "Viewer", hint: "Reads and exports" },
+];
+
+// Resetting deletes everything and has no undo, so it asks for the workspace's name first.
+function ResetDialog({ name, onClose }: { name: string; onClose: () => void }) {
+  const [typed, setTyped] = useState("");
+  return (
+    <Dialog title="Reset workspace" primary="Reset workspace" tone="danger" disabled={typed.trim() !== name.trim()} onClose={onClose} onSubmit={resetWorkspace}>
+      <p className={s.hintText}>
+        Every chat, project, roster and setting in this browser is deleted, and the demo workspace comes back. Type <span className={s.confirmName}>{name}</span> to confirm.
+      </p>
+      <label className={s.field}>
+        <span>Workspace name</span>
+        <input autoFocus value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={name} />
+      </label>
+    </Dialog>
   );
 }
 
@@ -224,10 +244,10 @@ function TeamTab({ onToast }: { onToast: (m: string) => void }) {
           }}
         >
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@company.com" aria-label="Email" />
-          <select value={role} onChange={(e) => setRole(e.target.value as Member["role"])} aria-label="Role">
-            <option>Editor</option>
-            <option>Viewer</option>
-          </select>
+          <Dropdown className={s.select} label="Role" value={role} options={ROLE_OPTIONS} onChange={setRole}>
+            {role}
+            <IconChevron />
+          </Dropdown>
           <button className="button button-ink" disabled={!valid}>
             <IconPlus />
             Invite
@@ -256,10 +276,10 @@ function TeamTab({ onToast }: { onToast: (m: string) => void }) {
                 <span className={s.owner}>Owner</span>
               ) : (
                 <>
-                  <select value={m.role} onChange={(e) => updateMember(m.id, { role: e.target.value as Member["role"] })} aria-label={`Role for ${m.name}`}>
-                    <option>Editor</option>
-                    <option>Viewer</option>
-                  </select>
+                  <Dropdown className={s.select} label={`Role for ${m.name}`} value={m.role} options={ROLE_OPTIONS} onChange={(r) => updateMember(m.id, { role: r })} align="end">
+                    {m.role}
+                    <IconChevron />
+                  </Dropdown>
                   <button className={s.remove} onClick={() => removeMember(m.id)} aria-label={`Remove ${m.name}`}>
                     <IconClose />
                   </button>

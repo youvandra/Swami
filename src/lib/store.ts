@@ -280,15 +280,31 @@ export function updateProject(id: string, patch: Partial<Omit<Project, "id">>) {
   write({ ...s, projects }, p ? [{ op: "project.put", project: p }] : []);
 }
 
-// Deleting a project keeps its chats; they just lose the link.
-export function deleteProject(id: string) {
+// Deleting a project keeps its chats; they just lose the link. The returned function puts it all back (the Undo).
+export function deleteProject(id: string): () => void {
   const s = read();
+  const project = s.projects.find((p) => p.id === id);
+  const linked = s.conversations.filter((c) => c.projectId === id).map((c) => c.id);
+  const saved = s.saved.filter((x) => x.projectId === id);
   write({
     ...s,
     conversations: s.conversations.map((c) => (c.projectId === id ? { ...c, projectId: undefined } : c)),
     projects: s.projects.filter((p) => p.id !== id),
     saved: s.saved.filter((x) => x.projectId !== id),
   }, [{ op: "project.delete", id }]);
+  return () => {
+    if (!project) return;
+    const now = read();
+    const conversations = now.conversations.map((c) => (linked.includes(c.id) && !c.projectId ? { ...c, projectId: id } : c));
+    write(
+      { ...now, projects: byRecent([project, ...now.projects]), conversations, saved: [...saved, ...now.saved] },
+      [
+        { op: "project.put", project },
+        ...conversations.filter((c) => linked.includes(c.id)).map((conversation) => ({ op: "conversation.put" as const, conversation })),
+        ...saved.map((x) => ({ op: "saved.put" as const, projectId: id, artifactId: x.artifact.id, conversationId: x.conversationId })),
+      ],
+    );
+  };
 }
 
 function touchProject(id: string) {

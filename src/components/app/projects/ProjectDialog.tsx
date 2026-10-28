@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { examplesFor } from "@/lib/examples";
 import type { Project } from "@/lib/model";
 import { useServerStatus } from "@/lib/status";
-import { IconClose } from "../icons";
+import { Dialog } from "../ui/Dialog";
 import s from "./ProjectDialog.module.css";
 
 export type ProjectInput = Pick<Project, "name" | "kind" | "headliner" | "city" | "date" | "venue" | "capacity">;
@@ -14,33 +14,13 @@ const BLANK: ProjectInput = { name: "", kind: "show", headliner: "", city: "", d
 // One dialog for creating and editing a project.
 export function ProjectDialog({ initial, title, submitLabel, onSubmit, onClose }: { initial?: ProjectInput; title: string; submitLabel: string; onSubmit: (p: ProjectInput) => void; onClose: () => void }) {
   const [form, setForm] = useState<ProjectInput>(initial ?? BLANK);
-  const ref = useRef<HTMLDialogElement>(null);
   const example = examplesFor(useServerStatus().data === "live").mid;
-
-  useEffect(() => {
-    const d = ref.current;
-    d?.showModal();
-    return () => d?.close();
-  }, []);
 
   const set = <K extends keyof ProjectInput>(k: K, v: ProjectInput[K]) => setForm((f) => ({ ...f, [k]: v }));
   const name = form.name.trim() || (form.headliner && form.city ? `${form.headliner} · ${form.city}${form.date ? `, ${form.date}` : ""}` : "");
 
   return (
-    <dialog ref={ref} className={s.dialog} onCancel={onClose} onClick={(e) => e.target === ref.current && onClose()}>
-      <form
-        className={s.form}
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (name) onSubmit({ ...form, name });
-        }}
-      >
-        <header className={s.head}>
-          <h2>{title}</h2>
-          <button type="button" className={s.close} onClick={onClose} aria-label="Close">
-            <IconClose />
-          </button>
-        </header>
+    <Dialog title={title} primary={submitLabel} disabled={!name} onClose={onClose} onSubmit={() => onSubmit({ ...form, name })}>
 
         <div className={s.kind} role="radiogroup" aria-label="Type">
           {(["show", "tour"] as const).map((k) => (
@@ -80,15 +60,6 @@ export function ProjectDialog({ initial, title, submitLabel, onSubmit, onClose }
           <input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder={name || "Filled in from the headliner and city"} />
         </label>
 
-        <footer className={s.foot}>
-          <button type="button" className="button button-line" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="submit" className="button button-ink" disabled={!name}>
-            {submitLabel}
-          </button>
-        </footer>
-      </form>
-    </dialog>
+    </Dialog>
   );
 }

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { parseRoster } from "@/lib/roster";
 import { useRosters } from "@/lib/store";
 import { IconArrowUp, IconCheck, IconChevron, IconClip, IconPlus, IconSpark, IconStop } from "./icons";
+import { Dropdown } from "./ui/Dropdown";
 import s from "./Composer.module.css";
 import m from "./SaveMenu.module.css";
 
@@ -163,17 +164,11 @@ export function Composer({ onSend, mode, onMode, busy, onStop, readOnly, placeho
             setMenu(false);
           }}
         />
-        <label className={s.mode}>
+        <Dropdown className={s.mode} label="Tool" value={mode} options={MODES.map((m) => ({ value: m.id, label: m.label }))} onChange={onMode}>
           <IconSpark className={s.modeIcon} weight="duotone" />
-          <select value={mode} onChange={(e) => onMode(e.target.value as Mode)} aria-label="Mode">
-            {MODES.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.label}
-              </option>
-            ))}
-          </select>
+          {MODES.find((m) => m.id === mode)?.label}
           <IconChevron />
-        </label>
+        </Dropdown>
         {busy && onStop ? (
           <button type="button" className={s.send} onClick={onStop} aria-label="Stop" data-tip="Stop · Esc" data-tip-pos="end">
             <IconStop />

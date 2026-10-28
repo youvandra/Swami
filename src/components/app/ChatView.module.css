@@ -68,7 +68,7 @@
 .project i { width: 9px; height: 9px; flex: none; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(10, 15, 21, 0.12); }
 .project span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .project svg { width: 13px; height: 13px; flex: none; }
-.project select { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 16px; }
+.swatch { width: 10px; height: 10px; flex: none; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(10, 15, 21, 0.12); }
 .actions { display: flex; align-items: center; gap: 4px; }
 .ghost {
   height: 34px;

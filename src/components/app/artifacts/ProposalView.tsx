@@ -5,6 +5,8 @@ import type { Artifact, ProposalSection, ProposalTemplate } from "@/lib/agent/ty
 import { TEMPLATES, draftProposal, templateOf } from "@/lib/proposal";
 import { Logo } from "../../landing/Logo";
 import { IconChevron, IconClose, IconPlus } from "../icons";
+import { toast } from "@/lib/toast";
+import { Dropdown } from "../ui/Dropdown";
 import { sourceOf } from "./source";
 import s from "./ProposalView.module.css";
 
@@ -58,27 +60,21 @@ export function ProposalView({ artifact, onChange, readOnly = false }: { artifac
 
   const redraft = (t: ProposalTemplate) => {
     if (t === (artifact.template ?? "promoter")) return;
-    if (!window.confirm(`Redraft as “${templateOf(t).label}”? Section text is replaced; picks, sender and date stay.`)) return;
+    const before = artifact;
     const d = draftProposal(t, show, artifact.picks, artifact.facts);
     commit({ template: d.template, headline: d.headline, to: d.to, title: d.title, sections: d.sections });
+    toast(`Redrafted as ${templateOf(t).label}`, { label: "Undo", run: () => onChange?.(before) });
   };
 
   return (
     <div className={readOnly ? s.print : s.desk}>
       {!readOnly && (
         <div className={s.toolbar}>
-          <label className={s.template}>
+          <Dropdown className={s.template} label="Template" value={artifact.template ?? "promoter"} options={TEMPLATES.map((t) => ({ value: t.id, label: t.label, hint: t.description }))} onChange={redraft}>
             <span>Template</span>
             <b>{tpl.label}</b>
             <IconChevron />
-            <select value={artifact.template ?? "promoter"} onChange={(e) => redraft(e.target.value as ProposalTemplate)} aria-label="Template">
-              {TEMPLATES.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          </Dropdown>
           <span className={s.stats}>
             {sections.length} sections · {words(artifact)} words · saves as you type
           </span>
@@ -145,8 +141,9 @@ export function ProposalView({ artifact, onChange, readOnly = false }: { artifac
                 </button>
                 <button
                   onClick={() => {
-                    if (sec.body.trim() && !window.confirm(`Delete “${sec.heading}”?`)) return;
+                    const before = artifact;
                     commit({ sections: sections.filter((_, j) => j !== i) });
+                    toast(`Deleted “${sec.heading}”`, { label: "Undo", run: () => onChange?.(before) });
                   }}
                   aria-label={`Delete “${sec.heading}”`}
                 >

@@ -61,17 +61,9 @@
 .mode:hover { background: var(--mist); }
 .tool svg { width: 14px; height: 14px; }
 .mode { padding-right: 28px; cursor: pointer; }
-.mode select {
-  appearance: none;
-  border: 0;
-  outline: 0;
-  background: none;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-}
 .mode > svg:last-child { position: absolute; right: 10px; width: 13px; height: 13px; pointer-events: none; color: var(--muted); }
-.mode:focus-within { border-color: rgba(14, 58, 69, 0.45); }
+.mode[aria-expanded="true"],
+.mode:focus-visible { border-color: rgba(14, 58, 69, 0.45); }
 .send { margin-left: auto; }
 .modeIcon { width: 15px; height: 15px; flex: none; color: var(--teal); }
 .send {

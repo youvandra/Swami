@@ -16,6 +16,7 @@ import { useShell } from "./AppShell";
 import { Composer, type AttachedRoster } from "./Composer";
 import { IconArrowRight, IconChart, IconCheck, IconChevron, IconClose, IconCopy, IconDoc, IconFolder, IconMenu, IconPanel, IconPencil, IconRoute, IconStore, IconTag, IconTrash, IconRetry, IconUndo, IconUsers, IconWarn } from "./icons";
 import { Markdown } from "./Markdown";
+import { Dropdown } from "./ui/Dropdown";
 import { MoreMenu } from "./MoreMenu";
 import s from "./ChatView.module.css";
 
@@ -310,27 +311,21 @@ export function ChatView({ id: routeId }: { id: string | null }) {
               </h1>
             )}
             {hydrated && projects.length > 0 && (
-              <label className={s.project} data-set={project ? "" : undefined}>
+              <Dropdown
+                className={s.project}
+                set={!!project}
+                label="Project"
+                value={projectId ?? ""}
+                options={[{ value: "", label: "No project" }, ...projects.map((p) => ({ value: p.id, label: p.name, lead: <i className={s.swatch} style={{ background: p.tone }} /> }))]}
+                onChange={(v) => {
+                  if (stored) setConversationProject(stored.id, v || undefined);
+                  else setDraftProject(v || undefined);
+                }}
+              >
                 {project ? <i style={{ background: project.tone }} /> : <IconFolder />}
                 <span>{project?.name ?? "Add to project"}</span>
                 <IconChevron />
-                <select
-                  value={projectId ?? ""}
-                  aria-label="Project"
-                  onChange={(e) => {
-                    const v = e.target.value || undefined;
-                    if (stored) setConversationProject(stored.id, v);
-                    else setDraftProject(v);
-                  }}
-                >
-                  <option value="">No project</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              </Dropdown>
             )}
           </div>
           <div className={s.actions}>
