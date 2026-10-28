@@ -36,7 +36,7 @@ export type Plan = {
 
 /** A capitalised name after "for", "with", "of" or "to", up to four words. */
 export function headlinerIn(text: string): string | undefined {
-  const m = text.match(/\b(?:for|of|whose customers love|who love|fans of)\s+((?:the |The )?[A-Z0-9][\w'&.-]*(?:\s+(?:&|the|of|[A-Z0-9][\w'&.-]*)){0,4})/);
+  const m = text.match(/\b(?:for|of|whose customers love|who love|fans of|fits|suits|should|book|booking)\s+((?:the |The )?[A-Z0-9][\w'&.-]*(?:\s+(?:&|the|of|[A-Z0-9][\w'&.-]*)){0,4})/);
   const name = m?.[1]?.replace(/[.,!?]+$/, "").replace(/\s+(?:in|on|at|and|for)$/, "").trim();
   if (!name) return undefined;
   // a city or month picked up by the pattern is no artist

@@ -24,6 +24,8 @@ test("router: intents and names", () => {
   assert.equal(headlinerIn("Find an opener for Marlow Vane in Chicago, Mar 14."), "Marlow Vane");
   assert.equal(headlinerIn("Find sponsors whose customers love Saint Rook, for the show"), "Saint Rook");
   assert.equal(headlinerIn("an opener for Chicago"), undefined);
+  assert.equal(headlinerIn("Which venue fits Marlow Vane in Chicago?"), "Marlow Vane");
+  assert.equal(headlinerIn("Which cities should Marlow Vane play?"), "Marlow Vane");
   const a = plan("Who is the audience for Marlow Vane and Halcyon Drive in Chicago?", "auto");
   assert.deepEqual([a.kind, a.headliner, a.input.opener], ["audience", "Marlow Vane", "Halcyon Drive"]);
   assert.equal(plan("Find co-promo partners in Chicago for Marlow Vane with Halcyon Drive.", "auto").input.opener, "Halcyon Drive");
