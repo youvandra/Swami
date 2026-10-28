@@ -14,7 +14,7 @@ const LINES: Partial<Record<ToolOutcome["name"], (f: F) => string>> = {
     const est = f.estimated ? ` ${f.estimated === 1 ? "One pick is" : `${f.estimated} picks are`} estimated from their scene because their own data is thin.` : "";
     const where = top.hoods?.length ? `, and its fans live in ${listing(top.hoods)}, where ${f.headliner} runs cold` : "";
     const heat = f.heat ? "" : ` There is no neighbourhood heat for ${f.city} yet, so reach gain is flat and fit decides.`;
-    return `I ranked ${f.candidates} acts for ${f.headliner} in ${f.city}. ${top.name} leads with a score of ${top.score.toFixed(2)}${where}.${second ? ` ${second.name} is next at ${second.score.toFixed(2)}.` : ""}${est}${heat}`;
+    return `I ranked ${f.roster ? `the ${f.candidates} acts on ${f.roster}` : `${f.candidates} acts`} for ${f.headliner} in ${f.city}. ${top.name} leads with a score of ${top.score.toFixed(2)}${where}.${second ? ` ${second.name} is next at ${second.score.toFixed(2)}.` : ""}${est}${heat}`;
   },
   crowd_map: (f) => (f.addedIn?.length ? `${f.opener} adds the most new crowd in ${listing(f.addedIn)}. ${f.headliner} already owns ${listing(f.headlinerStrongIn)}, so ads there mostly reach people who would come anyway.` : `${f.opener}'s fans mostly live where ${f.headliner} already sells, so the added crowd is small.`),
   route_tour: (f) => `${listing(f.strongest)} are the strongest markets for ${f.headliner} on this leg. ${listing(f.weakest)} run thinner, so I suggested smaller rooms there. The route covers about ${f.miles.toLocaleString("en-US")} miles.${f.capacityAssumed ? ASSUMED : ""}`,

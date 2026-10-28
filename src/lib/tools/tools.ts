@@ -180,6 +180,7 @@ export async function rankOpenersTool(ctx: ToolContext, input: RankInput): Promi
     facts: {
       headliner: r.show.headliner,
       city: r.show.city,
+      roster: input.roster?.name,
       candidates: rows.length,
       relatedActs: r.related,
       top: rows.slice(0, 3).map((x) => ({ name: x.name, score: x.score, fit: x.fit, reachGain: x.reachGain, hoods: x.hoods, estimated: x.estimated })),
