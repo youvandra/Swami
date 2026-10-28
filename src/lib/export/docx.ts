@@ -95,7 +95,7 @@ export async function proposalDocx(a: Proposal): Promise<Blob> {
             ],
           }),
           picks,
-          para("Scores show audience affinity from the Qloo taste graph. Prepared with Swami.", { size: 16, color: MUTED, before: 360 }),
+          para(`Scores show audience affinity from ${a.source === "live" ? "the Qloo taste graph" : "made-up demo data"}. Prepared with Swami.`, { size: 16, color: MUTED, before: 360 }),
         ],
       },
     ],

@@ -2,6 +2,7 @@
 
 import type { Artifact } from "@/lib/agent/types";
 import { IconMail } from "../icons";
+import { isLive } from "./source";
 import k from "./kit.module.css";
 import s from "./SponsorsView.module.css";
 
@@ -52,7 +53,7 @@ export function SponsorsView({ artifact, onAsk }: { artifact: Sponsors; onAsk: (
           </li>
         ))}
       </ul>
-      <p className={k.note}>Lift compares how often {show.headliner} fans buy each brand with the average fan, from Qloo brand affinity. Brand names here are examples.</p>
+      <p className={k.note}>Lift compares how often {show.headliner} fans buy each brand with the average fan, from {isLive(artifact) ? "Qloo brand affinity" : "made-up demo data, brand names included"}.</p>
     </div>
   );
 }

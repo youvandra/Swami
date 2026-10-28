@@ -1,6 +1,7 @@
 "use client";
 
 import type { Artifact } from "@/lib/agent/types";
+import { isLive } from "./source";
 import k from "./kit.module.css";
 import s from "./AudienceView.module.css";
 
@@ -83,7 +84,7 @@ export function AudienceView({ artifact }: { artifact: Audience }) {
           </tbody>
         </table>
       </section>
-      <p className={k.note}>Shares of each act&apos;s fans in {show.city}, from Qloo demographics. Use the gaps for ad targeting: the opener&apos;s younger fans need a different angle.</p>
+      <p className={k.note}>Shares of each act&apos;s fans in {show.city}, from {isLive(artifact) ? "Qloo demographics" : "made-up demo data"}. Use the gaps for ad targeting: the opener&apos;s younger fans need a different angle.</p>
     </div>
   );
 }

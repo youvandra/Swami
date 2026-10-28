@@ -163,7 +163,8 @@
        "rising": false,
        "estimated": false
       }
-     ]
+     ],
+     "source": "fixture"
     },
     {
      "id": "demo-a1",
@@ -228,7 +229,8 @@
        "headliner": 0.1,
        "opener": 0.58
       }
-     ]
+     ],
+     "source": "fixture"
     }
    ]
   },
@@ -334,7 +336,8 @@
        "room": "900–1,200",
        "note": "Steady; good for a weeknight."
       }
-     ]
+     ],
+     "source": "fixture"
     }
    ]
   },
@@ -410,7 +413,8 @@
        "lift": 1.8,
        "pitch": "Fans are 1.8× likelier than average to pick it. Valet bike parking on show night."
       }
-     ]
+     ],
+     "source": "fixture"
     }
    ]
   }

@@ -1,3 +1,4 @@
+import { sourceOf } from "./source";
 import type { Artifact } from "@/lib/agent/types";
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -44,7 +45,7 @@ export function toMarkdown(a: Artifact): { name: string; body: string; type: str
     "",
     ...a.picks.map((p, i) => `${i + 1}. **${p.name}** (${p.score.toFixed(2)}): ${p.why}`),
     "",
-    "_Scores show audience affinity from the Qloo taste graph._",
+    `_Scores show audience affinity from ${sourceOf(a)}._`,
   ].join("\n");
   return { name: `${slug(a.title)}.md`, body, type: "text/markdown" };
 }

@@ -69,6 +69,7 @@ export async function runTool(ctx: ToolContext, name: string, input: unknown, ex
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- each tool's input matches its own schema
     const r = (await (tool.run as any)(ctx, { ...parsed.data, ...extra })) as { facts: Record<string, unknown>; artifact?: import("../agent/types.ts").Artifact; search?: Awaited<ReturnType<typeof T.searchArtist>> };
+    if (r.artifact) r.artifact.source = ctx.q.mode;
     return { name: name as ToolName, ok: true, ...r };
   } catch (e) {
     return { name: name as ToolName, ok: false, error: plainError(e) };

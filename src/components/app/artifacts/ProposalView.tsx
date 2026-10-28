@@ -5,6 +5,7 @@ import type { Artifact, ProposalSection, ProposalTemplate } from "@/lib/agent/ty
 import { TEMPLATES, draftProposal, templateOf } from "@/lib/proposal";
 import { Logo } from "../../landing/Logo";
 import { IconChevron, IconClose, IconPlus } from "../icons";
+import { sourceOf } from "./source";
 import s from "./ProposalView.module.css";
 
 type Proposal = Extract<Artifact, { type: "proposal" }>;
@@ -186,7 +187,7 @@ export function ProposalView({ artifact, onChange, readOnly = false }: { artifac
           </table>
         </section>
 
-        <footer className={s.foot}>Scores show audience affinity from the Qloo taste graph. Prepared with Swami.</footer>
+        <footer className={s.foot}>Scores show audience affinity from {sourceOf(artifact)}. Prepared with Swami.</footer>
       </article>
     </div>
   );

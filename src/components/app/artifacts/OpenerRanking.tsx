@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { Artifact } from "@/lib/agent/types";
 import { IconChevron, IconDoc, IconInfo, IconMap } from "../icons";
+import { sourceOf } from "./source";
 import s from "./OpenerRanking.module.css";
 
 type Ranking = Extract<Artifact, { type: "opener_ranking" }>;
@@ -138,7 +139,7 @@ export function OpenerRanking({ artifact, onAsk, onShowMap }: { artifact: Rankin
         {rows.length === 0 && <p className={s.none}>No acts match this filter.</p>}
       </div>
 
-      <p className={s.note}>Fit and reach gain are audience affinity from the Qloo taste graph. Estimated rows use genre and tag heat because the act&apos;s own data is thin.</p>
+      <p className={s.note}>Fit and reach gain are audience affinity from {sourceOf(artifact)}. Estimated rows use genre and tag heat because the act&apos;s own data is thin.</p>
     </div>
   );
 }

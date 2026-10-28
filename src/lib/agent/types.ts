@@ -54,7 +54,8 @@ export type Sponsor = { brand: string; category: string; fit: number; lift: numb
 export type AgeBand = { band: string; headliner: number; opener: number }; // shares, each column sums to 1
 export type Audience = { ages: AgeBand[]; women: { headliner: number; opener: number }; traits: { label: string; headliner: string; opener: string }[] };
 
-type Base = { id: string; title: string; subtitle: string };
+// source: where the numbers came from when it was made. Missing on older artifacts, which were all demo data.
+type Base = { id: string; title: string; subtitle: string; source?: "live" | "fixture" };
 
 export type Artifact =
   | (Base & { type: "opener_ranking"; show: Show; rows: OpenerRow[] })

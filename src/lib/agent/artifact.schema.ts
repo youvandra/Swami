@@ -5,7 +5,7 @@ import type { Artifact } from "./types.ts";
 
 const unit = z.number().min(0).max(1);
 const show = z.object({ headliner: z.string().min(1), city: z.string().min(1), date: z.string(), venue: z.string(), capacity: z.number().int().positive() });
-const base = { id: z.string().min(1), title: z.string().min(1), subtitle: z.string() };
+const base = { id: z.string().min(1), title: z.string().min(1), subtitle: z.string(), source: z.enum(["live", "fixture"]).optional() };
 
 const openerRow = z.object({ name: z.string().min(1), genre: z.string(), fit: unit, reachGain: unit, score: unit, why: z.string().min(1), hoods: z.array(z.string()), onRoster: z.boolean(), rising: z.boolean(), estimated: z.boolean() });
 const hood = z.object({ name: z.string().min(1), x: z.number(), y: z.number(), headliner: unit, opener: unit });
