@@ -35,3 +35,8 @@ test("a city's lean is affinity_rank weighted by popularity", () => {
   assert.deepEqual(leanOf([rank(0.9, 0.75), rank(0.5, 0.25), rank(0.1, 0)]), { affinity: 0.8, baseline: 0.5 });
   assert.equal(leanOf([]), undefined);
 });
+
+test("Jakarta's city districts and numbered blocks are no neighbourhoods", () => {
+  const hoods = neighbourhoodPoints([loc("South Jakarta", null, -6.26, 106.81), loc("RW 04", null, -6.2, 106.83), loc("Menteng", null, -6.19, 106.84), loc("South Loop", null, -6.3, 106.8)], "Jakarta");
+  assert.deepEqual(hoods.map((h) => h.name), ["Menteng", "South Loop"]);
+});

@@ -81,8 +81,8 @@ test("capacity is read from the ask, and an assumed one is said", async () => {
   assert.equal(plan("Rooms for Marlow Vane, 800-cap", "auto").input.capacity, 800);
   assert.equal(plan("Rooms for Marlow Vane on Mar 14", "auto").input.capacity, undefined);
   const { out } = await run(req("Which venue fits Marlow Vane in Chicago?"));
-  assert.match(out.text, /assume a 1,000-cap show/);
-  assert.match(out.artifacts[0].subtitle, /sized against 1,000 cap/);
+  assert.match(out.text, /picked for a club-size act; give me the capacity/);
+  assert.match(out.artifacts[0].subtitle, /for a club-size act/);
 });
 
 test("drop and without re-rank the last show without those acts", async () => {
@@ -173,4 +173,35 @@ test("a hint that fits one act resolves it and answers the original question", a
   const { out } = await answer("the indie folk band", { entities: ctx.entities });
   assert.deepEqual(out.artifacts.map((a) => a.type), ["opener_ranking", "crowd_map"]);
   assert.equal(out.artifacts[0].show.headliner, "Marlow Vane");
+});
+
+// A city where Qloo tags concert halls and stadiums but no "music venue", like Jakarta on 29 Oct.
+class NoMusicVenueTag extends FixtureQloo {
+  override async insights(q: Parameters<FixtureQloo["insights"]>[0]) {
+    const got = await super.insights({ ...q, tags: q.type === "place" ? undefined : q.tags });
+    if (q.type !== "place") return got;
+    const tag = q.tags?.[0] ?? "";
+    if (/concert_hall/.test(tag)) return got.slice(0, 2);
+    if (/stadium/.test(tag)) return got.slice(2, 4);
+    return [];
+  }
+}
+
+test("venues fall back through tags and say which ones answered", async () => {
+  const ctx = makeContext(new NoMusicVenueTag(FAKE_GRAPH), { defaults: { city: "Chicago" } });
+  const out = await templateTurn(ctx, req("Which venue fits Marlow Vane in Chicago?"), () => {});
+  const v = out.artifacts[0];
+  if (v?.type !== "venues") return assert.fail(out.text);
+  assert.match(v.subtitle, /concert halls ranked by audience fit · for a club-size act/);
+  assert.match(out.text, /^Qloo has no music venues tagged in Chicago, so these are concert halls\./);
+  // a stated stadium capacity starts from stadiums
+  const big = await templateTurn(makeContext(new NoMusicVenueTag(FAKE_GRAPH), { defaults: { city: "Chicago" } }), req("Which venue fits Marlow Vane in Chicago for 40,000 people?"), () => {});
+  assert.match(big.artifacts[0]?.subtitle ?? "", /stadiums.*concert halls|stadiums/);
+  assert.doesNotMatch(big.text, /Qloo has no/);
+});
+
+test("a leg outside the US says routing covers US cities", async () => {
+  const { out } = await run(req("Which cities should Marlow Vane play on an Asia leg in March?"));
+  assert.equal(out.artifacts.length, 0);
+  assert.match(out.text, /US cities for now, and Asia is outside them/);
 });

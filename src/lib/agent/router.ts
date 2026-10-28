@@ -83,6 +83,8 @@ export function plan(text: string, mode: Mode, ctx?: ChatContext): Plan {
     const r = text.match(REGION)?.[1];
     input.region = r ? (/^west/i.test(r) ? "West" : r[0].toUpperCase() + r.slice(1).toLowerCase()) : undefined;
     input.anchorCity = city;
+    const abroad = text.match(/\b(Asia|Southeast Asia|Europe|UK|United Kingdom|Japan|Korea|Indonesia|Australia|Latin America|South America|Canada|Mexico|Africa|Middle East)\b/)?.[1];
+    if (abroad && !input.region) input.abroad = abroad;
     input.date = text.match(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\b/)?.[0] ?? date;
   }
   if (kind === "proposal") input.template = /sponsor|brand/.test(t) ? "sponsor" : /memo|internal/.test(t) ? "memo" : "promoter";

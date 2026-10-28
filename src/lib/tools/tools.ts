@@ -4,8 +4,9 @@
 import type { Artifact, Audience, OpenerRow, ProposalTemplate, Show } from "../agent/types.ts";
 import { draftProposal, templateOf } from "../proposal.ts";
 import { genreOf, type Entity, type HeatCell } from "../qloo/types.ts";
-import { PARTNER_KINDS, PLACE_TAG, type PartnerKind } from "../qloo/urns.ts";
+import { PARTNER_KINDS, PLACE_TAG, VENUE_LADDER, type PartnerKind, type VenueTag } from "../qloo/urns.ts";
 import { buildAudience } from "../score/audience.ts";
+import { SIZE_LABEL, sizeFromCapacity, sizeFromPopularity } from "../score/size.ts";
 import { CITIES, findCity } from "../score/cities.ts";
 import { strongest, toHoods, topAdded } from "../score/heat.ts";
 import { listing } from "../score/normalize.ts";
@@ -225,11 +226,13 @@ export async function crowdMapTool(ctx: ToolContext, input: RankInput & { opener
 
 // ── routing ────────────────────────────────────────────────────────────────────────────────────────────────
 
-export async function routeTourTool(ctx: ToolContext, input: { headliner: string; region?: string; cities?: string[]; anchorCity?: string; stops?: number; date?: string; capacity?: number }): Promise<ToolResult> {
+export async function routeTourTool(ctx: ToolContext, input: { headliner: string; region?: string; abroad?: string; cities?: string[]; anchorCity?: string; stops?: number; date?: string; capacity?: number }): Promise<ToolResult> {
   const head = await findHeadliner(ctx, input.headliner);
   const show = showOf(ctx, { ...input, headliner: head.name, city: input.anchorCity });
   // One heat call per city, so a leg with no region weighs the largest markets only.
   const allowed = input.cities?.length ? input.cities.map(findCity).filter((c) => !!c) : input.region ? inRegion(CITIES, input.region) : CITIES.slice(0, NATIONAL_CITIES);
+  const outside = input.abroad ?? (input.cities?.length && allowed.length === 0 ? listing(input.cities) : undefined);
+  if (outside) throw new ToolError(`Tour routing covers US cities for now, and ${outside} is outside them. Name a US region (Midwest, Northeast, South, West) or US cities, and venues, crowd maps and audiences still work anywhere Qloo has places.`);
   const leans = await step(
     ctx,
     "Ranked cities by fan affinity",
@@ -256,13 +259,29 @@ const displayTags = (e: Entity) => (e.tags ?? []).filter((t) => !t.type?.startsW
 export async function findVenuesTool(ctx: ToolContext, input: { headliner: string; city?: string; capacity?: number; date?: string }): Promise<ToolResult> {
   const head = await findHeadliner(ctx, input.headliner);
   const show = showOf(ctx, { ...input, headliner: head.name });
-  const places = await step(ctx, `Searched music venues in ${show.city}`, () => ctx.q.insights({ type: "place", seeds: [head.id], city: show.city, tags: [PLACE_TAG.venue], take: 20 }), (p) => `${p.length} venues`);
-  if (places.length === 0) throw new ToolError(`No music venues for ${show.city} in the taste graph.`);
-  const base = await ctx.q.baseline({ type: "place", seeds: [], city: show.city, tags: [PLACE_TAG.venue] }, places.map((p) => p.id));
+  // the stated capacity sizes the room; without one, how big the act draws does
+  const assumed = capacityAssumed(ctx, input);
+  const size = assumed ? sizeFromPopularity(head.popularity) : sizeFromCapacity(show.capacity);
+  const ladder = VENUE_LADDER[size];
+  const places: Entity[] = [];
+  const used: VenueTag[] = [];
+  for (const tag of ladder.slice(0, 3)) {
+    if (places.length >= 5) break;
+    const got = await step(ctx, `Searched ${tag.plural} in ${show.city}`, () => ctx.q.insights({ type: "place", seeds: [head.id], city: show.city, tags: [tag.id], take: 20 }), (p) => `${p.length} found`);
+    // Qloo lists one place twice under two ids now and then (Jakarta International Velodrome)
+    const fresh = got.filter((p, i) => !places.some((x) => x.id === p.id || x.name === p.name) && got.findIndex((x) => x.name === p.name) === i);
+    if (fresh.length) used.push(tag);
+    places.push(...fresh);
+  }
+  if (places.length === 0) throw new ToolError(`Qloo has no ${listing(ladder.slice(0, 3).map((t) => t.plural))} tagged in ${show.city}.`);
+  const base = await ctx.q.baseline({ type: "place", seeds: [], city: show.city, tags: used.map((t) => t.id) }, places.map((p) => p.id));
+  // said when the first tag tried came back empty, so the list is plainly from the next ones
+  const fallback = used[0] !== ladder[0] ? `Qloo has no ${ladder[0].plural} tagged in ${show.city}, so these are ${listing(used.map((t) => t.plural))}.` : undefined;
+  const sizing = assumed ? `for a ${SIZE_LABEL[size]} act` : `sized against ${show.capacity.toLocaleString("en-US")} cap`;
   const venues = await step(ctx, "Scored venues by audience fit", async () => rankVenues(head.name, show.capacity, places.map((p) => ({ name: p.name, hood: p.hood, capacity: p.capacity, tags: displayTags(p), affinity: p.affinity ?? 0, baseline: base.get(p.id) }))), () => `${head.name} fans`);
   return {
-    artifact: { id: uid(), type: "venues", title: `Rooms for ${head.name} in ${show.city}`, subtitle: `${venues.length} venues ranked by audience fit${capacityAssumed(ctx, input) ? ` · sized against ${show.capacity.toLocaleString("en-US")} cap` : ""}`, show, venues },
-    facts: { capacityAssumed: capacityAssumed(ctx, input), city: show.city, best: venues[0].name, bestCapacity: venues[0].capacity ?? "unknown", next: venues[1]?.name, capacityWanted: show.capacity },
+    artifact: { id: uid(), type: "venues", title: `Rooms for ${head.name} in ${show.city}`, subtitle: `${venues.length} ${listing(used.map((t) => t.plural))} ranked by audience fit · ${sizing}`, show, venues },
+    facts: { capacityAssumed: assumed, city: show.city, best: venues[0].name, bestCapacity: venues[0].capacity ?? "unknown", next: venues[1]?.name, capacityWanted: assumed ? "not given" : show.capacity, size: SIZE_LABEL[size], searched: used.map((t) => t.plural), fallback },
   };
 }
 

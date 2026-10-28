@@ -234,6 +234,9 @@ export function neighbourhoodPoints(entities: any[], city: string): NamedPoint[]
     const lng = num(e.location?.lon);
     if (!name || lat === undefined || lng === undefined || seen.has(name)) continue;
     if (name.toLowerCase() === c || NOT_A_NEIGHBOURHOOD.has(e.properties?.place) || /township|county/i.test(name)) continue;
+    // a city's own districts ("South Jakarta") and numbered blocks ("RW 04") name no neighbourhood anyone knows
+    if (/^(?:north|south|east|west|central)\s/i.test(name) && name.toLowerCase().endsWith(` ${c}`)) continue;
+    if (/^(?:RW|RT)\s*\d+$/i.test(name)) continue;
     seen.add(name);
     out.push({ name, lat, lng });
   }

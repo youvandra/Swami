@@ -31,7 +31,7 @@ export const TOOLS = {
   crowd_map: { description: "Map of the added crowd an opener brings, by neighbourhood.", input: z.object({ ...show, ...opener, ...pick }), run: T.crowdMapTool },
   route_tour: {
     description: "Order a tour leg: cities ranked by fan affinity, then a drivable route.",
-    input: z.object({ headliner: show.headliner, region: z.enum(["Midwest", "Northeast", "South", "West"]).optional(), cities: z.array(z.string()).optional(), anchorCity: z.string().optional(), stops: z.number().int().min(2).max(14).optional(), date: show.date, capacity: show.capacity }),
+    input: z.object({ headliner: show.headliner, region: z.enum(["Midwest", "Northeast", "South", "West"]).optional(), abroad: z.string().optional().describe("A place outside the US the user asked to route through, e.g. Asia"), cities: z.array(z.string()).optional(), anchorCity: z.string().optional(), stops: z.number().int().min(2).max(14).optional(), date: show.date, capacity: show.capacity }),
     run: T.routeTourTool,
   },
   find_venues: { description: "Venues in the city ranked by how often the headliner's fans go there.", input: z.object({ headliner: show.headliner, city: show.city, capacity: show.capacity, date: show.date }), run: T.findVenuesTool },
