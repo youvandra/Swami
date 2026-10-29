@@ -9,10 +9,10 @@ import { readEvents } from "@/lib/sse";
 import { examplesFor, ownArtists, type Examples } from "@/lib/examples";
 import { useServerStatus } from "@/lib/status";
 import { ROLES } from "@/lib/model";
-import { deleteConversation, newId, saveConversation, setConversationProject, useCanEdit, useConversation, useProjects, useRosters, useWorkspace } from "@/lib/store";
+import { deleteConversation, newId, saveConversation, setConversationProject, useCanEdit, useConversation, useHydrated, useProjects, useRosters, useWorkspace } from "@/lib/store";
 import { Logo } from "../landing/Logo";
 import { ArtifactPanel, artifactIcon } from "./ArtifactPanel";
-import { useShell } from "./AppShell";
+import { newChatPath, useShell } from "./AppShell";
 import { Composer, type AttachedRoster } from "./Composer";
 import { IconArrowRight, IconChart, IconCheck, IconChevron, IconClose, IconCopy, IconDoc, IconFolder, IconMenu, IconPanel, IconPencil, IconRoute, IconStore, IconTag, IconTrash, IconRetry, IconUndo, IconUsers, IconWarn } from "./icons";
 import { Markdown } from "./Markdown";
@@ -303,7 +303,10 @@ export function ChatView({ id: routeId }: { id: string | null }) {
     void send(c.reply, projectId, undefined, c.id === NONE_ID ? {} : { [key]: c.id, [c.name.toLowerCase()]: c.id });
   }
 
-  const missing = hydrated && routeId && !stored && id === routeId;
+  // the workspace loads after the page: until then a chat link shows a skeleton, never "missing" or a blank new chat
+  const storeReady = useHydrated();
+  const loading = !!routeId && !stored && !storeReady;
+  const missing = hydrated && storeReady && routeId && !stored && id === routeId;
   const empty = messages.length === 0;
 
   return (
@@ -333,7 +336,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
               />
             ) : (
               <h1 className={s.title} onDoubleClick={() => stored && setRenaming(true)}>
-                {empty ? "New Chat" : (stored?.title ?? "New Chat")}
+                {loading ? <span className={s.titleSkel} aria-hidden="true" /> : empty ? "New Chat" : (stored?.title ?? "New Chat")}
               </h1>
             )}
             {hydrated && projects.length > 0 && (
@@ -379,7 +382,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
                     onSelect: () => {
                       const gone = stored;
                       deleteConversation(gone.id);
-                      router.push("/app");
+                      router.push(newChatPath());
                       toast(`Deleted “${gone.title}”`, { label: "Undo", run: () => saveConversation(gone) });
                     },
                   },
@@ -389,7 +392,23 @@ export function ChatView({ id: routeId }: { id: string | null }) {
           </div>
         </header>
 
-        {missing ? (
+        {loading ? (
+          <div className={s.thread} aria-busy="true" aria-label="Loading chat">
+            <div className={s.messages}>
+              <div className={s.skelUser} />
+              <div className={s.skelReply}>
+                <span className={s.skelAvatar} />
+                <div>
+                  <span style={{ width: "92%" }} />
+                  <span style={{ width: "78%" }} />
+                  <span style={{ width: "84%" }} />
+                  <span style={{ width: "40%" }} />
+                  <i />
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : missing ? (
           <div className={s.center}>
             <p className={s.lost}>This chat lives on another device or was cleared.</p>
             <a className="button button-ink" href="/app">

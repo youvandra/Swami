@@ -313,3 +313,23 @@
 .retry { justify-self: start; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 999px; background: var(--tint); color: var(--tint-ink); font-size: 13px; font-weight: 500; }
 .retry:hover { box-shadow: inset 0 0 0 1px var(--tint-ink); }
 .retry svg { width: 14px; height: 14px; }
+
+/* a chat enters with a short rise; opacity never waits on it, so a background tab still shows the chat */
+.thread,
+.center { animation: enter 0.22s cubic-bezier(0.2, 0.7, 0.2, 1); }
+@keyframes enter { from { translate: 0 6px; } to { translate: 0 0; } }
+
+/* loading skeleton for a chat opened before the workspace has loaded */
+.titleSkel,
+.skelUser,
+.skelAvatar,
+.skelReply span,
+.skelReply i { display: block; background: linear-gradient(90deg, #eef1f3, #e2e7ea, #eef1f3); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+.titleSkel { width: 180px; height: 14px; border-radius: 7px; }
+.skelUser { justify-self: end; width: min(60%, 360px); height: 46px; border-radius: 16px; }
+.skelReply { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 14px; }
+.skelAvatar { width: 28px; height: 28px; border-radius: 8px; }
+.skelReply div { display: grid; gap: 10px; padding-top: 4px; }
+.skelReply span { height: 12px; border-radius: 6px; }
+.skelReply i { margin-top: 8px; height: 64px; border-radius: 14px; }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }

@@ -6,7 +6,8 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { site } from "@/lib/site";
 import { deleteConversation, saveConversation, useConversations, useHydrated, useProjects, useTeam, useWorkspace } from "@/lib/store";
 import { Logo } from "../landing/Logo";
-import { IconChat, IconClose, IconFolder, IconPlus, IconSearch, IconSettings, IconSidebar, IconTrash } from "./icons";
+import { IconChat, IconClose, IconCopy, IconFolder, IconPencil, IconPlus, IconSearch, IconSettings, IconSidebar, IconTrash } from "./icons";
+import { MoreMenu } from "./MoreMenu";
 import { Onboarding } from "./onboarding/Onboarding";
 import { Toaster } from "./Toaster";
 import { toast } from "@/lib/toast";
@@ -16,6 +17,9 @@ type Shell = { openNav: () => void };
 const ShellContext = createContext<Shell>({ openNav: () => {} });
 export const useShell = () => useContext(ShellContext);
 
+/** A new chat URL that is never the current one, so the chat view always starts clean. */
+export const newChatPath = () => `/app?new=${Date.now().toString(36)}`;
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -24,6 +28,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const workspace = useWorkspace();
   const team = useTeam();
   const hydrated = useHydrated();
+  const [renamingId, setRenamingId] = useState<string | null>(null);
   const initials = workspace.name
     .split(/\s+/)
     .map((w) => w[0])
@@ -65,7 +70,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
 
-          <Link href="/app" className={s.newChat}>
+          <Link
+            href="/app"
+            className={s.newChat}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+              e.preventDefault();
+              router.push(newChatPath());
+            }}
+          >
             <IconPlus />
             New Chat
           </Link>
@@ -106,31 +119,73 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             <p className={s.group}>Recent</p>
             <ul className={s.list}>
-              {recent.map((c) => {
+              {!hydrated &&
+                [72, 56, 64, 48].map((w, i) => (
+                  <li key={i} className={s.skelRow} aria-hidden="true">
+                    <span style={{ width: `${w}%` }} />
+                  </li>
+                ))}
+              {hydrated && recent.map((c) => {
                 const href = `/app/c/${c.id}`;
+                if (renamingId === c.id)
+                  return (
+                    <li key={c.id} className={s.row}>
+                      <input
+                        className={s.renameInput}
+                        autoFocus
+                        defaultValue={c.title}
+                        aria-label="Chat name"
+                        onFocus={(e) => e.currentTarget.select()}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") e.currentTarget.blur();
+                          if (e.key === "Escape") setRenamingId(null);
+                        }}
+                        onBlur={(e) => {
+                          const title = e.currentTarget.value.trim();
+                          if (title && title !== c.title) saveConversation({ ...c, title });
+                          setRenamingId(null);
+                        }}
+                      />
+                    </li>
+                  );
                 return (
                   <li key={c.id} className={s.row}>
                     <Link href={href} className={s.item} aria-current={pathname === href ? "page" : undefined}>
                       <IconChat className={s.itemIcon} />
                       <span className={s.label}>{c.title}</span>
                     </Link>
-                    <button
+                    <MoreMenu
+                      floating
+                      label="Chat options"
+                      rootClassName={s.rowMenu}
                       className={s.rowAction}
-                      aria-label={`Delete ${c.title}`}
-                      data-tip="Delete chat"
-                      data-tip-pos="end"
-                      onClick={() => {
-                        deleteConversation(c.id);
-                        if (pathname === href) router.push("/app");
-                        toast(`Deleted “${c.title}”`, { label: "Undo", run: () => saveConversation(c) });
-                      }}
-                    >
-                      <IconTrash />
-                    </button>
+                      items={[
+                        { label: "Rename", icon: IconPencil, onSelect: () => setRenamingId(c.id) },
+                        {
+                          label: "Copy Link",
+                          icon: IconCopy,
+                          onSelect: () =>
+                            navigator.clipboard.writeText(`${window.location.origin}${href}`).then(
+                              () => toast("Link copied"),
+                              () => toast("Could not copy the link"),
+                            ),
+                        },
+                        {
+                          label: "Delete Chat",
+                          icon: IconTrash,
+                          danger: true,
+                          onSelect: () => {
+                            deleteConversation(c.id);
+                            if (pathname === href) router.push(newChatPath());
+                            toast(`Deleted “${c.title}”`, { label: "Undo", run: () => saveConversation(c) });
+                          },
+                        },
+                      ]}
+                    />
                   </li>
                 );
               })}
-              {recent.length === 0 && <li className={s.empty}>{query ? "No chats match" : "Your chats show up here"}</li>}
+              {hydrated && recent.length === 0 && <li className={s.empty}>{query ? "No chats match" : "Your chats show up here"}</li>}
             </ul>
           </nav>
 

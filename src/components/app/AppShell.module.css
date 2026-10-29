@@ -76,11 +76,9 @@
 .groupAdd:hover { background: rgba(10, 15, 21, 0.06); color: var(--text); }
 .row { position: relative; }
 .row .item { padding-right: 34px; }
+/* no transform here: it would make the floating menu position against this box and get clipped by the list */
+.rowMenu { position: absolute; top: 0; bottom: 0; right: 4px; display: flex; align-items: center; }
 .rowAction {
-  position: absolute;
-  top: 50%;
-  right: 4px;
-  translate: 0 -50%;
   width: 26px;
   height: 26px;
   display: grid;
@@ -92,9 +90,28 @@
 }
 .rowAction svg { width: 14px; height: 14px; }
 .row:hover .rowAction,
+.rowMenu[data-open] .rowAction,
 .rowAction:focus-visible { opacity: 1; }
-.rowAction:hover { background: rgba(10, 15, 21, 0.07); color: #a33b2f; }
-@media (hover: none) { .rowAction { display: none; } }
+.rowAction:hover,
+.rowMenu[data-open] .rowAction { background: rgba(10, 15, 21, 0.07); color: var(--text); }
+@media (hover: none) { .rowAction { opacity: 1; } }
+.renameInput {
+  width: 100%;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--text);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(31, 168, 183, 0.15);
+}
+/* chats load from the workspace: grey bars hold their place so the list does not jump */
+.skelRow { height: 34px; display: flex; align-items: center; padding: 0 8px 0 32px; }
+.skelRow span { height: 10px; border-radius: 5px; background: linear-gradient(90deg, rgba(10, 15, 21, 0.06), rgba(10, 15, 21, 0.11), rgba(10, 15, 21, 0.06)); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 .group { padding: 14px 8px 6px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em; color: var(--muted); }
 .list { list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; }
 .item {
