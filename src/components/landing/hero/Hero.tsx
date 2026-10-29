@@ -12,6 +12,11 @@ import s from "./Hero.module.css";
 const CROWD_SRC = "/hero/crowd.png";
 const CROWD_RATIO = 393 / 1761;
 
+const smoothstep = (x: number) => {
+  const c = x < 0 ? 0 : x > 1 ? 1 : x;
+  return c * c * (3 - 2 * c);
+};
+
 type Dot = { x: number; y: number; u: number; v: number; fade: number; i: number };
 
 export function Hero() {
@@ -174,7 +179,7 @@ export function Hero() {
       heat.width = Math.round(W * dpr);
       heat.height = Math.round(H * dpr);
       const pitch = phone ? 9 : Math.max(10, Math.min(13, W / 120));
-      const band = H * (phone ? 0.26 : 0.3);
+      const band = H * (phone ? 0.3 : 0.38);
       const n = Math.floor(W / pitch);
       const rows = Math.floor(band / pitch);
       const x0 = (W - (n - 1) * pitch) / 2;
@@ -187,7 +192,7 @@ export function Hero() {
         const edge = Math.min(1, u / 0.08, (1 - u) / 0.08);
         for (let r = 0; r < rows; r++) {
           const v = (r + 0.5) / rows;
-          dots.push({ x, y: glowY(x) - pitch * (r + 0.9), u, v, fade: edge * (1 - v * v * v * 0.8), i: c * 131 + r });
+          dots.push({ x, y: glowY(x) - pitch * (r + 0.9), u, v, fade: edge * (1 - smoothstep((v - 0.25) / 0.75)), i: c * 131 + r });
         }
       }
     }
@@ -199,27 +204,29 @@ export function Hero() {
       if (!g) return;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, W, H);
-      const LEVELS = 28;
-      const buckets: Dot[][] = Array.from({ length: LEVELS }, () => []);
-      const sizes: number[][] = Array.from({ length: LEVELS }, () => []);
+      // buckets by shade and by opacity, so the grid can fade out toward the top without one fill per dot
+      const LEVELS = 24;
+      const FADES = 10;
+      const buckets = new Map<number, { x: number; y: number; sz: number }[]>();
       const tick = Math.floor(t * 4);
       for (const d of dots) {
+        if (d.fade <= 0.02) continue;
         const shimmer = (hash(d.i, tick) - 0.5) * 0.06;
         const h = Math.max(0, Math.min(1, heatAt(t, d.u, d.v, aspect) + shimmer)) * d.fade;
         const k = Math.min(LEVELS - 1, Math.floor(h * LEVELS));
-        buckets[k].push(d);
-        sizes[k].push(dotSize * (0.62 + 0.38 * h));
+        const f = Math.min(FADES - 1, Math.floor(d.fade * FADES));
+        const key = k * FADES + f;
+        const list = buckets.get(key) ?? [];
+        list.push({ x: d.x, y: d.y, sz: dotSize * (0.62 + 0.38 * h) });
+        buckets.set(key, list);
       }
-      for (let k = 0; k < LEVELS; k++) {
-        if (!buckets[k].length) continue;
+      for (const [key, list] of buckets) {
+        const k = Math.floor(key / FADES);
+        const f = ((key % FADES) + 0.5) / FADES;
         const h = (k + 0.5) / LEVELS;
         g.fillStyle = colour(h);
-        g.globalAlpha = 0.6 + 0.4 * h;
-        const list = buckets[k];
-        for (let j = 0; j < list.length; j++) {
-          const sz = sizes[k][j];
-          g.fillRect(list[j].x - sz / 2, list[j].y - sz / 2, sz, sz);
-        }
+        g.globalAlpha = f * (0.6 + 0.4 * h);
+        for (const p of list) g.fillRect(p.x - p.sz / 2, p.y - p.sz / 2, p.sz, p.sz);
       }
       g.globalAlpha = 1;
       mic.style.setProperty("--v", (pulse(t) * 0.8).toFixed(3));
