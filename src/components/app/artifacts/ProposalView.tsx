@@ -168,7 +168,7 @@ export function ProposalView({ artifact, onChange, readOnly = false }: { artifac
                     <b>{p.name}</b>
                     <span>{p.why}</span>
                   </td>
-                  <td className={s.pickScore}>{p.score.toFixed(2)}</td>
+                  <td className={s.pickScore}>{p.score > 0 ? p.score.toFixed(2) : "—"}</td>
                   {!readOnly && (
                     <td className={s.pickTool}>
                       {artifact.picks.length > 1 && (

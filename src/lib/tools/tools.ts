@@ -364,9 +364,16 @@ async function factsFor(ctx: ToolContext, input: RankInput) {
   return { r, opener, hoods };
 }
 
-export async function draftProposalTool(ctx: ToolContext, input: RankInput & { template?: ProposalTemplate; sponsor?: string }): Promise<ToolResult> {
-  const { r, hoods } = await factsFor(ctx, input);
-  const picks = r.rows.slice(0, 3).map(({ name, score, why }) => ({ name, score, why }));
+export async function draftProposalTool(ctx: ToolContext, input: RankInput & { opener?: string; template?: ProposalTemplate; sponsor?: string }): Promise<ToolResult> {
+  const { r, opener, hoods } = await factsFor(ctx, input);
+  // acts Qloo has no neighbourhood data for score 0; they stay in the ranking but never make the proposal's picks
+  const scored = r.rows.filter((x) => x.score > 0);
+  const pool = scored.length ? scored : r.rows;
+  // the act the user chose leads the proposal; the rest of the top three follow as alternates
+  const lead = input.opener ? r.rows.find((x) => x.id === opener.id) : undefined;
+  const ranked = pool.slice(0, 3).map(({ name, score, why }) => ({ name, score, why }));
+  const chosen = lead ? { name: lead.name, score: lead.score, why: lead.why } : input.opener ? { name: opener.name, score: 0, why: "Your pick; outside this ranking." } : undefined;
+  const picks = chosen ? [chosen, ...ranked.filter((x) => x.name !== chosen.name)].slice(0, 3) : ranked;
   const template = input.template ?? "promoter";
   // A proposal names real partners and, for a sponsor pitch, the brand that fits best. Either lookup may come
   // back empty; the draft then speaks in general terms instead of inventing names.
