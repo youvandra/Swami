@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- raw Qloo JSON, mapped in toEntity / neighbourhoodCells */
-// Live Qloo over HTTP. Ported from the Kinsong client (retries, 429 backoff, timeout). Shapes checked against
+// Live Qloo over HTTP with retries, 429 backoff and a timeout. Shapes checked against
 // the hackathon host on 29 Oct 2026 with scripts/probe-qloo.ts:
 // - heatmap on urn:geohash answers in ~3s with a real 0..1 affinity per ~150 m cell. The urn:entity:locality
 //   boundary names its cells but ships every polygon (4.6 MB for Chicago) and takes over 90s, so it is unusable.
