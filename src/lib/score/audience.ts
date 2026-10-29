@@ -47,6 +47,7 @@ export function buildAudience(headliner: Demographics | null, opener: Demographi
     ages: BASE.map((b, i) => ({ band: b.band, headliner: h[i], opener: o[i] })),
     women: { headliner: womenShare(headliner), opener: womenShare(opener) },
     traits,
+    ...(!headliner || !opener ? { missing: [...(!headliner ? ["headliner" as const] : []), ...(!opener ? ["opener" as const] : [])] } : {}),
   };
 }
 

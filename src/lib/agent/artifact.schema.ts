@@ -40,6 +40,7 @@ export const artifactSchema = z.discriminatedUnion("type", [
       ages: z.array(z.object({ band: z.string(), headliner: unit, opener: unit })).min(1),
       women: z.object({ headliner: unit, opener: unit }),
       traits: z.array(z.object({ label: z.string(), headliner: z.string(), opener: z.string() })),
+      missing: z.array(z.enum(["headliner", "opener"])).optional(),
     }),
   }),
   z.object({ ...base, type: z.literal("email"), show, to: z.string(), cc: z.string(), subject: z.string().min(1), body: z.string().min(1) }),

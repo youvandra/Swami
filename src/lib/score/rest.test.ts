@@ -83,3 +83,8 @@ test("audience: a younger act shows more under-30s", () => {
   assert.ok(under30(a, "opener") > under30(a, "headliner"));
   assert.equal(a.ages.length, 5);
 });
+test("audience: a side without demographics is marked missing, not shown as data", () => {
+  const a = buildAudience({ age: { "24_and_younger": 0.3 }, gender: {} }, null, []);
+  assert.deepEqual(a.missing, ["opener"]);
+  assert.equal(buildAudience({ age: {}, gender: {} }, { age: {}, gender: {} }, []).missing, undefined);
+});

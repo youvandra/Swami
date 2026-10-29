@@ -56,7 +56,8 @@ export type Partner = { name: string; kind: "Bar" | "Restaurant" | "Record shop"
 export type Sponsor = { brand: string; category: string; fit: number; lift: number; pitch: string; broad?: boolean };
 
 export type AgeBand = { band: string; headliner: number; opener: number }; // shares, each column sums to 1
-export type Audience = { ages: AgeBand[]; women: { headliner: number; opener: number }; traits: { label: string; headliner: string; opener: string }[] };
+/** missing: sides Qloo has no demographics for; their ages and women share are only the concert-going base. */
+export type Audience = { ages: AgeBand[]; women: { headliner: number; opener: number }; traits: { label: string; headliner: string; opener: string }[]; missing?: ("headliner" | "opener")[] };
 
 // source: where the numbers came from when it was made. Missing on older artifacts, which were all demo data.
 type Base = { id: string; title: string; subtitle: string; source?: "live" | "fixture" };

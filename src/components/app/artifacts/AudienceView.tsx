@@ -13,6 +13,10 @@ export function AudienceView({ artifact }: { artifact: Audience }) {
   const { audience, show, opener } = artifact;
   const max = Math.max(...audience.ages.flatMap((a) => [a.headliner, a.opener]));
   const under30 = (key: "headliner" | "opener") => audience.ages.slice(0, 2).reduce((n, a) => n + a[key], 0);
+  // a side Qloo has no demographics for holds only the concert-going base, so it is shown as missing
+  const gone = (key: "headliner" | "opener") => !!audience.missing?.includes(key);
+  const stat = (key: "headliner" | "opener", v: number) => (gone(key) ? "—" : pct(v));
+  const missingNames = [...(gone("headliner") ? [show.headliner] : []), ...(gone("opener") ? [opener] : [])];
 
   return (
     <div className={k.wrap}>
@@ -30,19 +34,21 @@ export function AudienceView({ artifact }: { artifact: Audience }) {
       <div className={s.kpis}>
         <div>
           <span>Under 30</span>
-          <b className={k.num}>{pct(under30("headliner"))}</b>
+          <b className={k.num}>{stat("headliner", under30("headliner"))}</b>
           <em>
-            → <b className={k.num}>{pct(under30("opener"))}</b>
+            → <b className={k.num}>{stat("opener", under30("opener"))}</b>
           </em>
         </div>
         <div>
           <span>Women</span>
-          <b className={k.num}>{pct(audience.women.headliner)}</b>
+          <b className={k.num}>{stat("headliner", audience.women.headliner)}</b>
           <em>
-            → <b className={k.num}>{pct(audience.women.opener)}</b>
+            → <b className={k.num}>{stat("opener", audience.women.opener)}</b>
           </em>
         </div>
       </div>
+
+      {missingNames.length > 0 && <p className={k.note}>Qloo has no age or gender data for {missingNames.join(" or ")} yet.</p>}
 
       <section className={s.block}>
         <h3>Age</h3>
@@ -51,11 +57,11 @@ export function AudienceView({ artifact }: { artifact: Audience }) {
             <div key={a.band} className={s.age}>
               <span className={s.band}>{a.band}</span>
               <div className={s.pair}>
-                <span className={s.barH} style={{ width: `${(a.headliner / max) * 86}%` }}>
-                  <em>{pct(a.headliner)}</em>
+                <span className={s.barH} style={{ width: gone("headliner") ? 0 : `${(a.headliner / max) * 86}%` }}>
+                  <em>{stat("headliner", a.headliner)}</em>
                 </span>
-                <span className={s.barO} style={{ width: `${(a.opener / max) * 86}%` }}>
-                  <em>{pct(a.opener)}</em>
+                <span className={s.barO} style={{ width: gone("opener") ? 0 : `${(a.opener / max) * 86}%` }}>
+                  <em>{stat("opener", a.opener)}</em>
                 </span>
               </div>
             </div>

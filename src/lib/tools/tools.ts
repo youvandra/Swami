@@ -338,16 +338,21 @@ export async function audienceTool(ctx: ToolContext, input: RankInput & { opener
   const [dh, dopen] = await step(ctx, "Pulled demographics", () => Promise.all([ctx.q.demographics(r.head.id), ctx.q.demographics(opener.id)]), () => `${r.show.headliner} and ${opener.name}`);
   const [th, to] = await step(ctx, "Compared taste across domains", () => Promise.all([tasteOf(ctx, r.head, r.headHeat, r.show.city), tasteOf(ctx, opener, cells, r.show.city)]), () => "music, places, food");
   const dash = (xs: string[]) => (xs.length ? xs.join(", ") : "—");
+  const edge = (other: HeatCell[], own: HeatCell[], fallback: string[]) => {
+    const names = topAdded(other, own, 2).map((x) => x.name);
+    return names.length ? names : fallback;
+  };
   const traits: Audience["traits"] = [
     { label: "Also listens to", headliner: dash(th.genres), opener: dash(to.genres) },
-    { label: "Goes out in", headliner: dash(th.hoods), opener: dash(to.hoods) },
+    // where each act out-draws the other: the hottest blocks alone are downtown for every big act
+    { label: "Stronger in", headliner: dash(edge(cells, r.headHeat, th.hoods)), opener: dash(edge(r.headHeat, cells, to.hoods)) },
     { label: "Eats at", headliner: dash(th.eats), opener: dash(to.eats) },
   ].filter((t) => t.headliner !== "—" || t.opener !== "—");
   const audience = buildAudience(dh, dopen, traits);
   const u30 = (side: "headliner" | "opener") => Math.round((audience.ages[0][side] + audience.ages[1][side]) * 100);
   return {
     artifact: { id: uid(), type: "audience", title: `Who comes: ${r.show.headliner} + ${opener.name}`, subtitle: "Age, gender and taste, side by side", show: r.show, opener: opener.name, audience },
-    facts: { opener: opener.name, headliner: r.show.headliner, under30Pct: { headliner: u30("headliner"), opener: u30("opener") }, womenPct: { headliner: Math.round(audience.women.headliner * 100), opener: Math.round(audience.women.opener * 100) }, demographics: !!dh && !!dopen },
+    facts: { opener: opener.name, headliner: r.show.headliner, under30Pct: { headliner: dh ? u30("headliner") : null, opener: dopen ? u30("opener") : null }, womenPct: { headliner: dh ? Math.round(audience.women.headliner * 100) : null, opener: dopen ? Math.round(audience.women.opener * 100) : null }, noDemographicsFor: [...(dh ? [] : [r.show.headliner]), ...(dopen ? [] : [opener.name])] },
   };
 }
 
