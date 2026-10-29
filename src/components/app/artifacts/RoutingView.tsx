@@ -18,7 +18,7 @@ export function RoutingView({ artifact, onAsk }: { artifact: Routing; onAsk: (p:
         {stops.map((st, i) => (
           <div key={st.city} className={s.stop} data-strong={st.affinity >= 0.8 || undefined}>
             <span className={s.dot}>{i + 1}</span>
-            <b>{st.city}</b>
+            <b title={st.city}>{st.city}</b>
             <span>{i === 0 ? "Start" : `${st.milesFromPrev} mi`}</span>
           </div>
         ))}

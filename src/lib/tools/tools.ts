@@ -249,7 +249,7 @@ export async function routeTourTool(ctx: ToolContext, input: { headliner: string
   const ranked = [...stops].sort((a, b) => b.affinity - a.affinity);
   return {
     artifact: { id: uid(), type: "routing", title: `${region === "Tour" ? "Tour" : `${region} leg`} · ${head.name}`, subtitle: `${stops.length} cities ranked by fan affinity · suggested order${capacityAssumed(ctx, input) ? ` · rooms assume ${show.capacity.toLocaleString("en-US")} cap` : ""}`, show, leg, stops },
-    facts: { capacityAssumed: capacityAssumed(ctx, input), headliner: head.name, region, strongest: ranked.slice(0, 3).map((s) => s.city), weakest: ranked.slice(-2).map((s) => s.city), miles: stops.reduce((n, x) => n + x.milesFromPrev, 0) },
+    facts: { capacityAssumed: capacityAssumed(ctx, input), headliner: head.name, region, order: stops.map((s) => s.city), strongest: ranked.slice(0, 3).map((s) => s.city), weakest: ranked.slice(-2).map((s) => s.city), miles: stops.reduce((n, x) => n + x.milesFromPrev, 0) },
   };
 }
 
