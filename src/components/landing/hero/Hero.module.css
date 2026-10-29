@@ -24,15 +24,12 @@
   position: absolute;
   z-index: 2;
   display: block;
-  overflow: visible;
   pointer-events: none;
   user-select: none;
   /* the crowd thins out toward the sides instead of ending in a hard edge */
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 14%, #000 86%, transparent 100%);
-  mask-image: linear-gradient(90deg, transparent 0%, #000 14%, #000 86%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
 }
-.crowd { fill: #070d14; stroke: #070d14; }
-.crowd .screen { fill: var(--cyan); stroke: none; filter: drop-shadow(0 0 10px rgba(70, 220, 236, 0.9)); }
 
 /* ---------- nav ---------- */
 .nav {

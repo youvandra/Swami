@@ -3,92 +3,22 @@
 import { useEffect, useRef } from "react";
 import { nav, site } from "@/lib/site";
 import { Chevron, Logo } from "../Logo";
-import { TAU, clamp01, hash, rng, voice } from "./voice";
+import { colour } from "@/lib/crowdmap";
+import { CYCLE, hash, heatAt, pulse } from "./heat";
 import s from "./Hero.module.css";
 
-const VOICE_START = 1.1; // seconds after load
 
-// The audience, seen from behind against the stage glow. Drawn in a 1000 x 520 box, bottom edge on the floor.
-const CROWD_W = 1000;
-const CROWD_H = 520;
-const CROWD_RATIO = CROWD_H / CROWD_W;
-type Fan = { x: number; s: number; arm?: "phone" | "fist" };
-const FANS: Fan[] = [
-  { x: 95, s: 0.62 },
-  { x: 250, s: 0.7 },
-  { x: 430, s: 0.74, arm: "phone" },
-  { x: 610, s: 0.7 },
-  { x: 790, s: 0.68 },
-  { x: 930, s: 0.6 },
-  { x: 170, s: 0.86 },
-  { x: 345, s: 0.95 },
-  { x: 525, s: 1 },
-  { x: 705, s: 0.94, arm: "fist" },
-  { x: 865, s: 0.84 },
-];
+// The audience, seen from behind against the stage glow: a transparent silhouette, bottom edge on the floor.
+const CROWD_SRC = "/hero/crowd.png";
+const CROWD_RATIO = 393 / 1761;
 
-function Fan({ x, s: k, arm }: Fan) {
-  const f = CROWD_H;
-  const headY = f - 250 * k;
-  const sx = 112 * k;
-  const shoulders = `M${x - sx},${f} C${x - sx},${f - 120 * k} ${x - 80 * k},${f - 168 * k} ${x},${f - 172 * k} C${x + 80 * k},${f - 168 * k} ${x + sx},${f - 120 * k} ${x + sx},${f} Z`;
-  const side = arm === "phone" ? -1 : 1;
-  const hand = { x: x + side * 118 * k, y: f - 430 * k };
-  return (
-    <g>
-      <path d={shoulders} />
-      <rect x={x - 17 * k} y={headY + 20 * k} width={34 * k} height={70 * k} rx={10 * k} />
-      <ellipse cx={x} cy={headY} rx={37 * k} ry={42 * k} />
-      {arm && (
-        <>
-          <line x1={x + side * 72 * k} y1={f - 150 * k} x2={hand.x} y2={hand.y + 18 * k} strokeWidth={30 * k} strokeLinecap="round" />
-          {arm === "fist" ? (
-            <circle cx={hand.x} cy={hand.y} r={21 * k} />
-          ) : (
-            <>
-              <rect x={hand.x - 15 * k} y={hand.y - 34 * k} width={30 * k} height={52 * k} rx={5 * k} />
-              <rect className={s.screen} x={hand.x - 11 * k} y={hand.y - 30 * k} width={22 * k} height={40 * k} rx={3 * k} />
-            </>
-          )}
-        </>
-      )}
-    </g>
-  );
-}
-
-// Row colour: pale at the glow, cyan higher up.
-const STOPS = [
-  [0.0, 236, 252, 255, 0.95],
-  [0.16, 176, 243, 250, 0.95],
-  [0.42, 104, 228, 241, 0.92],
-  [1.0, 54, 196, 222, 0.72],
-];
-function rowColour(f: number): [string, string] {
-  let i = 0;
-  while (i < STOPS.length - 2 && f > STOPS[i + 1][0]) i++;
-  const a = STOPS[i];
-  const b = STOPS[i + 1];
-  const k = clamp01((f - a[0]) / (b[0] - a[0]));
-  const m = (j: number) => a[j] + (b[j] - a[j]) * k;
-  return [`rgb(${m(1) | 0},${m(2) | 0},${m(3) | 0})`, m(4).toFixed(3)];
-}
-
-type Column = {
-  i: number;
-  rest: number;
-  dots: SVGRectElement[];
-  cur: number;
-  u: number;
-  delay: number;
-  ph: number;
-  w: number;
-};
+type Dot = { x: number; y: number; u: number; v: number; fade: number; i: number };
 
 export function Hero() {
   const heroRef = useRef<HTMLElement>(null);
   const bgRef = useRef<HTMLCanvasElement>(null);
-  const eqRef = useRef<SVGSVGElement>(null);
-  const personRef = useRef<SVGSVGElement>(null);
+  const heatRef = useRef<HTMLCanvasElement>(null);
+  const personRef = useRef<HTMLImageElement>(null);
   const copyRef = useRef<HTMLDivElement>(null);
   const ctasRef = useRef<HTMLDivElement>(null);
   const showRef = useRef<HTMLDivElement>(null);
@@ -98,7 +28,7 @@ export function Hero() {
   useEffect(() => {
     const hero = heroRef.current!;
     const bg = bgRef.current!;
-    const eq = eqRef.current!;
+    const heat = heatRef.current!;
     const person = personRef.current!;
     const copy = copyRef.current!;
     const ctas = ctasRef.current!;
@@ -110,9 +40,9 @@ export function Hero() {
     let W = 0;
     let H = 0;
     let phone = false;
-    let cols: Column[] = [];
-    let headX = 0;
-    let micDelay = 0;
+    let dots: Dot[] = [];
+    let dotSize = 0;
+    let aspect = 1;
 
     let glowBase = 0;
     let dip = 0;
@@ -204,17 +134,16 @@ export function Hero() {
       let silH: number;
       let silX: number;
       if (phone) {
-        silW = Math.min(W * 1.05, 460);
+        silW = W * 1.12;
         silH = silW * CROWD_RATIO;
         silX = W * 0.5 - silW * 0.5;
       } else {
-        silW = Math.min(W * 0.62, 900, Math.max(520, (H - ctaBottom + 20) / CROWD_RATIO));
+        silW = Math.min(W * 0.8, 1180, Math.max(640, (H - ctaBottom) / CROWD_RATIO));
         silH = silW * CROWD_RATIO;
         silX = W * 0.5 - silW * 0.5;
       }
       const silY = H - silH + 2;
       Object.assign(person.style, { left: `${silX}px`, top: `${silY}px`, width: `${silW}px`, height: `${silH}px` });
-      headX = silX + silW * 0.525;
 
       const aw = show.offsetWidth;
       const ah = show.offsetHeight;
@@ -227,102 +156,73 @@ export function Hero() {
         cx = W - cw - 14;
         cy = H - ch - 18;
       } else {
-        ax = Math.max(24, silX - aw * 0.35);
-        ay = Math.min(silY + silH * 0.18, H - ah - 28);
-        cx = Math.min(silX + silW - cw * 0.55, W - cw - 28);
-        cy = Math.min(silY + silH * 0.05, H - ch - 28);
+        // the cards float over the house on either side, just above the stage line
+        ax = Math.max(24, W * 0.13);
+        ay = glowBase - ah - H * 0.02;
+        cx = Math.min(W * 0.87 - cw, W - cw - 28);
+        cy = glowBase - ch - H * 0.05;
       }
       Object.assign(show.style, { left: `${ax}px`, top: `${ay}px` });
       Object.assign(chat.style, { left: `${cx}px`, top: `${cy}px` });
-      micDelay = (Math.abs(cx + cw - 30 - headX) / W) * 0.34;
 
-      buildEq();
+      buildHeat();
     }
 
-    function buildEq() {
-      const NS = "http://www.w3.org/2000/svg";
-      eq.setAttribute("viewBox", `0 0 ${W} ${H}`);
-      eq.textContent = "";
-      const pitch = phone ? 6.2 : Math.max(7.5, Math.min(10, W / 160));
-      const n = Math.floor((W - pitch) / pitch) + 1;
+    // A dot grid over the house, sitting on the stage edge: the crowd map, live.
+    function buildHeat() {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      heat.width = Math.round(W * dpr);
+      heat.height = Math.round(H * dpr);
+      const pitch = phone ? 9 : Math.max(10, Math.min(13, W / 120));
+      const band = H * (phone ? 0.26 : 0.3);
+      const n = Math.floor(W / pitch);
+      const rows = Math.floor(band / pitch);
       const x0 = (W - (n - 1) * pitch) / 2;
-      const dot = pitch * 0.56;
-      const maxRows = phone ? 22 : 24;
-      const headU = headX / W;
-
-      const r = rng(0xa11ce);
-      const p1 = r() * TAU;
-      const p2 = r() * TAU;
-      const raw: number[] = [];
-      let sum = 0;
-      for (let i = 0; i < n; i++) {
-        const u = i / (n - 1);
-        const shape =
-          0.3 +
-          0.7 * Math.exp(-(((u - headU) / 0.22) ** 2)) +
-          0.22 * Math.exp(-(((u - 0.16) / 0.08) ** 2)) +
-          0.18 * Math.exp(-(((u - 0.86) / 0.07) ** 2));
-        const tex = 0.74 + 0.16 * Math.sin(u * 23 + p1) + 0.1 * Math.sin(u * 61 + p2);
-        raw.push(shape * tex * (0.78 + 0.44 * r()));
-        sum += raw[i];
-      }
-      const k = (phone ? n * 11 : 2000) / sum;
-
-      const palette: [string, string][] = [];
-      for (let row = 0; row < maxRows + 4; row++) palette.push(rowColour(row / (maxRows + 3)));
-
-      const frag = document.createDocumentFragment();
-      cols = [];
-      for (let i = 0; i < n; i++) {
-        const x = x0 + i * pitch;
-        const rest = Math.max(2, Math.min(maxRows, Math.round(raw[i] * k)));
-        const base = glowY(x) + pitch * 0.4;
-        const g = document.createElementNS(NS, "g");
-        const dots: SVGRectElement[] = [];
-        for (let row = 0; row < rest + 4; row++) {
-          const d = document.createElementNS(NS, "rect");
-          d.setAttribute("x", (x - dot / 2).toFixed(2));
-          d.setAttribute("y", (base - row * pitch - dot).toFixed(2));
-          d.setAttribute("width", dot.toFixed(2));
-          d.setAttribute("height", dot.toFixed(2));
-          d.setAttribute("rx", (dot * 0.18).toFixed(2));
-          d.setAttribute("fill", palette[row][0]);
-          d.setAttribute("fill-opacity", palette[row][1]);
-          if (row >= rest) d.setAttribute("visibility", "hidden");
-          g.appendChild(d);
-          dots.push(d);
+      dotSize = pitch * 0.58;
+      aspect = band / W;
+      dots = [];
+      for (let c = 0; c < n; c++) {
+        const x = x0 + c * pitch;
+        const u = x / W;
+        const edge = Math.min(1, u / 0.08, (1 - u) / 0.08);
+        for (let r = 0; r < rows; r++) {
+          const v = (r + 0.5) / rows;
+          dots.push({ x, y: glowY(x) - pitch * (r + 0.9), u, v, fade: edge * (1 - v * v * v * 0.8), i: c * 131 + r });
         }
-        frag.appendChild(g);
-        cols.push({ i, rest, dots, cur: rest, u: x / W, delay: (Math.abs(x - headX) / W) * 0.34, ph: r() * TAU, w: 0.75 + r() * 0.45 });
       }
-      eq.appendChild(frag);
     }
 
-    function setHeight(c: Column, h: number) {
-      if (h === c.cur) return;
-      const lo = Math.min(h, c.cur);
-      const hi = Math.max(h, c.cur);
-      for (let row = lo; row < hi; row++) c.dots[row].setAttribute("visibility", row < h ? "visible" : "hidden");
-      c.cur = h;
-    }
-
-    // Everything here is a pure function of t (seconds on the page clock).
+    // Draws the grid at time t, dots bucketed by colour so each shade is one fill.
     function render(t: number) {
-      const tv = t - VOICE_START;
-      for (const c of cols) {
-        if (tv <= 0) {
-          setHeight(c, c.rest);
-          continue;
-        }
-        const lv = voice(tv - c.delay, c.u);
-        const band = c.w * (0.62 + 0.38 * Math.sin(TAU * (c.u * 1.3 + tv * 0.11) + c.ph) * Math.sin(TAU * (c.u * 0.45 - tv * 0.05) + 1.3));
-        const jitter = (hash(c.i, Math.floor(tv * 14)) - 0.5) * 0.8 * lv;
-        let extra = Math.round(lv * (band * 6.4 - 0.7) + jitter);
-        extra = extra < -2 ? -2 : extra > 4 ? 4 : extra;
-        setHeight(c, Math.max(1, c.rest + extra));
+      const dpr = heat.width / (W || 1);
+      const g = heat.getContext("2d");
+      if (!g) return;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.clearRect(0, 0, W, H);
+      const LEVELS = 28;
+      const buckets: Dot[][] = Array.from({ length: LEVELS }, () => []);
+      const sizes: number[][] = Array.from({ length: LEVELS }, () => []);
+      const tick = Math.floor(t * 4);
+      for (const d of dots) {
+        const shimmer = (hash(d.i, tick) - 0.5) * 0.06;
+        const h = Math.max(0, Math.min(1, heatAt(t, d.u, d.v, aspect) + shimmer)) * d.fade;
+        const k = Math.min(LEVELS - 1, Math.floor(h * LEVELS));
+        buckets[k].push(d);
+        sizes[k].push(dotSize * (0.62 + 0.38 * h));
       }
-      const mv = tv <= 0 ? 0 : voice(tv - micDelay, -1);
-      mic.style.setProperty("--v", mv.toFixed(3));
+      for (let k = 0; k < LEVELS; k++) {
+        if (!buckets[k].length) continue;
+        const h = (k + 0.5) / LEVELS;
+        g.fillStyle = colour(h);
+        g.globalAlpha = 0.6 + 0.4 * h;
+        const list = buckets[k];
+        for (let j = 0; j < list.length; j++) {
+          const sz = sizes[k][j];
+          g.fillRect(list[j].x - sz / 2, list[j].y - sz / 2, sz, sz);
+        }
+      }
+      g.globalAlpha = 1;
+      mic.style.setProperty("--v", (pulse(t) * 0.8).toFixed(3));
     }
 
     // A long Web Animation is the page clock: recorders that step document timelines step this too.
@@ -330,16 +230,23 @@ export function Hero() {
     clock?.play();
     const now = () => Number(clock?.currentTime ?? 0) / 1000;
 
+    // without motion the map holds a moment when two new neighbourhoods are lit
+    const still = CYCLE * 0.3;
     layout();
+    render(clock ? now() : still);
     let alive = true;
-    document.fonts?.ready.then(() => alive && layout());
+    document.fonts?.ready.then(() => {
+      if (!alive) return;
+      layout();
+      render(clock ? now() : still);
+    });
 
     let pending = 0;
     const onResize = () => {
       cancelAnimationFrame(pending);
       pending = requestAnimationFrame(() => {
         layout();
-        if (clock) render(now());
+        render(clock ? now() : still);
       });
     };
     window.addEventListener("resize", onResize);
@@ -365,14 +272,9 @@ export function Hero() {
   return (
     <section className={s.hero} ref={heroRef} aria-label={site.name}>
       <canvas className={s.bg} ref={bgRef} aria-hidden="true" />
-      <svg className={s.eq} ref={eqRef} aria-hidden="true" />
-      <svg className={s.person} ref={personRef} viewBox={`0 0 ${CROWD_W} ${CROWD_H}`} preserveAspectRatio="xMidYMax meet" aria-hidden="true">
-        <g className={s.crowd}>
-          {FANS.map((f) => (
-            <Fan key={`${f.x}-${f.s}`} {...f} />
-          ))}
-        </g>
-      </svg>
+      <canvas className={s.eq} ref={heatRef} aria-hidden="true" />
+      {/* eslint-disable-next-line @next/next/no-img-element -- positioned by the layout code */}
+      <img className={s.person} ref={personRef} src={CROWD_SRC} alt="" decoding="async" />
 
       <header className={s.nav}>
         <a className={s.brand} href="#" aria-label={`${site.name} home`}>
