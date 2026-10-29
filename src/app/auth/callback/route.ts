@@ -1,6 +1,7 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { supabaseForUser } from "@/lib/db/server";
+import { safeNext } from "@/lib/safe-next";
 
 const OTP_TYPES: EmailOtpType[] = ["email", "magiclink", "signup", "invite", "recovery", "email_change"];
 
@@ -10,7 +11,7 @@ const OTP_TYPES: EmailOtpType[] = ["email", "magiclink", "signup", "invite", "re
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const next = url.searchParams.get("next");
-  const safe = next && next.startsWith("/") && !next.startsWith("//") ? next : "/app";
+  const safe = safeNext(next);
   const code = url.searchParams.get("code");
   const tokenHash = url.searchParams.get("token_hash");
   const type = url.searchParams.get("type") as EmailOtpType | null;

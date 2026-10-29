@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, accountsOn } from "./lib/db/config";
+import { safeNext } from "./lib/safe-next";
 
 // Keeps the Supabase session fresh, sends signed-out visitors of /app to the login page and signed-in ones
 // from /login to the app. With accounts off, the app runs locally and every route stays open.
@@ -29,8 +30,7 @@ export async function proxy(request: NextRequest) {
     },
   });
   const { data } = await supabase.auth.getUser();
-  const next = params.get("next");
-  if (data.user && path === "/login") return NextResponse.redirect(new URL(next && next.startsWith("/") && !next.startsWith("//") ? next : "/app", request.url));
+  if (data.user && path === "/login") return NextResponse.redirect(new URL(safeNext(params.get("next")), request.url));
   if (!data.user && (path.startsWith("/app") || path.startsWith("/print"))) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";

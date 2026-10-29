@@ -9,6 +9,7 @@ import { CHICAGO_HOODS, MAP_H, MAP_W, buildDots } from "@/lib/crowdmap";
 import { site } from "@/lib/site";
 import { Logo } from "../landing/Logo";
 import s from "./LoginForm.module.css";
+import { safeNext } from "@/lib/safe-next";
 
 /** Why a sign-in link sent the user back here, in words they can act on. */
 function linkError(code: string | null): string {
@@ -19,7 +20,7 @@ function linkError(code: string | null): string {
 
 export function LoginForm() {
   const params = useSearchParams();
-  const next = params.get("next") ?? "/app";
+  const next = safeNext(params.get("next"));
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error" | "busy" | "failed">(params.get("error") ? "error" : "idle");
   const callback = () => `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
