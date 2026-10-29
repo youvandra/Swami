@@ -3,31 +3,19 @@ import s from "./Pricing.module.css";
 const plans = [
   {
     name: "Single show",
-    price: "$39",
-    unit: "per show",
     blurb: "For a one-off date or a first try.",
     items: ["Opener ranking for one show", "Neighbourhood push plan", "Booking memo export", "Promo links and ticket report"],
-    cta: "Rank a show",
-    href: "/app",
   },
   {
     name: "Season",
-    price: "$490",
-    unit: "per month",
     blurb: "For promoters and venues running a calendar.",
     items: ["Up to 20 shows a month", "Roster mode per tour leg", "Co-promo partner lists", "Rankings that learn from your door"],
-    cta: "Start a season",
-    href: "/app",
     featured: true,
   },
   {
     name: "Venue group",
-    price: "Custom",
-    unit: "",
     blurb: "For groups with many rooms and their own ticketing.",
     items: ["Unlimited shows", "Ticketing data joined to promo links", "Shared rosters across rooms", "Priority support"],
-    cta: "Talk to us",
-    href: "/app",
   },
 ];
 
@@ -37,8 +25,8 @@ export function Pricing() {
       <div className="wrap">
         <header className={s.head}>
           <span className="eyebrow">Pricing</span>
-          <h2 className="display">Priced per show, paid from the show&apos;s budget.</h2>
-          <p className="lead">A single show costs about the same as one ticket at the door.</p>
+          <h2 className="display">Free while Swami is in beta.</h2>
+          <p className="lead">Paid plans are coming soon. Until then every feature is open: sign up and book your next show.</p>
         </header>
 
         <div className={s.plans}>
@@ -49,16 +37,16 @@ export function Pricing() {
                 <p className={s.blurb}>{p.blurb}</p>
               </div>
               <p className={s.price}>
-                {p.price}
-                {p.unit && <span>{p.unit}</span>}
+                Soon
+                <span>pricing after the beta</span>
               </p>
               <ul className={s.items}>
                 {p.items.map((i) => (
                   <li key={i}>{i}</li>
                 ))}
               </ul>
-              <a className={`button ${p.featured ? "button-cream" : "button-line"} ${s.cta}`} href={p.href}>
-                {p.cta}
+              <a className={`button ${p.featured ? "button-cream" : "button-line"} ${s.cta}`} href="/login">
+                Try it free
               </a>
             </article>
           ))}
