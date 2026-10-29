@@ -41,17 +41,19 @@ export function AudienceView({ artifact }: { artifact: Audience }) {
           const known = !gone("headliner") && !gone("opener");
           return (
             <div key={x.label} className={s.kpi}>
-              <span className={s.kpiLabel}>{x.label}</span>
-              <div className={s.kpiRow}>
-                <b className={k.num}>{stat("headliner", x.h)}</b>
-                <IconArrowRight className={s.kpiArrow} aria-hidden="true" />
-                <b className={`${k.num} ${s.kpiOpener}`}>{stat("opener", x.o)}</b>
+              <div className={s.kpiHead}>
+                <span className={s.kpiLabel}>{x.label}</span>
                 {known && (
                   <em className={s.delta} data-dir={pts > 0 ? "up" : pts < 0 ? "down" : undefined}>
                     {pts > 0 ? "+" : pts < 0 ? "−" : "±"}
                     {Math.abs(pts)} pts
                   </em>
                 )}
+              </div>
+              <div className={s.kpiRow}>
+                <b className={k.num}>{stat("headliner", x.h)}</b>
+                <IconArrowRight className={s.kpiArrow} aria-hidden="true" />
+                <b className={`${k.num} ${s.kpiOpener}`}>{stat("opener", x.o)}</b>
               </div>
             </div>
           );
