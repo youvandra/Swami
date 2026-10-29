@@ -208,6 +208,7 @@ With an empty `.env.local` the whole app runs on the fake taste graph, writes re
 | `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` | The agent on any OpenAI-compatible endpoint |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Accounts, shared workspaces, daily limits |
 | `SUPABASE_SERVICE_ROLE_KEY` | The persistent Qloo cache, invite emails, the smoke test account |
+| `NEXT_PUBLIC_AUTH_GOOGLE` | `1` shows Continue with Google, once the provider is on in Supabase |
 | `SWAMI_DAILY_RUNS_PER_WORKSPACE` | Daily run limit per workspace (default 200) |
 | `SMOKE_EMAIL`, `SMOKE_PASSWORD` | A test-only account `npm run smoke` signs in with when accounts are on |
 | `SWAMI_DEV_NO_AUTH` | Local development only: chat without a session (ignored in production) |
