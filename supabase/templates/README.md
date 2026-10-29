@@ -8,4 +8,4 @@ Paste these into Supabase → Authentication → Emails → Templates. The link 
 | Magic Link | `magic_link.html` | Your Swami sign-in link |
 | Confirm signup | `confirm_signup.html` | Confirm your email for Swami |
 
-The header image is served from `public/email/header.png`.
+Plain on purpose: no images, one link, a text fallback. That keeps them out of spam folders.
