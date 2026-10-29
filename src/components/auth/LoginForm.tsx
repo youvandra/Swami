@@ -10,6 +10,13 @@ import { site } from "@/lib/site";
 import { Logo } from "../landing/Logo";
 import s from "./LoginForm.module.css";
 
+/** Why a sign-in link sent the user back here, in words they can act on. */
+function linkError(code: string | null): string {
+  if (code === "otp_expired") return "That link expired or was already used. Ask for a new one below.";
+  if (code === "pkce_code_verifier_not_found" || code === "bad_code_verifier" || code === "flow_state_not_found") return "Open the link in the same browser you asked from, or ask for a new one below.";
+  return "That link did not work. Ask for a new one below.";
+}
+
 export function LoginForm() {
   const params = useSearchParams();
   const next = params.get("next") ?? "/app";
@@ -65,7 +72,7 @@ export function LoginForm() {
                   {state === "sending" ? "Sending…" : "Email me a link"}
                 </button>
               </form>
-              {state === "error" && <p className={s.error}>That link did not work. Ask for a new one.</p>}
+              {state === "error" && <p className={s.error}>{linkError(params.get("error"))}</p>}
               {state === "busy" && <p className={s.error}>Too many sign-in emails just went out. Wait a minute, then try again.</p>}
               {state === "failed" && <p className={s.error}>We could not send the link. Check the address and try again.</p>}
               {googleOn && (
