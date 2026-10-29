@@ -35,7 +35,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
-  const planLabel = { single: "Single show", season: "Season plan", group: "Venue group" }[workspace.plan];
+  // every workspace is on the free beta until paid plans exist
+  const planLabel = "Free beta";
   const [navOpen, setNavOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState("");

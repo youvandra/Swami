@@ -39,10 +39,11 @@ const TABS = [
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
 
-const PLANS: { id: Workspace["plan"]; name: string; price: string }[] = [
-  { id: "single", name: "Single Show", price: "$39 per show" },
-  { id: "season", name: "Season", price: "$490 per month" },
-  { id: "group", name: "Venue Group", price: "Custom" },
+// Paid plans come after the beta; until then every workspace is on the free beta with every feature open.
+const PLANS: { name: string; detail: string }[] = [
+  { name: "Single Show", detail: "One-off dates" },
+  { name: "Season", detail: "A calendar of shows" },
+  { name: "Venue Group", detail: "Many rooms, own ticketing" },
 ];
 
 export function SettingsView() {
@@ -417,21 +418,19 @@ function BillingTab({ onToast }: { onToast: (m: string) => void }) {
     .flatMap((m) => m.artifacts ?? []).length;
   return (
     <>
-      <Section title="Plan" hint="Prices are placeholders while Swami is in preview.">
-        <div className={s.plans} role="radiogroup">
+      <Section title="Plan" hint="Free while Swami is in beta. Paid plans arrive after the beta.">
+        <div className={s.plans}>
+          <div className={s.planCard} data-current="">
+            <b>Beta</b>
+            <span>Free · every feature open</span>
+          </div>
           {PLANS.map((pl) => (
-            <button
-              key={pl.id}
-              role="radio"
-              aria-checked={ws.plan === pl.id}
-              onClick={() => {
-                updateWorkspace({ plan: pl.id });
-                onToast(`Plan set to ${pl.name}`);
-              }}
-            >
-              <b>{pl.name}</b>
-              <span>{pl.price}</span>
-            </button>
+            <div key={pl.name} className={s.planCard} aria-disabled="true">
+              <b>
+                {pl.name} <em className={s.soon}>Soon</em>
+              </b>
+              <span>{pl.detail}</span>
+            </div>
           ))}
         </div>
       </Section>
