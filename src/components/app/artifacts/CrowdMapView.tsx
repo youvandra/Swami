@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Artifact } from "@/lib/agent/types";
-import { MAP_H, MAP_W, buildDots, isNamed, type Layer } from "@/lib/crowdmap";
+import { MAP_H, MAP_W, buildDots, isNamed, placePins, type Layer } from "@/lib/crowdmap";
 import { OVERLAP } from "@/lib/score/heat";
 import s from "./CrowdMapView.module.css";
 
@@ -22,7 +22,7 @@ export function CrowdMapView({ artifact }: { artifact: CrowdMap }) {
     [hoods],
   );
   // label the neighbourhoods that matter most; a dense map with every name on it is unreadable
-  const pins = rows.filter(isNamed).slice(0, 7);
+  const pins = useMemo(() => placePins(rows.filter(isNamed)), [rows]);
 
   const layers: { id: Layer; label: string }[] = [
     { id: "headliner", label: show.headliner },
@@ -47,7 +47,7 @@ export function CrowdMapView({ artifact }: { artifact: CrowdMap }) {
           {pins.map((h) => (
             <g key={h.name} className={s.pin}>
               <circle cx={h.x} cy={h.y} r={2.2} />
-              <text x={h.x + 6} y={h.y + 3}>
+              <text x={h.tx} y={h.y + 3} textAnchor={h.anchor}>
                 {h.name}
               </text>
             </g>

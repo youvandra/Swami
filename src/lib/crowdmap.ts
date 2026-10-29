@@ -49,6 +49,37 @@ export function heat(hoods: Hood[], layer: Layer, x: number, y: number) {
   return Math.round(v * 100) / 100;
 }
 
+export type Pin = { name: string; x: number; y: number; tx: number; anchor: "start" | "end" };
+
+// Label boxes at the pin font size (8.5px): average glyph width and line height, in map units.
+const GLYPH = 4.6;
+const LINE = 11;
+
+/**
+ * Places neighbourhood labels most-important first: right of the dot, else left when that runs off the map,
+ * and a label that would sit on top of one already placed is dropped (the table below still lists it).
+ */
+export function placePins(hoods: { name: string; x: number; y: number }[], max = 7): Pin[] {
+  const boxes: { x0: number; x1: number; y0: number; y1: number }[] = [];
+  const out: Pin[] = [];
+  const hit = (b: (typeof boxes)[number]) => boxes.some((o) => b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0);
+  for (const h of hoods) {
+    if (out.length >= max) break;
+    const w = h.name.length * GLYPH;
+    const y0 = h.y - LINE / 2;
+    const y1 = h.y + LINE / 2;
+    const right = { x0: h.x - 3, x1: h.x + 6 + w, y0, y1 };
+    const left = { x0: h.x - 6 - w, x1: h.x + 3, y0, y1 };
+    const fitsRight = right.x1 <= MAP_W && !hit(right);
+    const fitsLeft = left.x0 >= 0 && !hit(left);
+    if (!fitsRight && !fitsLeft) continue;
+    const box = fitsRight ? right : left;
+    boxes.push(box);
+    out.push({ name: h.name, x: h.x, y: h.y, tx: fitsRight ? h.x + 6 : h.x - 6, anchor: fitsRight ? "start" : "end" });
+  }
+  return out;
+}
+
 export type Dot = { x: number; y: number; size: number; fill: string };
 
 export function buildDots(hoods: Hood[], layer: Layer, city?: string): Dot[] {

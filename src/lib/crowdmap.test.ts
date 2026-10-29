@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CHICAGO_HOODS, buildDots, heat, isNamed } from "./crowdmap.ts";
+import { CHICAGO_HOODS, MAP_W, buildDots, heat, isNamed, placePins } from "./crowdmap.ts";
 
 test("positional cell names get no label", () => {
   assert.equal(isNamed({ name: "41.912,-87.600", x: 0, y: 0, headliner: 0, opener: 0 }), false);
@@ -17,4 +17,18 @@ test("other cities draw their dots only near their own neighbourhoods", () => {
   const dots = buildDots(one, "headliner", "Austin");
   assert.ok(dots.length > 0 && dots.every((d) => Math.hypot(d.x - 230, d.y - 150) < 90));
   assert.ok(buildDots(CHICAGO_HOODS, "gain", "Chicago").length > dots.length);
+});
+
+test("pin labels never overlap and stay on the map", () => {
+  const pins = placePins([
+    { name: "Gold Coast Historic District", x: 400, y: 160 },
+    { name: "Streeterville", x: 402, y: 164 },
+    { name: "Magnificent Mile", x: 404, y: 166 },
+    { name: "West Ridge", x: 330, y: 20 },
+  ]);
+  const gold = pins.find((p) => p.name.startsWith("Gold"));
+  assert.equal(gold?.anchor, "end");
+  assert.ok(pins.every((p) => p.anchor === "end" || p.tx + p.name.length * 4.6 <= MAP_W));
+  // the two names stacked on the first one's spot are dropped, not drawn over it
+  assert.deepEqual(pins.map((p) => p.name), ["Gold Coast Historic District", "West Ridge"]);
 });
