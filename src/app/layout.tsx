@@ -12,7 +12,7 @@ const serif = Roboto_Serif({
 });
 
 export const metadata: Metadata = {
-  title: `${site.name} — ${site.tagline}`,
+  title: `${site.name} · ${site.tagline}`,
   description: site.description,
 };
 
