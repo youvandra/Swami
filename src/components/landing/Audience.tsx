@@ -5,7 +5,7 @@ const rows = [
     who: "Promoter & venue marketing",
     lead: true,
     decision: "Where this show's marketing budget goes",
-    gets: "Ranked support, a neighbourhood ad plan, co-promo partners and a ticket report per promo link.",
+    gets: "Ranked support, a neighbourhood ad plan and co-promo partners whose regulars share the crowd.",
   },
   {
     who: "Talent buyers",
@@ -19,8 +19,8 @@ const rows = [
   },
   {
     who: "Artist managers",
-    decision: "Which tours to pitch for",
-    gets: "Headliners whose fans would like your act, plus the memo that makes the case.",
+    decision: "Which bills to pitch for",
+    gets: "Your act scored against a headliner's fans in roster mode, plus the memo that makes the case.",
   },
 ];
 

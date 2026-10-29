@@ -360,8 +360,8 @@ function RostersTab({ onToast }: { onToast: (m: string) => void }) {
 }
 
 const SOURCES = [
-  { name: "Ticketing", by: "Your ticketing system", status: "Ready to Connect", note: "Joins door counts to promo links so rankings learn from what sold. Venue group plan.", tone: "off" },
-  { name: "Mailing List", by: "Your email tool", status: "Ready to Connect", note: "Sends approved drafts and tracks replies from agents, venues and sponsors.", tone: "off" },
+  { name: "Ticketing", by: "Your ticketing system", status: "Coming Soon", note: "Joins door counts to promo links so rankings learn from what sold. Venue group plan.", tone: "off" },
+  { name: "Mailing List", by: "Your email tool", status: "Coming Soon", note: "Sends approved drafts and tracks replies from agents, venues and sponsors.", tone: "off" },
 ] as const;
 
 function DataTab() {

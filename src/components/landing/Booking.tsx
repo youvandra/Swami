@@ -47,7 +47,7 @@ export function Booking() {
           <article className={`${s.card} ${s.roster}`}>
             <div className={s.cardText}>
               <h3>Roster Mode</h3>
-              <p>Paste the agency&apos;s list. Roster, dates and budget act as hard filters, and the ranking runs per leg so support can rotate by region.</p>
+              <p>Paste the agency&apos;s list. The roster acts as a hard filter, and the ranking runs per leg so support can rotate by region.</p>
             </div>
             <div className={s.chips} aria-hidden="true">
               {["Halcyon Drive", "Pia Marsh", "Copper Hours", "The Low Orchard", "June Atlas", "Fieldwork"].map((a, i) => (
@@ -60,7 +60,9 @@ export function Booking() {
 
           <article className={`${s.card} ${s.reverse}`}>
             <div className={s.cardText}>
-              <h3>Reverse Mode for Managers</h3>
+              <h3>
+                Reverse Mode for Managers <span className={s.soon}>Soon</span>
+              </h3>
               <p>Start from your artist and find headliners whose fans would like you, in cities where you are small today.</p>
             </div>
             <div className={s.flow} aria-hidden="true">

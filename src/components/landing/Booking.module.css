@@ -18,6 +18,7 @@
 }
 .cardText { display: grid; gap: 8px; max-width: 30em; }
 .cardText h3 { font-size: 20px; font-weight: 600; letter-spacing: -0.015em; }
+.soon { margin-left: 6px; font-size: 13px; font-weight: 500; color: var(--teal); vertical-align: 2px; }
 .cardText p { font-size: 15px; line-height: 1.6; color: var(--muted); }
 
 /* memo: a sheet of paper on the pale cyan glass from the hero's left card */

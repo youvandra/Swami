@@ -118,6 +118,7 @@ const steps = [
     title: "Learn from the door",
     body: "Every opener and segment gets its own promo link. After the show, tickets per link reweight the next ranking.",
     mock: <ReportMock />,
+    soon: true,
   },
 ];
 
@@ -135,7 +136,10 @@ export function HowItWorks() {
             <li key={step.title} className={s.step}>
               {step.mock}
               <div className={s.meta}>
-                <span className={s.stepN}>Step {i + 1}</span>
+                <span className={s.stepN}>
+                  Step {i + 1}
+                  {"soon" in step && step.soon && <span className={s.soon}>Soon</span>}
+                </span>
                 <h3 className={s.stepTitle}>{step.title}</h3>
                 <p className={s.stepBody}>{step.body}</p>
               </div>
