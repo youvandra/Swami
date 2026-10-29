@@ -386,18 +386,20 @@ export async function draftEmailTool(ctx: ToolContext, input: RankInput & { kind
   const place = show.venue ? `at ${show.venue}, ${show.city}` : `in ${show.city}`;
   const where = hoods.length ? listing(hoods.slice(0, 2)) : `the parts of ${show.city} where our presale is thinnest`;
   const sign = `Best,\n${ctx.workspace}`;
+  // the model often passes "Lucy Dacus's team"; the greetings add "team" themselves
+  const name = input.to?.replace(/(?:['’]s)?\s+team\.?$/i, "").trim() || undefined;
   let d: { who: string; to: string; subject: string; body: string };
   if (input.kind === "sponsor") {
-    const who = input.to ?? "Partnerships";
+    const who = name ?? "Partnerships";
     d = { who, to: "partnerships@brand.example", subject: `${show.headliner} in ${show.city}, ${show.date}: sampling partnership`, body: `Hi ${who} team,\n\nWe're presenting ${show.headliner} ${place} on ${show.date}${show.capacityAssumed ? "" : `, a ${cap}-cap room`}.\n\nTheir fans pick your brand far more often than the average concert-goer, so we'd love to set up a sampling bar next to merch, plus your logo on the promo links we send to ${where}.\n\nCould we talk this week?\n\n${sign}` };
   } else if (input.kind === "venue") {
-    const who = input.to ?? show.venue ?? "Booking";
+    const who = name ?? show.venue ?? "Booking";
     d = { who, to: "booking@venue.example", subject: `Hold request: ${show.headliner}, ${show.date}`, body: `Hi ${who} team,\n\nWe'd like to place a first hold on ${show.date} for ${show.headliner} with support from ${opener.name}.\n\nWe expect a full ${show.capacityAssumed ? "room" : `${cap}-cap room`}: the pairing adds a crowd from ${where} on top of the headliner's regulars.\n\nCan you confirm the date is open and send your current deal sheet?\n\n${sign}` };
   } else if (input.kind === "partner") {
-    const who = input.to ?? "there";
+    const who = name ?? "there";
     d = { who, to: "hello@partner.example", subject: `Co-promo idea: ${show.headliner} + ${opener.name}, ${show.date}`, body: `Hi ${who},\n\nWe're putting on ${show.headliner} with ${opener.name} ${place} on ${show.date}. A lot of your regulars are fans of both acts.\n\nWould you host a pre-show night or put our flyer on the counter? You'd get your own ticket link, a pair of guest-list spots and a shout-out in our posts.\n\n${sign}` };
   } else {
-    const who = input.to ?? opener.name;
+    const who = name ?? opener.name;
     d = { who, to: "booking@artist.example", subject: `Support slot: ${show.headliner} ${show.venue ? `at ${show.venue}` : `in ${show.city}`}, ${show.date}`, body: `Hi ${who} team,\n\nWe're booking support for ${show.headliner} ${place}, on ${show.date}.\n\nYour fans rank ${show.headliner} among the acts they love most, and they live in ${where}, where our presale needs a lift. We'd like to offer you the 30-minute support slot.\n\nAre you holding that date? Happy to send terms today.\n\n${sign}` };
   }
   await step(ctx, "Drafted the email", async () => d, () => "subject, body, recipients");

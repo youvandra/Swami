@@ -101,6 +101,9 @@ test("proposal and every email kind", async () => {
     if (e.type !== "email") return assert.fail();
     assert.match(e.body, /Northside Live/);
   }
+  const named = valid(await T.draftEmailTool(ctx(), { ...H, kind: "opener", to: "Lucy Dacus's team" }));
+  if (named.type !== "email") return assert.fail();
+  assert.match(named.body, /^Hi Lucy Dacus team,/);
 });
 
 test("one ranking feeds every follow-up in a run", async () => {
