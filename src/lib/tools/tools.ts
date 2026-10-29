@@ -403,7 +403,7 @@ export async function draftEmailTool(ctx: ToolContext, input: RankInput & { kind
     d = { who, to: "booking@artist.example", subject: `Support slot: ${show.headliner} ${show.venue ? `at ${show.venue}` : `in ${show.city}`}, ${show.date}`, body: `Hi ${who} team,\n\nWe're booking support for ${show.headliner} ${place}, on ${show.date}.\n\nYour fans rank ${show.headliner} among the acts they love most, and they live in ${where}, where our presale needs a lift. We'd like to offer you the 30-minute support slot.\n\nAre you holding that date? Happy to send terms today.\n\n${sign}` };
   }
   await step(ctx, "Drafted the email", async () => d, () => "subject, body, recipients");
-  return { artifact: { id: uid(), type: "email", title: `Email · ${d.who}`, subtitle: "Draft", show, to: d.to, cc: "", subject: d.subject, body: d.body }, facts: { kind: input.kind, to: d.who, opener: opener.name } };
+  return { artifact: { id: uid(), type: "email", title: `Email · ${d.who}`, subtitle: "Draft", show, to: d.to, cc: "", subject: d.subject, body: d.body }, facts: { kind: input.kind, to: d.who, opener: opener.name, subject: d.subject, body: d.body } };
 }
 
 const today = () => new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
