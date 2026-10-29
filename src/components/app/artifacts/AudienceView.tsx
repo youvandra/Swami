@@ -1,6 +1,7 @@
 "use client";
 
 import type { Artifact } from "@/lib/agent/types";
+import { IconArrowRight } from "../icons";
 import { isLive } from "./source";
 import k from "./kit.module.css";
 import s from "./AudienceView.module.css";
@@ -32,20 +33,29 @@ export function AudienceView({ artifact }: { artifact: Audience }) {
       </div>
 
       <div className={s.kpis}>
-        <div>
-          <span>Under 30</span>
-          <b className={k.num}>{stat("headliner", under30("headliner"))}</b>
-          <em>
-            → <b className={k.num}>{stat("opener", under30("opener"))}</b>
-          </em>
-        </div>
-        <div>
-          <span>Women</span>
-          <b className={k.num}>{stat("headliner", audience.women.headliner)}</b>
-          <em>
-            → <b className={k.num}>{stat("opener", audience.women.opener)}</b>
-          </em>
-        </div>
+        {[
+          { label: "Under 30", h: under30("headliner"), o: under30("opener") },
+          { label: "Women", h: audience.women.headliner, o: audience.women.opener },
+        ].map((x) => {
+          const pts = Math.round(x.o * 100) - Math.round(x.h * 100);
+          const known = !gone("headliner") && !gone("opener");
+          return (
+            <div key={x.label} className={s.kpi}>
+              <span className={s.kpiLabel}>{x.label}</span>
+              <div className={s.kpiRow}>
+                <b className={k.num}>{stat("headliner", x.h)}</b>
+                <IconArrowRight className={s.kpiArrow} aria-hidden="true" />
+                <b className={`${k.num} ${s.kpiOpener}`}>{stat("opener", x.o)}</b>
+                {known && (
+                  <em className={s.delta} data-dir={pts > 0 ? "up" : pts < 0 ? "down" : undefined}>
+                    {pts > 0 ? "+" : pts < 0 ? "−" : "±"}
+                    {Math.abs(pts)} pts
+                  </em>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {missingNames.length > 0 && <p className={k.note}>Qloo has no age or gender data for {missingNames.join(" or ")} yet.</p>}
