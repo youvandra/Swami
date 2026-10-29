@@ -7,7 +7,7 @@
 **The AI booking agent for live music, built on Qloo's taste graph.**
 Ask who should open the show. Get the act whose fans live where your headliner sells thin, mapped by neighbourhood, with the proposal already drafted.
 
-[![Live demo](https://img.shields.io/badge/demo-swami--eta.vercel.app-0b1a2b?style=for-the-badge)](https://swami-eta.vercel.app)
+[![Live demo](https://img.shields.io/badge/demo-getswami.vercel.app-0b1a2b?style=for-the-badge)](https://getswami.vercel.app)
 [![Qloo](https://img.shields.io/badge/data-Qloo%20Taste%20AI-2bd4e3?style=for-the-badge)](https://www.qloo.com)
 [![License: MIT](https://img.shields.io/badge/license-MIT-0b1a2b?style=for-the-badge)](LICENSE)
 
