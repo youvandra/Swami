@@ -19,7 +19,7 @@ Ask who should open the show. Get the act whose fans live where your headliner s
 ![Zod](https://img.shields.io/badge/Zod-3e67b1?style=flat-square&logo=zod&logoColor=white)
 ![Node test runner](https://img.shields.io/badge/tests-node%20--test-339933?style=flat-square&logo=nodedotjs&logoColor=white)
 
-[Why](#why-swami) · [What it does](#what-it-does) · [How it works](#how-it-works) · [Scoring](#the-scoring) · [Qloo](#how-swami-uses-qloo) · [Run it](#run-it-locally) · [Deploy](#deploy) · [Roadmap](#roadmap)
+[Why](#why-swami) · [What it does](#what-it-does) · [How it works](#how-it-works) · [Scoring](#the-scoring) · [Qloo](#what-makes-it-qloo-powered) · [Run it](#run-it-locally) · [Deploy](#deploy) · [Roadmap](#roadmap)
 
 </div>
 
@@ -152,7 +152,26 @@ All scorers live in [`src/lib/score/`](src/lib/score): pure functions with unit 
 
 **The number check** ([`src/lib/agent/prose.ts`](src/lib/agent/prose.ts)): every number in the reply must appear in a tool result or in the user's own words (percentages of 0–1 values and trailing zeros included). A reply that fails is replaced by a template written from the same facts.
 
-## How Swami uses Qloo
+## What makes it Qloo-powered
+
+Swami's agent asks its questions of Qloo's taste graph. Every artifact comes from Qloo data run through Swami's scorers, and three things Qloo does are what make each answer possible:
+
+1. **One fan, every domain.** Qloo connects what the same people love across music, places and brands. Seeded with one headliner, the same fan base answers who should open, which bars and record shops to partner with, which brands to pitch and who the audience is. Swami asks one taste graph and gets the whole show plan from it.
+2. **Taste with an address.** Qloo's heatmap says where in a city a taste lives, block by block. That is the crowd map, the reach gain inside the opener score, and the city strength behind tour routing.
+3. **Signals that steer the question.** A city as a signal gives local taste, a trend bias surfaces acts on the rise, and a list of entities scores a manager's own roster against the headliner's fans.
+
+| Feature | Qloo capability behind it |
+| --- | --- |
+| Opener ranking | Related artists for the headliner, globally and with the city as signal; trend bias for rising acts; roster scoring with `filter.results.entities` |
+| Crowd map and reach gain | Neighbourhood heatmaps for headliner and opener on geohash cells, named with locality insights |
+| Tour routing | The headliner's heatmap per city, compared on heat rank |
+| Venues | Places the fans love, filtered by venue tags sized to the act |
+| Co-promo partners | Bars, restaurants, record shops and cafés the opener's fans love, inside the neighbourhoods it adds |
+| Sponsors | Brand affinity of the headliner's fans |
+| Audience | Demographics for the headliner's fans |
+| Proposal and email | Written from the facts above, so every pick and reason traces back to Qloo |
+
+### The calls in detail
 
 | Qloo call | Used for |
 | --- | --- |
