@@ -7,6 +7,7 @@ import type { Emit } from "./events.ts";
 import { ChatCompletionsClient } from "./chat-completions.ts";
 import { agentTurn, type MessagesClient, type Usage } from "./llm.ts";
 import { answerCards } from "./choice.ts";
+import { gate } from "./gate.ts";
 import { lastUserText, templateTurn, type TurnResult } from "./turn.ts";
 import type { ChatRequest, Message } from "./types.ts";
 
@@ -41,6 +42,8 @@ export async function runChat(asked: ChatRequest, emit: Emit, signal?: AbortSign
   const answered = await answerCards(ctx, req, lastUserText(req), emit);
   if (answered && "result" in answered) turn = answered.result;
   else if (answered) req = { ...req, messages: [...req.messages.slice(0, -1), { role: "user", text: answered.ask }] };
+  // a request that leaves out the artist or the opener gets a question, never a guess
+  turn ??= (await gate(ctx, req, lastUserText(req), emit)) ?? undefined;
   const agent = turn ? undefined : agentClient();
   if (agent) {
     try {
