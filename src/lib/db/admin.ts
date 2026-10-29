@@ -32,3 +32,13 @@ export async function sendInvite(email: string, redirectTo: string): Promise<boo
   const { error } = await sb.auth.admin.inviteUserByEmail(email, { redirectTo });
   return !error;
 }
+
+/** Chat runs across every workspace since midnight UTC; null when the service key is missing. */
+export async function globalRunsToday(): Promise<number | null> {
+  const sb = adminClient();
+  if (!sb) return null;
+  const since = new Date();
+  since.setUTCHours(0, 0, 0, 0);
+  const { count, error } = await sb.from("usage_events").select("id", { count: "exact", head: true }).eq("kind", "chat").gte("created_at", since.toISOString());
+  return error ? null : (count ?? 0);
+}

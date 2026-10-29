@@ -16,6 +16,8 @@ const ms = (t: string | null) => (t ? Date.parse(t) : Date.now());
 const iso = (n: number) => new Date(n).toISOString();
 
 export class DbError extends Error {}
+/** A write refused by a limit, with a message meant for the person who made it. */
+export class LimitError extends Error {}
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- rows are untyped until a generated schema type exists
 const must = <T = any>(r: { data: T | null; error: { message: string } | null }): NonNullable<T> | any[] => {
   if (r.error) throw new DbError(r.error.message);
@@ -141,6 +143,12 @@ export async function apply(sb: SupabaseClient, ws: string, op: Op): Promise<voi
       must(await sb.from("workspaces").update(op.patch).eq("id", ws));
       return;
     case "member.invite": {
+      // each invitation sends an email from the Swami domain, so a workspace gets a few a day
+      const since = new Date();
+      since.setUTCHours(0, 0, 0, 0);
+      const { count } = await sb.from("usage_events").select("id", { count: "exact", head: true }).eq("workspace_id", ws).eq("kind", "invite").gte("created_at", since.toISOString());
+      if ((count ?? 0) >= env.SWAMI_DAILY_INVITES_PER_WORKSPACE) throw new LimitError(`You can send ${env.SWAMI_DAILY_INVITES_PER_WORKSPACE} invitations a day. Try again after midnight UTC.`);
+      must(await sb.from("usage_events").insert({ workspace_id: ws, kind: "invite" }));
       const name = op.email.split("@")[0].replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       must(await sb.from("members").insert({ workspace_id: ws, email: op.email.toLowerCase(), name, role: op.role, status: "invited" }));
       // the row is the invitation; the email is a courtesy, and an existing account simply joins on next login

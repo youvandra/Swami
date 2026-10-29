@@ -15,6 +15,10 @@ const schema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   NEXT_PUBLIC_SITE_URL: z.string().default("http://localhost:5192"),
   SWAMI_DAILY_RUNS_PER_WORKSPACE: z.coerce.number().int().positive().default(200),
+  // every workspace together: sign-ups are free, so this bounds what one person with many emails can spend
+  SWAMI_DAILY_RUNS_GLOBAL: z.coerce.number().int().positive().default(2000),
+  // invitation emails a workspace may send a day; each one goes out from the swami.web.id domain
+  SWAMI_DAILY_INVITES_PER_WORKSPACE: z.coerce.number().int().positive().default(10),
   // demo only: delay per fake Qloo call, so steps stream visibly
   // local only: lets chat run without a session; ignored when NODE_ENV is production
   SWAMI_DEV_NO_AUTH: z.string().optional(),

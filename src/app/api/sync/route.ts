@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { accountsOn } from "@/lib/db/config";
-import { DbError, apply, currentWorkspace } from "@/lib/db/repo";
+import { DbError, LimitError, apply, currentWorkspace } from "@/lib/db/repo";
 import { supabaseForUser } from "@/lib/db/server";
 import { opSchema } from "@/lib/db/sync";
 
@@ -25,6 +25,7 @@ export async function POST(req: Request) {
     }
     return Response.json({ ok: true, done });
   } catch (e) {
+    if (e instanceof LimitError) return Response.json({ error: e.message, done }, { status: 429 });
     console.error(JSON.stringify({ at: "sync", done, error: e instanceof DbError ? e.message : String(e) }));
     return Response.json({ error: "Could not save that change", done }, { status: 500 });
   }

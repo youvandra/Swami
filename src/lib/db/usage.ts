@@ -2,6 +2,7 @@ import "server-only";
 import { accountsOn } from "./config.ts";
 import { currentWorkspace } from "./repo.ts";
 import { supabaseForUser } from "./server.ts";
+import { globalRunsToday } from "./admin.ts";
 import { env } from "../env.ts";
 
 export type Gate = { ok: true; who?: string; record: (u: { qlooCalls: number; tokensIn: number; tokensOut: number; ms: number }) => Promise<void> } | { ok: false; status: number; error: string };
@@ -21,6 +22,8 @@ export async function chatGate(): Promise<Gate> {
   const { count } = await sb.from("usage_events").select("id", { count: "exact", head: true }).eq("workspace_id", ws.id).eq("kind", "chat").gte("created_at", since.toISOString());
   const max = env.SWAMI_DAILY_RUNS_PER_WORKSPACE;
   if ((count ?? 0) >= max) return { ok: false, status: 429, error: `You have used today's ${max} runs. They reset at midnight UTC.` };
+  const all = await globalRunsToday();
+  if (all !== null && all >= env.SWAMI_DAILY_RUNS_GLOBAL) return { ok: false, status: 503, error: "Swami is at today's capacity. It opens again at midnight UTC." };
   const { data: auth } = await sb.auth.getUser();
   return {
     ok: true,
