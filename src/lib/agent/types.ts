@@ -52,7 +52,8 @@ export type Venue = { name: string; hood: string; capacity?: number; fit: number
 
 export type Partner = { name: string; kind: "Bar" | "Restaurant" | "Record shop" | "Café"; hood: string; fit: number; angle: string };
 
-export type Sponsor = { brand: string; category: string; fit: number; lift: number; pitch: string };
+/** broad: no brand beat the fans' baseline (a mass-market act), so these are the fans' top picks, not a lift. */
+export type Sponsor = { brand: string; category: string; fit: number; lift: number; pitch: string; broad?: boolean };
 
 export type AgeBand = { band: string; headliner: number; opener: number }; // shares, each column sums to 1
 export type Audience = { ages: AgeBand[]; women: { headliner: number; opener: number }; traits: { label: string; headliner: string; opener: string }[] };

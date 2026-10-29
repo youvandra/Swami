@@ -30,7 +30,7 @@ export const artifactSchema = z.discriminatedUnion("type", [
   z.object({ ...base, type: z.literal("routing"), show, leg: z.string(), stops: z.array(z.object({ city: z.string(), region: z.string(), affinity: unit, milesFromPrev: z.number().int().min(0), room: z.string(), note: z.string() })).min(1) }),
   z.object({ ...base, type: z.literal("venues"), show, venues: z.array(z.object({ name: z.string(), hood: z.string(), capacity: z.number().int().positive().optional(), fit: unit, tags: z.array(z.string()), note: z.string() })).min(1) }),
   z.object({ ...base, type: z.literal("partners"), show, partners: z.array(z.object({ name: z.string(), kind: z.enum(["Bar", "Restaurant", "Record shop", "Café"]), hood: z.string(), fit: unit, angle: z.string() })).min(1) }),
-  z.object({ ...base, type: z.literal("sponsors"), show, sponsors: z.array(z.object({ brand: z.string(), category: z.string(), fit: unit, lift: z.number().positive(), pitch: z.string() })).min(1) }),
+  z.object({ ...base, type: z.literal("sponsors"), show, sponsors: z.array(z.object({ brand: z.string(), category: z.string(), fit: unit, lift: z.number().positive(), pitch: z.string(), broad: z.boolean().optional() })).min(1) }),
   z.object({
     ...base,
     type: z.literal("audience"),

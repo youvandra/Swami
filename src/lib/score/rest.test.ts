@@ -59,6 +59,17 @@ test("sponsors: lift is seeded over baseline, weak lifts are dropped", () => {
   assert.match(s[0].pitch, /3\.4×/);
   assert.ok(MIN_LIFT > 1);
 });
+test("sponsors: a broad fan base falls back to the fans' top picks, marked broad", () => {
+  const s = rankSponsors([
+    { name: "Mall", category: "Retail", affinity: 0.97, baseline: 0.96 },
+    { name: "Shoes", category: "Fashion", affinity: 0.95, baseline: 0.95 },
+    { name: "NoBase", category: "Retail", affinity: 0.9 },
+  ]);
+  assert.deepEqual(s.map((x) => x.brand), ["Mall", "Shoes", "NoBase"]);
+  assert.ok(s.every((x) => x.broad && x.lift > 0));
+  assert.match(s[0].pitch, /broad/);
+  assert.equal(s[0].fit, 1);
+});
 test("audience: shares sum to 1, missing data falls back to the base", () => {
   for (const d of [null, { age: { "24_and_younger": 0.5, "55_and_older": -0.9 }, gender: { female: 0.2, male: -0.2 } }]) {
     const sum = shares(d).reduce((a, b) => a + b, 0);

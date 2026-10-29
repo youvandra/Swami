@@ -36,10 +36,17 @@ export function SponsorsView({ artifact, onAsk }: { artifact: Sponsors; onAsk: (
               <p className={s.pitch}>{sp.pitch}</p>
             </div>
             <div className={s.side}>
-              <span className={s.lift}>
-                <b className={k.num}>{sp.lift.toFixed(1)}×</b>
-                <span>likelier to buy</span>
-              </span>
+              {sp.broad ? (
+                <span className={s.lift}>
+                  <b className={k.num}>#{i + 1}</b>
+                  <span>fan pick</span>
+                </span>
+              ) : (
+                <span className={s.lift}>
+                  <b className={k.num}>{sp.lift.toFixed(1)}×</b>
+                  <span>likelier to buy</span>
+                </span>
+              )}
               <button
                 className={k.iconAct}
                 onClick={() => onAsk(`Draft a sponsor pitch email to ${sp.brand} for ${show.headliner} in ${show.city} on ${show.date}.`)}
@@ -53,7 +60,12 @@ export function SponsorsView({ artifact, onAsk }: { artifact: Sponsors; onAsk: (
           </li>
         ))}
       </ul>
-      <p className={k.note}>Lift compares how often {show.headliner} fans buy each brand with the average fan, from {isLive(artifact) ? "Qloo brand affinity" : "made-up demo data, brand names included"}.</p>
+      <p className={k.note}>
+        {sponsors.some((sp) => sp.broad)
+          ? `${show.headliner} fans buy like the public at large, so no brand stands out above average; these are the brands they pick most`
+          : `Lift compares how often ${show.headliner} fans buy each brand with the average fan`}
+        , from {isLive(artifact) ? "Qloo brand affinity" : "made-up demo data, brand names included"}.
+      </p>
     </div>
   );
 }

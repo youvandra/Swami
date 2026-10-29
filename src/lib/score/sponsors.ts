@@ -21,8 +21,12 @@ const ACTIVATION: Record<string, string> = {
 
 export function rankSponsors(brands: BrandCandidate[], take = 5): Sponsor[] {
   const priced = brands.filter((b) => b.baseline !== undefined && b.baseline > 0);
-  const top = Math.max(0, ...priced.map((b) => b.affinity));
-  return priced
+  const fitAmong = (xs: BrandCandidate[]) => {
+    const top = Math.max(0, ...xs.map((b) => b.affinity));
+    return (b: BrandCandidate) => round2(top > 0 ? b.affinity / top : 0);
+  };
+  const fit = fitAmong(priced);
+  const lifted = priced
     .map((b) => ({ b, lift: b.affinity / b.baseline! }))
     .filter((x) => x.lift >= MIN_LIFT)
     .sort((a, b) => b.lift - a.lift)
@@ -31,8 +35,24 @@ export function rankSponsors(brands: BrandCandidate[], take = 5): Sponsor[] {
     .map(({ b, shown: lift }) => ({
       brand: b.name,
       category: b.category,
-      fit: round2(top > 0 ? b.affinity / top : 0),
+      fit: fit(b),
       lift,
       pitch: `${lift >= QUOTE_LIFT ? `Fans are ${lift}× likelier than average to pick it.` : "Fans pick it more than its overall popularity predicts."} ${ACTIVATION[b.category] ?? "A branded moment on show night and a tracked promo link."}`,
+    }));
+  if (lifted.length) return lifted;
+  // A mass-market act's fans look like everyone else, so nothing beats the baseline: show what they pick most,
+  // marked broad, and say it is reach rather than a niche.
+  const fitAll = fitAmong(brands);
+  return [...brands]
+    .filter((b) => b.affinity > 0)
+    .sort((a, b) => b.affinity - a.affinity)
+    .slice(0, take)
+    .map((b) => ({
+      brand: b.name,
+      category: b.category,
+      fit: fitAll(b),
+      lift: b.baseline ? Math.max(0.01, Math.round((b.affinity / b.baseline) * 100) / 100) : 1,
+      broad: true,
+      pitch: `Among the fans' top picks. The fan base is broad, so this buys reach more than a niche. ${ACTIVATION[b.category] ?? "A branded moment on show night and a tracked promo link."}`,
     }));
 }

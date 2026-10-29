@@ -312,9 +312,12 @@ export async function matchSponsorsTool(ctx: ToolContext, input: { headliner: st
   const base = await ctx.q.baseline({ type: "brand", seeds: [] }, wanted.map((b) => b.id));
   const sponsors = await step(ctx, "Ranked brands by lift", async () => rankSponsors(wanted.map((b) => ({ name: b.name, category: categoryOf(b), affinity: b.affinity ?? 0, baseline: base.get(b.id) }))), (s) => `${s.length} brands these fans pick beyond their usual pull`);
   if (sponsors.length === 0) throw new ToolError(`No brand stands out for ${head.name}'s fans yet.`);
+  const broad = sponsors.some((s) => s.broad);
   return {
-    artifact: { id: uid(), type: "sponsors", title: `Sponsors for ${head.name}`, subtitle: `${sponsors.length} brands whose customers love this music`, show, sponsors },
-    facts: { headliner: head.name, top: sponsors[0].brand, topLift: sponsors[0].lift, count: sponsors.length },
+    artifact: { id: uid(), type: "sponsors", title: `Sponsors for ${head.name}`, subtitle: broad ? `${sponsors.length} brands the fans pick most · broad fan base` : `${sponsors.length} brands whose customers love this music`, show, sponsors },
+    facts: broad
+      ? { headliner: head.name, top: sponsors.slice(0, 3).map((s) => s.brand), count: sponsors.length, note: "No brand beats the baseline: the fan base is broad, so these are the fans' top picks by affinity, with no lift to quote." }
+      : { headliner: head.name, top: sponsors[0].brand, topLift: sponsors[0].lift, count: sponsors.length },
   };
 }
 
