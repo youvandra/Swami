@@ -66,14 +66,14 @@ export function SaveMenu({ artifact, conversationId, defaultProjectId, onToast }
       </button>
       {open && (
         <div className={s.menu} role="menu">
-          <p className={s.label}>Save to project</p>
+          <p className={s.label}>Save to Project</p>
           <ul>
             {ordered.map((p) => (
               <li key={p.id}>
                 <button role="menuitemcheckbox" aria-checked={savedIn.has(p.id)} onClick={() => toggle(p.id, p.name)}>
                   <i className={s.swatch} style={{ background: p.tone }} />
                   <span className={s.name}>{p.name}</span>
-                  {p.id === defaultProjectId && <em>This chat</em>}
+                  {p.id === defaultProjectId && <em>This Chat</em>}
                   <span className={s.check}>{savedIn.has(p.id) && <IconCheck />}</span>
                 </button>
               </li>
@@ -95,7 +95,7 @@ export function SaveMenu({ artifact, conversationId, defaultProjectId, onToast }
           ) : (
             <button className={s.new} onClick={() => setNaming(true)}>
               <IconPlus />
-              New project
+              New Project
             </button>
           )}
         </div>

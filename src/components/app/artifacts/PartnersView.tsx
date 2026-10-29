@@ -29,7 +29,7 @@ export function PartnersView({ artifact, onAsk }: { artifact: Partners; onAsk: (
               <div className={s.main}>
                 <div className={s.top}>
                   <h3>{p.name}</h3>
-                  {i === 0 && <span className={k.best}>Best fit</span>}
+                  {i === 0 && <span className={k.best}>Best Fit</span>}
                 </div>
                 <p className={s.meta}>
                   {p.kind} · {p.hood} · {Math.round(p.fit * 100)} fit

@@ -67,7 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <Link href="/app" className={s.newChat}>
             <IconPlus />
-            New chat
+            New Chat
           </Link>
 
           <label className={s.search}>
@@ -86,7 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <li>
                 <Link href="/app/projects" className={s.item} aria-current={pathname === "/app/projects" ? "page" : undefined}>
                   <IconFolder className={s.itemIcon} />
-                  <span className={s.label}>All projects</span>
+                  <span className={s.label}>All Projects</span>
                 </Link>
               </li>
               {projects.slice(0, 6).map((p) => {

@@ -38,7 +38,7 @@ export function RoutingView({ artifact, onAsk }: { artifact: Routing; onAsk: (p:
       <div className={s.table}>
         <div className={`${s.row} ${k.th}`}>
           <span>City</span>
-          <span>Fan affinity</span>
+          <span>Fan Affinity</span>
           <span>Room</span>
           <span />
         </div>

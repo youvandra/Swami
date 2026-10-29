@@ -19,9 +19,9 @@ export function RosterDialog({ onClose, onSaved }: { onClose: () => void; onSave
   const acts = useMemo(() => parseRoster(text), [text]);
 
   return (
-    <Dialog title="Import a roster" primary="Save roster" disabled={!acts.length} onClose={onClose} onSubmit={() => onSaved(saveRoster(name.trim() || file?.replace(/\.\w+$/, "") || "New roster", acts))}>
+    <Dialog title="Import a Roster" primary="Save Roster" disabled={!acts.length} onClose={onClose} onSubmit={() => onSaved(saveRoster(name.trim() || file?.replace(/\.\w+$/, "") || "New roster", acts))}>
         <label className={d.field}>
-          <span>Roster name</span>
+          <span>Roster Name</span>
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Northlight Agency · spring" />
         </label>
         <div className={d.field}>

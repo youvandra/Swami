@@ -29,15 +29,15 @@ export function Audience() {
     <section className={s.section} id="who">
       <div className="wrap">
         <header className={s.head}>
-          <span className="eyebrow">Who it&apos;s for</span>
+          <span className="eyebrow">Who It&apos;s For</span>
           <h2 className="display">One ranking, read by everyone who touches the bill.</h2>
         </header>
 
         <div className={s.table} role="table" aria-label="Who uses Swami">
           <div className={`${s.row} ${s.th}`} role="row">
             <span role="columnheader">Role</span>
-            <span role="columnheader">The decision</span>
-            <span role="columnheader">What Swami gives</span>
+            <span role="columnheader">The Decision</span>
+            <span role="columnheader">What Swami Gives</span>
           </div>
           {rows.map((r) => (
             <div key={r.who} className={s.row} role="row">

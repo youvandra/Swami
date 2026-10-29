@@ -49,7 +49,7 @@ test("an ambiguous name asks with choices and runs no tools", async () => {
   const { out } = await run(req("Find an opener for Marlow in Chicago"));
   assert.equal(out.artifacts.length, 0);
   assert.equal(out.choices?.options.length, 3);
-  assert.equal(out.choices?.options[2].name, "None of these");
+  assert.equal(out.choices?.options[2].name, "None of These");
   assert.equal(out.choices?.key, "marlow");
   assert.equal(out.choices?.options[1].reply, "Find an opener for Marlow & the Tide in Chicago");
 });

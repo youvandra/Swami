@@ -5,9 +5,9 @@ import type { OpenerRow, ProposalFacts, ProposalSection, ProposalTemplate, Show 
 type PickRow = Pick<OpenerRow, "name" | "score" | "why">;
 
 export const TEMPLATES: { id: ProposalTemplate; label: string; kicker: string; description: string }[] = [
-  { id: "promoter", label: "Opener proposal", kicker: "Opener proposal", description: "To the headliner's management: who opens and why it sells." },
-  { id: "sponsor", label: "Sponsor pitch", kicker: "Sponsorship proposal", description: "To a brand: the audience, the activation, what they get." },
-  { id: "memo", label: "Booking memo", kicker: "Booking memo", description: "Internal: the recommendation, the evidence, the ask." },
+  { id: "promoter", label: "Opener Proposal", kicker: "Opener Proposal", description: "To the headliner's management: who opens and why it sells." },
+  { id: "sponsor", label: "Sponsor Pitch", kicker: "Sponsorship Proposal", description: "To a brand: the audience, the activation, what they get." },
+  { id: "memo", label: "Booking Memo", kicker: "Booking Memo", description: "Internal: the recommendation, the evidence, the ask." },
 ];
 
 export const templateOf = (t?: ProposalTemplate) => TEMPLATES.find((x) => x.id === (t ?? "promoter"))!;

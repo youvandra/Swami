@@ -10,8 +10,8 @@ type Ranking = Extract<Artifact, { type: "opener_ranking" }>;
 type Filter = "all" | "roster" | "rising";
 
 const FILTERS: { id: Filter; label: string }[] = [
-  { id: "all", label: "All acts" },
-  { id: "roster", label: "On roster" },
+  { id: "all", label: "All Acts" },
+  { id: "roster", label: "On Roster" },
   { id: "rising", label: "Rising" },
 ];
 
@@ -76,7 +76,7 @@ export function OpenerRanking({ artifact, onAsk, onShowMap }: { artifact: Rankin
           <span>#</span>
           <span>Act</span>
           <span>Fit</span>
-          <span>Reach gain</span>
+          <span>Reach Gain</span>
           <span className={s.right}>
             Score
           </span>
@@ -97,7 +97,7 @@ export function OpenerRanking({ artifact, onAsk, onShowMap }: { artifact: Rankin
                     {r.bigger && <em className={`${s.tag} ${s.est}`} data-tip="Draws bigger than the headliner">Co-headliner</em>}
                     {r.rising && <em className={s.tag}>Rising</em>}
                     {r.estimated && <em className={`${s.tag} ${s.est}`}>Estimated</em>}
-                    {anyRoster && !r.onRoster && <em className={`${s.tag} ${s.off}`}>Off roster</em>}
+                    {anyRoster && !r.onRoster && <em className={`${s.tag} ${s.off}`}>Off Roster</em>}
                   </span>
                 </span>
                 <span className={s.metric}>
@@ -125,11 +125,11 @@ export function OpenerRanking({ artifact, onAsk, onShowMap }: { artifact: Rankin
                   <div className={s.detailActions}>
                     <button onClick={() => onShowMap(r.name)}>
                       <IconMap />
-                      View crowd map
+                      View Crowd Map
                     </button>
                     <button onClick={() => onAsk(`Write a proposal to ${show.headliner} management with ${r.name} as the opener in ${show.city}, ${show.date}.`)}>
                       <IconDoc />
-                      Draft proposal with {r.name}
+                      Draft Proposal with {r.name}
                     </button>
                   </div>
                 </div>

@@ -10,7 +10,7 @@ export const site = {
 
 export const nav = [
   { label: "Product", href: "#problem" },
-  { label: "How it works", href: "#how" },
+  { label: "How It Works", href: "#how" },
   { label: "Pricing", href: "#pricing" },
   { label: "FAQ", href: "#faq" },
 ];

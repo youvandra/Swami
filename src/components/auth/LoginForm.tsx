@@ -44,7 +44,7 @@ export function LoginForm() {
             <span>{site.name}</span>
           </Link>
           <Link href="/" className={s.back}>
-            Back to site
+            Back to Site
           </Link>
         </div>
         <div className={s.card}>
@@ -53,7 +53,7 @@ export function LoginForm() {
             <>
               <p className={s.sub}>Accounts are switched off on this server, so your workspace lives in this browser.</p>
               <Link className="button button-ink" href="/app">
-                Open the app
+                Open the App
               </Link>
             </>
           ) : state === "sent" ? (
@@ -65,11 +65,11 @@ export function LoginForm() {
               <p className={s.sub}>We email you a link; no password to remember.</p>
               <form className={s.form} onSubmit={sendLink}>
                 <label className={s.field}>
-                  <span>Work email</span>
+                  <span>Work Email</span>
                   <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@venue.com" autoFocus />
                 </label>
                 <button className="button button-ink" disabled={state === "sending"}>
-                  {state === "sending" ? "Sending…" : "Email me a link"}
+                  {state === "sending" ? "Sending…" : "Email Me a Link"}
                 </button>
               </form>
               {state === "error" && <p className={s.error}>{linkError(params.get("error"))}</p>}
@@ -98,7 +98,7 @@ function Showcase() {
   return (
     <aside className={s.show} aria-hidden="true">
       <div className={s.showCopy}>
-        <span className={s.kicker}>Added crowd</span>
+        <span className={s.kicker}>Added Crowd</span>
         <p className={s.pitch}>{site.tagline}</p>
       </div>
       <svg className={s.map} viewBox={`0 0 ${MAP_W} ${MAP_H}`}>

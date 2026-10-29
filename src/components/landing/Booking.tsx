@@ -5,7 +5,7 @@ export function Booking() {
     <section className={s.section} id="booking">
       <div className="wrap">
         <header className={s.head}>
-          <span className="eyebrow">Built for real booking</span>
+          <span className="eyebrow">Built for Real Booking</span>
           <h2 className="display">Works inside the deals you already have.</h2>
           <p className="lead">
             Agencies package support, headliners approve openers, and relationships close the slot. Swami fits into
@@ -21,7 +21,7 @@ export function Booking() {
             </div>
             <div className={s.paper} aria-hidden="true">
               <div className={s.paperHead}>
-                <span>Booking memo</span>
+                <span>Booking Memo</span>
                 <span>Mar 2026 · Midwest leg</span>
               </div>
               <p className={s.paperTitle}>Halcyon Drive for Marlow Vane</p>
@@ -46,7 +46,7 @@ export function Booking() {
 
           <article className={`${s.card} ${s.roster}`}>
             <div className={s.cardText}>
-              <h3>Roster mode</h3>
+              <h3>Roster Mode</h3>
               <p>Paste the agency&apos;s list. Roster, dates and budget act as hard filters, and the ranking runs per leg so support can rotate by region.</p>
             </div>
             <div className={s.chips} aria-hidden="true">
@@ -60,11 +60,11 @@ export function Booking() {
 
           <article className={`${s.card} ${s.reverse}`}>
             <div className={s.cardText}>
-              <h3>Reverse mode for managers</h3>
+              <h3>Reverse Mode for Managers</h3>
               <p>Start from your artist and find headliners whose fans would like you, in cities where you are small today.</p>
             </div>
             <div className={s.flow} aria-hidden="true">
-              <span>Your artist</span>
+              <span>Your Artist</span>
               <svg viewBox="0 0 40 12" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
                 <path d="M1 6h37M33 1.5 38 6l-5 4.5" />
               </svg>

@@ -50,7 +50,7 @@ export function Onboarding() {
             ))}
           </ol>
           <button className={s.skip} onClick={() => updateWorkspace({ onboarded: true })}>
-            Skip for now
+            Skip for Now
           </button>
         </header>
 
@@ -84,7 +84,7 @@ export function Onboarding() {
             </h1>
             <p className={s.lede}>Your company name goes on proposals. Cities set the default market for maps and venues.</p>
             <label className={s.field}>
-              <span>Company or workspace name</span>
+              <span>Company or Workspace Name</span>
               <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Northside Live" />
             </label>
             <div className={s.field}>
@@ -133,7 +133,7 @@ export function Onboarding() {
             </button>
           ) : (
             <button className="button button-ink" onClick={finish}>
-              Start using Swami
+              Start Using Swami
             </button>
           )}
         </footer>

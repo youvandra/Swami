@@ -51,7 +51,7 @@ export function ProjectsIndex() {
           <h1 className={s.barTitle}>Projects</h1>
           <button className={s.primary} onClick={() => setCreating(true)}>
             <IconPlus />
-            <span>New project</span>
+            <span>New Project</span>
           </button>
         </header>
 
@@ -84,7 +84,7 @@ export function ProjectsIndex() {
                 <IconFolder />
                 <p>No projects here yet.</p>
                 <button className="button button-ink" onClick={() => setCreating(true)}>
-                  Create a project
+                  Create a Project
                 </button>
               </div>
             )}
@@ -119,7 +119,7 @@ export function ProjectsIndex() {
               {hydrated && rows.length > 0 && (
                 <button className={s.addCard} onClick={() => setCreating(true)}>
                   <IconPlus />
-                  New project
+                  New Project
                 </button>
               )}
             </div>
@@ -129,7 +129,7 @@ export function ProjectsIndex() {
 
       {creating && (
         <ProjectDialog
-          title="New project"
+          title="New Project"
           submitLabel="Create project"
           onClose={() => setCreating(false)}
           onSubmit={(input) => {

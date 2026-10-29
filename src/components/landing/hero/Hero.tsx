@@ -304,7 +304,7 @@ export function Hero() {
         </nav>
         <div className={s.navCta}>
           <a className={s.open} href={site.appHref}>
-            Open app
+            Open App
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M5 11 11 5M6 5h5v5" />
             </svg>
@@ -320,10 +320,10 @@ export function Hero() {
         <p className={s.sub}>{site.description}</p>
         <div className={s.ctas} ref={ctasRef}>
           <a className={`${s.btn} ${s.btnCream}`} href="/login">
-            Get started free
+            Get Started Free
           </a>
           <a className={`${s.btn} ${s.btnGlass}`} href={site.tourHref}>
-            See how it works
+            See How It Works
           </a>
         </div>
       </div>
@@ -334,7 +334,7 @@ export function Hero() {
           New Show
         </div>
         <div className={s.field}>
-          Select headliner
+          Select Headliner
           <Chevron />
         </div>
         <button className={s.rank}>Rank Openers</button>

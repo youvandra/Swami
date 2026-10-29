@@ -9,7 +9,7 @@ import { headlinerIn } from "./router.ts";
 import type { TurnResult } from "./turn.ts";
 import { NONE_ID, type ChatRequest, type Choice, type Choices } from "./types.ts";
 
-export const noneCard = (): Choice => ({ id: NONE_ID, name: "None of these", detail: "Search again with a hint", reply: "None of these" });
+export const noneCard = (): Choice => ({ id: NONE_ID, name: "None of These", detail: "Search again with a hint", reply: "None of these" });
 
 // entities key for the question waiting for a hint (REJECTED holds the acts turned down for a name)
 const RETRY = "retry:";

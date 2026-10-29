@@ -7,9 +7,9 @@ import s from "./CrowdMap.module.css";
 type View = Layer;
 
 const VIEWS: { id: View; label: string }[] = [
-  { id: "headliner", label: "Headliner fans" },
-  { id: "opener", label: "Opener fans" },
-  { id: "gain", label: "Added crowd" },
+  { id: "headliner", label: "Headliner Fans" },
+  { id: "opener", label: "Opener Fans" },
+  { id: "gain", label: "Added Crowd" },
 ];
 
 export function CrowdMap() {
@@ -28,7 +28,7 @@ export function CrowdMap() {
     <section className={`${s.section} on-dark`} id="map">
       <div className={`wrap ${s.grid}`}>
         <div className={s.copy}>
-          <span className="eyebrow">Added crowd</span>
+          <span className="eyebrow">Added Crowd</span>
           <h2 className="display">See the crowd an opener brings with them.</h2>
           <p className="lead">
             Swami maps where each act&apos;s fans live, neighbourhood by neighbourhood. The opener worth booking is

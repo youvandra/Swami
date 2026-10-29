@@ -69,12 +69,12 @@ const tasksFor = (own: string | undefined, city: string | undefined, ex: Example
   const famous = own ?? ex.famous;
   const here = city ?? ex.city;
   return [
-    { icon: IconUsers, title: "Find an opener", hint: "Ranked by the crowd each act adds", prompt: `Find an opener for ${mid} in ${here}, Mar 14.${own ? " Roster only." : ""}` },
-    { icon: IconRoute, title: "Route a tour", hint: "Cities ranked by fan demand", prompt: `Which cities should ${famous} play on a Midwest leg in March?` },
-    { icon: IconStore, title: "Pick the room", hint: "Venues sized to the act", prompt: `Which venue fits ${famous} in ${city ?? ex.abroad}?` },
-    { icon: IconTag, title: "Match sponsors", hint: "Brands your fans already buy", prompt: `Find sponsors whose customers love ${famous}, for the ${here} show.` },
-    { icon: IconChart, title: "Know the audience", hint: "Age, gender and taste, side by side", prompt: `Who is the audience for ${mid} in ${here}, next to the top opener? Age and gender.` },
-    { icon: IconDoc, title: "Write a proposal", hint: "A draft you can edit and export", prompt: `Write a proposal for ${mid} in ${here}, Mar 14, addressed to their management.` },
+    { icon: IconUsers, title: "Find an Opener", hint: "Ranked by the crowd each act adds", prompt: `Find an opener for ${mid} in ${here}, Mar 14.${own ? " Roster only." : ""}` },
+    { icon: IconRoute, title: "Route a Tour", hint: "Cities ranked by fan demand", prompt: `Which cities should ${famous} play on a Midwest leg in March?` },
+    { icon: IconStore, title: "Pick the Room", hint: "Venues sized to the act", prompt: `Which venue fits ${famous} in ${city ?? ex.abroad}?` },
+    { icon: IconTag, title: "Match Sponsors", hint: "Brands your fans already buy", prompt: `Find sponsors whose customers love ${famous}, for the ${here} show.` },
+    { icon: IconChart, title: "Know the Audience", hint: "Age, gender and taste, side by side", prompt: `Who is the audience for ${mid} in ${here}, next to the top opener? Age and gender.` },
+    { icon: IconDoc, title: "Write a Proposal", hint: "A draft you can edit and export", prompt: `Write a proposal for ${mid} in ${here}, Mar 14, addressed to their management.` },
   ];
 };
 
@@ -333,7 +333,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
               />
             ) : (
               <h1 className={s.title} onDoubleClick={() => stored && setRenaming(true)}>
-                {empty ? "New chat" : (stored?.title ?? "New chat")}
+                {empty ? "New Chat" : (stored?.title ?? "New Chat")}
               </h1>
             )}
             {hydrated && projects.length > 0 && (
@@ -342,14 +342,14 @@ export function ChatView({ id: routeId }: { id: string | null }) {
                 set={!!project}
                 label="Project"
                 value={projectId ?? ""}
-                options={[{ value: "", label: "No project" }, ...projects.map((p) => ({ value: p.id, label: p.name, lead: <i className={s.swatch} style={{ background: p.tone }} /> }))]}
+                options={[{ value: "", label: "No Project" }, ...projects.map((p) => ({ value: p.id, label: p.name, lead: <i className={s.swatch} style={{ background: p.tone }} /> }))]}
                 onChange={(v) => {
                   if (stored) setConversationProject(stored.id, v || undefined);
                   else setDraftProject(v || undefined);
                 }}
               >
                 {project ? <i style={{ background: project.tone }} /> : <IconFolder />}
-                <span>{project?.name ?? "Add to project"}</span>
+                <span>{project?.name ?? "Add to Project"}</span>
                 <IconChevron />
               </Dropdown>
             )}
@@ -373,7 +373,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
                 items={[
                   { label: "Rename", icon: IconPencil, onSelect: () => setRenaming(true) },
                   {
-                    label: "Delete chat",
+                    label: "Delete Chat",
                     icon: IconTrash,
                     danger: true,
                     onSelect: () => {
@@ -393,7 +393,7 @@ export function ChatView({ id: routeId }: { id: string | null }) {
           <div className={s.center}>
             <p className={s.lost}>This chat lives on another device or was cleared.</p>
             <a className="button button-ink" href="/app">
-              Start a new chat
+              Start a New Chat
             </a>
           </div>
         ) : empty ? (

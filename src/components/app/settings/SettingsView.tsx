@@ -34,15 +34,15 @@ const TABS = [
   { id: "workspace", label: "Workspace" },
   { id: "team", label: "Team" },
   { id: "rosters", label: "Rosters" },
-  { id: "data", label: "Data sources" },
+  { id: "data", label: "Data Sources" },
   { id: "billing", label: "Billing" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
 
 const PLANS: { id: Workspace["plan"]; name: string; price: string }[] = [
-  { id: "single", name: "Single show", price: "$39 per show" },
+  { id: "single", name: "Single Show", price: "$39 per show" },
   { id: "season", name: "Season", price: "$490 per month" },
-  { id: "group", name: "Venue group", price: "Custom" },
+  { id: "group", name: "Venue Group", price: "Custom" },
 ];
 
 export function SettingsView() {
@@ -130,7 +130,7 @@ function WorkspaceTab({ onToast }: { onToast: (m: string) => void }) {
           />
         </label>
       </Section>
-      <Section title="Your role" hint="Shapes the templates and the tasks Swami suggests.">
+      <Section title="Your Role" hint="Shapes the templates and the tasks Swami suggests.">
         <div className={s.roleGrid} role="radiogroup">
           {ROLES.map((r) => (
             <button
@@ -186,15 +186,15 @@ function WorkspaceTab({ onToast }: { onToast: (m: string) => void }) {
                 window.location.assign("/");
               }}
             >
-              Sign out
+              Sign Out
             </button>
           </div>
         </Section>
       ) : (
-        <Section title="Start over" hint="Clears every chat, project and setting in this browser and reloads the demo workspace.">
+        <Section title="Start Over" hint="Clears every chat, project and setting in this browser and reloads the demo workspace.">
           <div>
             <button className={s.danger} onClick={() => setResetting(true)}>
-              Reset workspace
+              Reset Workspace
             </button>
             {resetting && <ResetDialog name={ws.name} onClose={() => setResetting(false)} />}
           </div>
@@ -213,12 +213,12 @@ const ROLE_OPTIONS: Option<"Editor" | "Viewer">[] = [
 function ResetDialog({ name, onClose }: { name: string; onClose: () => void }) {
   const [typed, setTyped] = useState("");
   return (
-    <Dialog title="Reset workspace" primary="Reset workspace" tone="danger" disabled={typed.trim() !== name.trim()} onClose={onClose} onSubmit={resetWorkspace}>
+    <Dialog title="Reset Workspace" primary="Reset Workspace" tone="danger" disabled={typed.trim() !== name.trim()} onClose={onClose} onSubmit={resetWorkspace}>
       <p className={s.hintText}>
         Every chat, project, roster and setting in this browser is deleted, and the demo workspace comes back. Type <span className={s.confirmName}>{name}</span> to confirm.
       </p>
       <label className={s.field}>
-        <span>Workspace name</span>
+        <span>Workspace Name</span>
         <input autoFocus value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={name} />
       </label>
     </Dialog>
@@ -306,7 +306,7 @@ function RostersTab({ onToast }: { onToast: (m: string) => void }) {
           </span>
           <button className="button button-ink" onClick={() => setImporting(true)}>
             <IconPlus />
-            Import roster
+            Import Roster
           </button>
         </div>
         {rosters.length === 0 ? (
@@ -336,7 +336,7 @@ function RostersTab({ onToast }: { onToast: (m: string) => void }) {
                         onToast(`Deleted ${r.name}`);
                       }}
                     >
-                      Delete roster
+                      Delete Roster
                     </button>
                   </div>
                 )}
@@ -360,8 +360,8 @@ function RostersTab({ onToast }: { onToast: (m: string) => void }) {
 }
 
 const SOURCES = [
-  { name: "Ticketing", by: "Your ticketing system", status: "Ready to connect", note: "Joins door counts to promo links so rankings learn from what sold. Venue group plan.", tone: "off" },
-  { name: "Mailing list", by: "Your email tool", status: "Ready to connect", note: "Sends approved drafts and tracks replies from agents, venues and sponsors.", tone: "off" },
+  { name: "Ticketing", by: "Your ticketing system", status: "Ready to Connect", note: "Joins door counts to promo links so rankings learn from what sold. Venue group plan.", tone: "off" },
+  { name: "Mailing List", by: "Your email tool", status: "Ready to Connect", note: "Sends approved drafts and tracks replies from agents, venues and sponsors.", tone: "off" },
 ] as const;
 
 function DataTab() {
@@ -372,10 +372,10 @@ function DataTab() {
       ? { name: "Writing", by: "Swami agent", status: "On", note: "Plans which tools to run and writes the reply. Every number it writes is checked against the tools' results.", tone: "live" }
       : { name: "Writing", by: "Templates", status: "Templates", note: "Replies come from fixed templates filled with the tools' results. Connect a model and replies answer the question as asked.", tone: "off" };
   const taste = live
-    ? { name: "Taste graph", by: "Qloo", status: "Live", note: "Artist affinity, neighbourhood heat, places, brands and demographics, fetched for every answer.", tone: "live" }
-    : { name: "Taste graph", by: "Qloo", status: "Demo data", note: "Artist affinity, neighbourhood heat, places, brands and demographics. Every name and number is made up until the API key is connected.", tone: "demo" };
+    ? { name: "Taste Graph", by: "Qloo", status: "Live", note: "Artist affinity, neighbourhood heat, places, brands and demographics, fetched for every answer.", tone: "live" }
+    : { name: "Taste Graph", by: "Qloo", status: "Demo Data", note: "Artist affinity, neighbourhood heat, places, brands and demographics. Every name and number is made up until the API key is connected.", tone: "demo" };
   return (
-    <Section title="Data sources" hint="Where Swami's numbers come from. Every score in the app is labelled with its source.">
+    <Section title="Data Sources" hint="Where Swami's numbers come from. Every score in the app is labelled with its source.">
       <ul className={s.sources}>
         {[taste, writing, ...SOURCES].map((src) => (
           <li key={src.name}>
@@ -435,12 +435,12 @@ function BillingTab({ onToast }: { onToast: (m: string) => void }) {
           ))}
         </div>
       </Section>
-      <Section title="This month">
+      <Section title="This Month">
         <dl className={s.usage}>
           {usage ? (
             <>
               <div>
-                <dt>Chat runs</dt>
+                <dt>Chat Runs</dt>
                 <dd>{usage.runs}</dd>
               </div>
               <div>
@@ -450,7 +450,7 @@ function BillingTab({ onToast }: { onToast: (m: string) => void }) {
             </>
           ) : (
             <div>
-              <dt>Results generated</dt>
+              <dt>Results Generated</dt>
               <dd>{results}</dd>
             </div>
           )}

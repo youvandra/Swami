@@ -153,7 +153,7 @@ export function ArtifactPanel({ artifacts, activeId, onSelect, onClose, onAsk, o
           <p>
             {active.source !== "live" && (
               <span className={s.demo} data-tip="Made-up names and numbers, until a Qloo key is connected">
-                Demo data
+                Demo Data
               </span>
             )}
             {active.subtitle}

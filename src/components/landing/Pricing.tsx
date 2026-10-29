@@ -2,7 +2,7 @@ import s from "./Pricing.module.css";
 
 const plans = [
   {
-    name: "Single show",
+    name: "Single Show",
     blurb: "For a one-off date or a first try.",
     items: ["Opener ranking for one show", "Neighbourhood push plan", "Booking memo export", "Promo links and ticket report"],
   },
@@ -13,7 +13,7 @@ const plans = [
     featured: true,
   },
   {
-    name: "Venue group",
+    name: "Venue Group",
     blurb: "For groups with many rooms and their own ticketing.",
     items: ["Unlimited shows", "Ticketing data joined to promo links", "Shared rosters across rooms", "Priority support"],
   },
@@ -46,7 +46,7 @@ export function Pricing() {
                 ))}
               </ul>
               <a className={`button ${p.featured ? "button-cream" : "button-line"} ${s.cta}`} href="/login">
-                Try it free
+                Try It Free
               </a>
             </article>
           ))}

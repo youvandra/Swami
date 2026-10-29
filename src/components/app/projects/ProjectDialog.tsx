@@ -56,7 +56,7 @@ export function ProjectDialog({ initial, title, submitLabel, onSubmit, onClose }
           </label>
         </div>
         <label className={s.field}>
-          <span>Project name</span>
+          <span>Project Name</span>
           <input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder={name || "Filled in from the headliner and city"} />
         </label>
 

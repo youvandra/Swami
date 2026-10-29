@@ -23,7 +23,7 @@ export function Problem() {
     <section className={s.section} id="problem">
       <div className={`wrap ${s.grid}`}>
         <div className={s.intro}>
-          <span className="eyebrow">The blind spots</span>
+          <span className="eyebrow">The Blind Spots</span>
           <h2 className="display">Every show makes three bets before a single ticket sells.</h2>
           <p className="lead">
             Most rooms below arena size end the night with empty seats. The three calls that could fill them still run on

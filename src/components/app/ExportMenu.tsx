@@ -84,7 +84,7 @@ export function ExportMenu({ artifact, onToast, className }: { artifact: Artifac
       </button>
       {open && (
         <div className={s.menu} role="menu">
-          <p className={s.label}>Export proposal</p>
+          <p className={s.label}>Export Proposal</p>
           <ul>
             {options.map((o) => (
               <li key={o.label}>

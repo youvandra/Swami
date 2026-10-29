@@ -22,7 +22,7 @@ export function VenuesView({ artifact, onAsk }: { artifact: Venues; onAsk: (p: s
               <div className={s.main}>
                 <div className={s.top}>
                   <h3>{v.name}</h3>
-                  {i === 0 && <span className={k.best}>Best fit</span>}
+                  {i === 0 && <span className={k.best}>Best Fit</span>}
                 </div>
                 <p className={s.meta}>
                   {[v.hood, cap ? `${cap.toLocaleString("en-US")} cap` : "Capacity unknown", v.tags.join(", ")].filter(Boolean).join(" · ")}

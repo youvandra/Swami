@@ -27,7 +27,7 @@ export function CrowdMapView({ artifact }: { artifact: CrowdMap }) {
   const layers: { id: Layer; label: string }[] = [
     { id: "headliner", label: show.headliner },
     { id: "opener", label: opener },
-    { id: "gain", label: "Added crowd" },
+    { id: "gain", label: "Added Crowd" },
   ];
 
   return (

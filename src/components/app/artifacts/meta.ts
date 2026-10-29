@@ -2,8 +2,8 @@ import type { Artifact, ArtifactType } from "@/lib/agent/types";
 import { IconChart, IconDoc, IconList, IconMail, IconMap, IconPin, IconRoute, IconStore, IconTag } from "../icons";
 
 export const ARTIFACT_LABEL: Record<ArtifactType, string> = {
-  opener_ranking: "Opener ranking",
-  crowd_map: "Crowd map",
+  opener_ranking: "Opener Ranking",
+  crowd_map: "Crowd Map",
   proposal: "Proposal",
   routing: "Routing",
   venues: "Venues",

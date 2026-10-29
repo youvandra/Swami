@@ -42,7 +42,7 @@ export function EmailView({ artifact, onChange, readOnly }: { artifact: Email; o
           <span className={s.count}>{words} words</span>
           <a className={s.send} href={mailto}>
             <IconMail />
-            Open in mail app
+            Open in Mail App
           </a>
         </div>
       </div>

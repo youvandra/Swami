@@ -87,7 +87,7 @@ export function ProposalView({ artifact, onChange, readOnly = false }: { artifac
             }}
           >
             <IconPlus />
-            Add section
+            Add Section
           </button>
         </div>
       )}
@@ -157,7 +157,7 @@ export function ProposalView({ artifact, onChange, readOnly = false }: { artifac
         <section className={s.section}>
           <h2>
             <span className={s.num}>{String(sections.length + 1).padStart(2, "0")}</span>
-            <span className={s.heading}>Ranked picks</span>
+            <span className={s.heading}>Ranked Picks</span>
           </h2>
           <table className={s.picks}>
             <tbody>

@@ -64,7 +64,7 @@ export function AudienceView({ artifact }: { artifact: Audience }) {
       </section>
 
       <section className={s.block}>
-        <h3>Taste beyond music</h3>
+        <h3>Taste Beyond Music</h3>
         <table className={s.traits}>
           <thead>
             <tr>

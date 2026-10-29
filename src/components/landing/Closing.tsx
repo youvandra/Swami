@@ -41,11 +41,11 @@ export function Closing() {
         <h2 className={`display ${s.title}`}>Your next show has an opening slot. Fill it with a crowd.</h2>
         <div className={s.actions}>
           <a className="button button-cream" href="/login">
-            Get started free
+            Get Started Free
             <IconArrowRight />
           </a>
           <a className="button button-glass" href={site.tourHref}>
-            See how it works
+            See How It Works
           </a>
         </div>
       </div>

@@ -28,7 +28,7 @@ export function SponsorsView({ artifact, onAsk }: { artifact: Sponsors; onAsk: (
             <div className={s.main}>
               <div className={s.top}>
                 <h3>{sp.brand}</h3>
-                {i === 0 && <span className={k.best}>Best match</span>}
+                {i === 0 && <span className={k.best}>Best Match</span>}
               </div>
               <p className={s.meta}>
                 {sp.category} · {Math.round(sp.fit * 100)} fit

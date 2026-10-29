@@ -13,10 +13,10 @@ import m from "./SaveMenu.module.css";
 export type AttachedRoster = { name: string; acts: string[] };
 
 export const MODES: { id: Mode; label: string }[] = [
-  { id: "auto", label: "Any tool" },
-  { id: "opener", label: "Find openers" },
-  { id: "map", label: "Crowd map" },
-  { id: "routing", label: "Tour routing" },
+  { id: "auto", label: "Any Tool" },
+  { id: "opener", label: "Find Openers" },
+  { id: "map", label: "Crowd Map" },
+  { id: "routing", label: "Tour Routing" },
   { id: "venues", label: "Venues" },
   { id: "partners", label: "Co-promo" },
   { id: "sponsors", label: "Sponsors" },
@@ -118,7 +118,7 @@ export function Composer({ onSend, mode, onMode, busy, onStop, readOnly, placeho
           </button>
           {menu && (
             <div className={`${m.menu} ${s.menuUp}`} role="menu">
-              <p className={m.label}>Rank inside a roster</p>
+              <p className={m.label}>Rank Inside a Roster</p>
               <ul>
                 {rosters.map((r) => (
                   <li key={r.id}>
@@ -145,7 +145,7 @@ export function Composer({ onSend, mode, onMode, busy, onStop, readOnly, placeho
               </button>
               <Link href="/app/settings?tab=rosters" className={m.new}>
                 <IconClip />
-                Manage rosters
+                Manage Rosters
               </Link>
             </div>
           )}

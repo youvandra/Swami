@@ -43,7 +43,7 @@ export function ProjectDetail({ id }: { id: string }) {
         <div className={s.lost}>
           <p>This project was deleted or lives on another device.</p>
           <Link className="button button-ink" href="/app/projects">
-            All projects
+            All Projects
           </Link>
         </div>
       </div>
@@ -53,10 +53,10 @@ export function ProjectDetail({ id }: { id: string }) {
   const ask = (q: string) => router.push(`/app?project=${project.id}&q=${encodeURIComponent(q)}`);
   const where = `${project.city}${project.date ? `, ${project.date}` : ""}`;
   const quick = [
-    { icon: IconUsers, label: "Find openers", q: `Find an opener for ${project.headliner} in ${where}.` },
+    { icon: IconUsers, label: "Find Openers", q: `Find an opener for ${project.headliner} in ${where}.` },
     { icon: IconRoute, label: project.kind === "tour" ? "Route the leg" : "Pick a venue", q: project.kind === "tour" ? `Which cities should ${project.headliner} play on a ${project.city} leg in ${project.date}?` : `Which venue fits ${project.headliner} in ${project.city}?` },
-    { icon: IconTag, label: "Match sponsors", q: `Find sponsors whose customers love ${project.headliner}, for the ${project.city} show.` },
-    { icon: IconDoc, label: "Write a proposal", q: `Write a proposal for ${project.headliner} in ${where}, addressed to their management.` },
+    { icon: IconTag, label: "Match Sponsors", q: `Find sponsors whose customers love ${project.headliner}, for the ${project.city} show.` },
+    { icon: IconDoc, label: "Write a Proposal", q: `Write a proposal for ${project.headliner} in ${where}, addressed to their management.` },
   ];
   const openItem = shown.find((x) => x.artifact.id === openId) ?? items.find((x) => x.artifact.id === openId);
 
@@ -74,15 +74,15 @@ export function ProjectDetail({ id }: { id: string }) {
           </nav>
           <button className={s.primary} onClick={() => router.push(`/app?project=${project.id}`)}>
             <IconPlus />
-            <span>New chat</span>
+            <span>New Chat</span>
           </button>
           <MoreMenu
             label="Project options"
             className={s.iconBtnShow}
             items={[
-              { label: "Edit details", icon: IconPencil, onSelect: () => setEditing(true) },
+              { label: "Edit Details", icon: IconPencil, onSelect: () => setEditing(true) },
               {
-                label: "Delete project",
+                label: "Delete Project",
                 icon: IconTrash,
                 danger: true,
                 onSelect: () => {
@@ -220,7 +220,7 @@ export function ProjectDetail({ id }: { id: string }) {
                 <IconChat />
                 <p>No chats in this project yet.</p>
                 <button className="button button-ink" onClick={() => router.push(`/app?project=${project.id}`)}>
-                  Start a chat
+                  Start a Chat
                 </button>
               </div>
             ) : (
@@ -266,7 +266,7 @@ export function ProjectDetail({ id }: { id: string }) {
 
       {editing && (
         <ProjectDialog
-          title="Edit project"
+          title="Edit Project"
           submitLabel="Save changes"
           initial={project}
           onClose={() => setEditing(false)}

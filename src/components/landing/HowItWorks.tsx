@@ -76,10 +76,10 @@ function PushMock() {
 }
 
 const links = [
-  { name: "Halcyon fans", v: 0.9 },
-  { name: "Logan Sq. ads", v: 0.62 },
+  { name: "Halcyon Fans", v: 0.9 },
+  { name: "Logan Sq. Ads", v: 0.62 },
   { name: "Two Moons", v: 0.38 },
-  { name: "Headliner list", v: 0.74 },
+  { name: "Headliner List", v: 0.74 },
 ];
 
 function ReportMock() {
@@ -93,7 +93,7 @@ function ReportMock() {
           </div>
         ))}
       </div>
-      <p className={s.note}>Tickets per promo link</p>
+      <p className={s.note}>Tickets per Promo Link</p>
     </div>
   );
 }
@@ -126,7 +126,7 @@ export function HowItWorks() {
     <section className={s.section} id="how">
       <div className="wrap">
         <header className={s.head}>
-          <span className="eyebrow">How it works</span>
+          <span className="eyebrow">How It Works</span>
           <h2 className="display">From a date on the calendar to a full room.</h2>
         </header>
 
