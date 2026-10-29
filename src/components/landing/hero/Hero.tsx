@@ -167,8 +167,15 @@ export function Hero() {
         cx = Math.min(W * 0.87 - cw, W - cw - 28);
         cy = glowBase - ch - H * 0.05;
       }
-      Object.assign(show.style, { left: `${ax}px`, top: `${ay}px` });
-      Object.assign(chat.style, { left: `${cx}px`, top: `${cy}px` });
+      // Never over the headline or the buttons: on short or narrow screens a card drops below the CTAs, and when
+      // there is no room left under them it steps aside rather than cover anything.
+      const clear = ctaBottom + (phone ? 18 : 28);
+      ay = Math.max(ay, clear);
+      cy = Math.max(cy, clear);
+      const fits = (top: number, h: number) => top + h <= H - 12;
+      const overlap = ax + aw + 12 > cx && ay < cy + ch && cy < ay + ah;
+      Object.assign(show.style, { left: `${ax}px`, top: `${ay}px`, visibility: fits(ay, ah) && !overlap ? "visible" : "hidden" });
+      Object.assign(chat.style, { left: `${cx}px`, top: `${cy}px`, visibility: fits(cy, ch) ? "visible" : "hidden" });
 
       buildHeat();
     }
