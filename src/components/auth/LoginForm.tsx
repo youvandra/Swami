@@ -14,14 +14,15 @@ export function LoginForm() {
   const params = useSearchParams();
   const next = params.get("next") ?? "/app";
   const [email, setEmail] = useState("");
-  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">(params.get("error") ? "error" : "idle");
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "error" | "busy" | "failed">(params.get("error") ? "error" : "idle");
   const callback = () => `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
 
   async function sendLink(e: React.FormEvent) {
     e.preventDefault();
     setState("sending");
     const { error } = await supabaseBrowser().auth.signInWithOtp({ email: email.trim(), options: { emailRedirectTo: callback() } });
-    setState(error ? "error" : "sent");
+    // 429: too many sign-in emails for now; anything else is a send that failed, which differs from a stale link
+    setState(!error ? "sent" : error.status === 429 ? "busy" : "failed");
   }
 
   const google = () => supabaseBrowser().auth.signInWithOAuth({ provider: "google", options: { redirectTo: callback() } });
@@ -65,6 +66,8 @@ export function LoginForm() {
                 </button>
               </form>
               {state === "error" && <p className={s.error}>That link did not work. Ask for a new one.</p>}
+              {state === "busy" && <p className={s.error}>Too many sign-in emails just went out. Wait a minute, then try again.</p>}
+              {state === "failed" && <p className={s.error}>We could not send the link. Check the address and try again.</p>}
               {googleOn && (
                 <>
                   <div className={s.or}>or</div>
