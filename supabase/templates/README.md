@@ -1,7 +1,7 @@
 # Auth email templates
 
-Paste these into Supabase → Authentication → Emails → Templates. The link sends a token hash to
-`/auth/callback`, so it works in any browser, the email app's own included.
+Paste these into Supabase → Authentication → Emails → Templates. The link builds on the Site URL and sends a token hash to
+`/auth/callback`, so it works in any browser, the email app's own included, and needs no entry in the redirect allow list.
 
 | Template | File | Subject |
 | --- | --- | --- |
